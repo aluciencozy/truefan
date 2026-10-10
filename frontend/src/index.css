@@ -96,7 +96,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .app-shell .celestial { background: transparent; }
 .app-shell .celestial::before { display: none; }
 .app-header { height: 80px; padding: 0 36px; display: flex; align-items: center; justify-content: space-between; gap: 24px; position: relative; z-index: 30; }
-.app-header .home-brand, .explorer-title { backdrop-filter: blur(8px); }
 .explorer-title { font-family: var(--display); font-size: 17px; color: var(--subtext); }
 .header-meta { display: flex; align-items: center; gap: 18px; position: relative; }
 .account-panel { position: relative; font-size: 12px; }
@@ -183,8 +182,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .canvas-legend span { display: block; font-size: 11px; color: #7f849c; margin-top: 6px; }
 /* A fixed stage: the worlds travel while the reading position stays still. */
 .universe-canvas { isolation: isolate; }
-.universe-nebula { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 34% 48%, #cba6f716, transparent 42%), radial-gradient(ellipse at 80% 20%, #89b4fa0a, transparent 50%); }
-.universe-canvas::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 4; box-shadow: inset 0 0 110px 30px #11111b80; }
 .universe-canvas .react-flow__pane { cursor: default; }
 .destination-orbit { flex-shrink: 0; will-change: transform; transition: border-color .3s, box-shadow .3s; }
 .destination strong, .destination-state { flex-shrink: 0; }
