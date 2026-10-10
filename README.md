@@ -14,7 +14,7 @@ returns only facts at or before the user's exact progress.
 - Vite + React + TypeScript dashboard with Tailwind and React Flow.
 - Backend media search, selected media, progress selector, graph, and entity details.
 - FastAPI health check and hard-coded, backend-filtered graph responses.
-- Neon Auth UI for Google-only sign-in, sign-out, account settings, sessions, and a protected API identity check.
+- Neon Auth UI for Google-only sign-in, sign-out, account settings, and a protected API identity check.
 - Persistent per-user media progress through authenticated FastAPI endpoints.
 - Lazy Neon Postgres connection helper; no database or external credentials needed to boot.
 - Dynamic AniList search and reusable Neon franchise caches with bounded discovery and explicit expansion.
@@ -261,6 +261,8 @@ See the [implemented schema](docs/IMPLEMENTATION.md#5-actual-database-schema) an
 The account pages use `createAuthClient` from `@neondatabase/neon-js/auth`, its
 React adapter, and `NeonAuthUIProvider`, `AuthView`, and `AccountView` from
 `@neondatabase/auth-ui`. Cross-origin SDK requests include session credentials.
+Account details live on `/account/settings`; legacy security/session links redirect
+there. The minimal account page omits provider and session management.
 This follows the [official managed-auth guidance](https://github.com/neondatabase/agent-skills/blob/main/skills/neon-auth/references/managed-auth.md).
 The frontend provider uses the supported
 `social={{ providers: ['google'] }}` and `credentials={false}` options:
@@ -325,7 +327,7 @@ JWT can remain valid until expiry; no immediate bearer-token revocation is promi
 3. Open Account on the dashboard and click **Verify API session**; `/api/me` should return your subject.
 4. Select episode 2 and click **Save progress**. Change to episode 1, then click **Retrieve progress**; it should restore episode 2.
 5. Reload the page: the session should restore. Retrieve progress again to prove persistence.
-6. Visit `/account/settings` for account settings and `/account/sessions` for sessions.
+6. Visit `/account/settings` to update account details or sign out; `/account/security` and `/account/sessions` redirect there.
 7. Sign out via `/auth/sign-out`. The dashboard should show sign-in links; private API requests without a JWT must return 401.
 8. Sign in as another user and verify there is no saved progress until that user saves it.
 
