@@ -25,8 +25,8 @@ test('navigation follows connected neighbors in either direction, deduplicating 
   assert.equal(directionalNeighbor('home', ['right'], positions, { x: -1, y: 0 }), undefined)
   assert.equal(directionalNeighbor('home', ['missing'], positions, { x: 1, y: 0 }), undefined)
 })
-test('focus camera anchors artwork middle-left on desktop and above the panel on mobile', () => {
-  for (const [width, height, horizontal, vertical] of [[1280, 720, .34, .48], [390, 760, .5, .25]]) {
+test('focus camera anchors artwork in the dedicated graph area on desktop and mobile', () => {
+  for (const [width, height, horizontal, vertical] of [[1280, 720, .5, .43], [390, 500, .5, .43]]) {
     const view = focusViewport(positions.home, width, height)
     assert.equal(view.x + (positions.home.x + 88) * view.zoom, width * horizontal)
     assert.equal(view.y + (positions.home.y + 50) * view.zoom, height * vertical)
