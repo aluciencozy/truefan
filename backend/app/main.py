@@ -12,8 +12,9 @@ from app.schemas import (AskRequest, ExtractRequest, GraphResponse, HealthRespon
                          Media, PlaceholderResponse, RevealPoint)
 from app.services.demo import ENTITIES, MEDIA, RELATIONSHIPS
 from app.services.graph import filter_graph
-from app.services import anilist, generation
-from app.schemas import Universe, GenerationStatus
+from app.services import anilist, generation, franchises
+from app.schemas import (Universe, GenerationStatus, UniverseExpandRequest,
+                         UserMediaState, UserMediaStateUpdate)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,6 +36,12 @@ app.add_middleware(CORSMiddleware,
 def get_media(media_id: str) -> Media:
     if media_id == MEDIA.id:
         return MEDIA
+    try:
+        local = franchises.cached_media(media_id)
+        if local:
+            return local
+    except (RuntimeError, psycopg.Error):
+        pass
     if settings.database_url:
         try:
             from app.database import connection
@@ -72,7 +79,11 @@ def search_media(q: str = Query(default="", max_length=200)):
     demo = [MEDIA] if q.casefold() in MEDIA.title.casefold() else []
     try: return demo + anilist.search_media(q)
     except (ValueError, KeyError, TypeError):
-        if demo: return demo
+        try:
+            local = franchises.search_local(q)
+        except (RuntimeError, psycopg.Error):
+            local = []
+        if demo or local: return demo + local
         raise HTTPException(502, 'AniList search unavailable; try again shortly') from None
 
 
@@ -125,17 +136,36 @@ def write_progress(media_id: str, progress: RevealPoint,
     media = get_media(media_id)
     if progress.unit > media.total_units:
         raise HTTPException(422, "Progress exceeds this media’s total units")
-    return progress_service.save_progress(user.id, UserProgress(media_id=media_id, progress=progress))
+    return progress_service.save_progress(user.id, UserProgress(media_id=media_id, progress=progress), media)
+
+
+@app.get('/api/me/media-state', response_model=list[UserMediaState])
+def read_media_states(user: Annotated[CurrentUser, Depends(current_user)],
+                      media_id: Annotated[list[str], Query(min_length=1, max_length=50)]):
+    if len(set(media_id)) != len(media_id) or any(not item.strip() or len(item) > 200 for item in media_id):
+        raise HTTPException(422, 'Request 1–50 unique nonempty media IDs')
+    return progress_service.get_media_states(user.id, media_id)
+
+
+@app.put('/api/me/media-state/{media_id}', response_model=UserMediaState)
+def write_media_state(media_id: str, update: UserMediaStateUpdate,
+                      user: Annotated[CurrentUser, Depends(current_user)]):
+    get_media(media_id)
+    return progress_service.update_media_state(user.id, media_id, update)
 
 
 @app.get('/api/media/{media_id}/universe', response_model=Universe)
 def media_universe(media_id: str):
-    get_media(media_id)
     if media_id == MEDIA.id:
         return Universe(root_id=media_id, media=[MEDIA], relationships=[])
-    try: return anilist.universe(media_id)
+    try: return franchises.universe(media_id)
     except (ValueError, KeyError, TypeError):
         raise HTTPException(502, 'Universe metadata temporarily unavailable') from None
+
+
+@app.post('/api/media/{media_id}/universe/expand', response_model=Universe)
+def expand_universe(media_id: str, request: UniverseExpandRequest):
+    return franchises.expand(media_id, request)
 
 
 @app.get('/api/media/{media_id}/generation', response_model=GenerationStatus)
