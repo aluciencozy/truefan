@@ -28,6 +28,40 @@ const first = { ...fixture, id: 'anilist-1', title: 'First', anilist_id: 1, rele
 const sequel = { ...first, id: 'anilist-2', title: 'Sequel', anilist_id: 2, release_date: { year: 2001, month: 1, day: 1 } }
 const universe = { root_id: first.id, media: [first, sequel], relationships: [{ source: first.id, target: sequel.id, type: 'SEQUEL' }], truncated: false }
 
+test('changing progress clears portraits and selected details before the next graph arrives', async () => {
+  globalThis.__navigationQuery = ''
+  const pending = []
+  const character = { id: 'mira', name: 'Mira', type: 'character', portrait_url: '/mira.jpg' }
+  Object.assign(api, {
+    health: async () => ({}), search: async () => [fixture],
+    graph: async (id, unit, signal) => {
+      if (unit === 1) return { media_id: id, progress: { unit }, entities: [character], relationships: [], generation: null }
+      const response = Promise.withResolvers()
+      pending.push({ response, signal, id, unit })
+      return response.promise
+    },
+  })
+  let renderer
+  try {
+    await act(async () => { renderer = create(createElement(App)) })
+    await act(async () => renderer.root.findByType('GraphCanvas').props.onSelect('mira'))
+    assert.equal(renderer.root.findByType('EntityDetails').props.entity.portrait_url, '/mira.jpg')
+    await act(async () => renderer.root.findByType('MediaControls').props.onProgress(2))
+    assert.equal(renderer.root.findAllByType('GraphCanvas').length, 0)
+    assert.equal(renderer.root.findAllByType('EntityDetails').length, 0)
+    await act(async () => renderer.root.findByType('MediaControls').props.onProgress(0))
+    assert.equal(pending[0].signal.aborted, true)
+    await act(async () => pending[0].response.resolve({ media_id: fixture.id, progress: { unit: 2 }, entities: [character], relationships: [], generation: null }))
+    assert.equal(renderer.root.findAllByType('GraphCanvas').length, 0)
+    await act(async () => pending[1].response.resolve({ media_id: fixture.id, progress: { unit: 0 }, entities: [], relationships: [], generation: null }))
+    assert.equal(renderer.root.findAllByType('EntityDetails').length, 0)
+    assert.equal(renderer.root.findAllByType('GraphCanvas').length, 0)
+  } finally {
+    if (renderer) await act(async () => renderer.unmount())
+    globalThis.__navigationQuery = 'q=anime'
+  }
+})
+
 test('direct media route opens its universe without a second search or character generation', async () => {
   globalThis.__navigationQuery = `media=${sequel.id}`
   const calls = []

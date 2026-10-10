@@ -23,6 +23,7 @@ export interface Provenance { source: string; source_unit: number; verified: boo
 export interface Entity {
   id: string; name: string; type: 'character' | 'faction' | 'location' | 'object'
   description: string; revealed_at: RevealPoint; provenance: Provenance
+  portrait_url?: string | null; portrait_large_url?: string | null
 }
 export interface Relationship {
   id: string; source: string; target: string; type: string; label: string | null

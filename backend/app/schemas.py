@@ -63,6 +63,8 @@ class Entity(BaseModel):
     description: str
     revealed_at: RevealPoint
     provenance: Provenance
+    portrait_url: str | None = None
+    portrait_large_url: str | None = None
 
 
 class Relationship(BaseModel):

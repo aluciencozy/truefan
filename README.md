@@ -373,6 +373,15 @@ these contracts in `src/lib/types.ts`.
 | `PUT /api/me/progress/{media_id}` | Bearer token plus `{ "unit": N }`; upserts only this user’s progress; invalid units return 422 |
 | `GET /api/me/progress/{media_id}` | Bearer token; returns `UserProgress` or `null` when unsaved |
 
+Visible character entities also include nullable `portrait_url` (medium) and
+`portrait_large_url` (large) from AniList. The backend matches normalized names,
+name order, and aliases against the selected media's `anilist_id`, after episode
+filtering. Ambiguous matches keep monograms. Cast pages reuse the existing
+one-hour AniList cache; names, aliases, biographies, and future cast entries are
+never added to the response. Nodes lazy-load portraits; details use the larger
+image, with monogram fallbacks on image errors or provider outages. AniList
+portraits are general profile art, not episode-specific artwork.
+
 Example graph shape (additional provenance fields omitted here for readability):
 
 ```json
