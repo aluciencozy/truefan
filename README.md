@@ -282,6 +282,11 @@ See the official [OAuth setup](https://neon.com/docs/auth/guides/setup-oauth),
 [React Auth UI guide](https://github.com/neondatabase-labs/ai-rules/blob/main/references/neon-auth-ui-react-spa.md).
 
 FastAPI credentials are separate: `authClient.token()` issues a bearer JWT.
+The installed Neon Auth 0.5.0-beta SDK incorrectly applies its session cache to
+`/token`. The API client uses the SDK's `X-Force-Fetch` option to bypass that cache;
+the SDK strips the header before sending the request. Remove this workaround
+when an SDK upgrade fixes the cache behavior. Run the regression check with
+`node --test tests/auth-api.test.mjs` from `frontend/`.
 `current_user()` uses the full Auth URL plus `/.well-known/jwks.json` for keys,
 checks EdDSA signatures, and requires issuer and audience equal to the Auth URL's
 origin. It also checks expiry, issued-at, and a nonempty user subject. The full
@@ -508,7 +513,9 @@ Ed25519 fixtures and mocked database queries. Browser inspection confirms the
 sign-in page displays only Google, and clicking it reaches Google's live sign-in
 page through Neon. The configured live JWKS endpoint returns HTTP 200 with an
 Ed25519 public key; FastAPI returns 401 for missing and invalid bearer tokens.
-This isolated browser has no Google login session, so the
-authenticated return, live JWT issuance, protected API success, and Postgres
-save/retrieve remain unverified until a user completes Google sign-in.
+The user's browser completed Google sign-in and received a live Neon session
+and JWT. The installed SDK's session cache prevented the API client from
+requesting a token; the workaround passes a local regression check using the
+installed SDK and HTTP fixtures. Protected API success and Postgres save/retrieve
+still require a live check after the fix.
 A build, an OAuth redirect, or mocked JWT tests do not prove the complete live flow.

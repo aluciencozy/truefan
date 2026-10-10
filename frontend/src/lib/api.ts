@@ -7,7 +7,11 @@ async function request<T>(path: string, signal?: AbortSignal, authenticated = fa
   const headers = new Headers(options.headers)
   if (authenticated) {
     if (!authClient) throw new Error('Configure Neon Auth before accessing your account.')
-    const { data, error } = await authClient.token()
+    // shortcut: Neon Auth 0.5.0-beta caches /token as /get-session; remove when the SDK fixes this.
+    // The SDK consumes and strips this header before sending the request to Neon.
+    const { data, error } = await authClient.token({
+      fetchOptions: { headers: { 'X-Force-Fetch': 'true' } },
+    })
     if (error || !data?.token) throw new Error('Sign in before accessing your account.')
     headers.set('Authorization', `Bearer ${data.token}`)
   }
