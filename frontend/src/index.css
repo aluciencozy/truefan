@@ -162,9 +162,11 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .destination-art img { width: 100%; height: 100%; object-fit: cover; }
 .destination strong { font-size: 12px; font-weight: 400; line-height: 1.5; margin-top: 13px; max-width: 176px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .destination-state { font-size: 10px; color: var(--muted); margin-top: 5px; }
-.destination.locked .destination-art { filter: grayscale(1); opacity: .35; }
-.destination.locked .destination-orbit { border-style: dashed; border-color: #585b7080; box-shadow: none; }
-.destination.locked strong { color: #9399b2; }
+.destination.locked .destination-art { position: relative; background: var(--base); }
+.destination.locked .destination-art > * { filter: blur(12px) saturate(.2); opacity: .35; transform: scale(1.3); }
+.destination.locked .destination-art::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(135deg, #cba6f71a, #1e1e2eb3 55%, #181825cc); }
+.destination.locked .destination-orbit { border-style: dashed; border-color: #cba6f745; box-shadow: none; }
+.destination.locked strong { color: var(--muted); }
 .destination.completed .destination-orbit { border-color: #a6e3a180; box-shadow: 0 0 24px #a6e3a110; }
 .destination:hover .destination-orbit { border-color: var(--lavender); box-shadow: 0 0 0 6px #b4befe0a, 0 0 0 13px #b4befe05, 0 0 40px #b4befe30; }
 .destination.focused strong { color: #f5e0dc; }

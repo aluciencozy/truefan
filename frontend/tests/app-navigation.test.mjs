@@ -77,6 +77,7 @@ test('direct media route opens its universe without a second search or character
     await act(async () => { renderer = create(createElement(App)) })
     assert.deepEqual(calls, [['media', sequel.id], ['universe', sequel.id]])
     assert.equal(renderer.root.findByType('UniverseCanvas').props.universe.root_id, sequel.id)
+    assert.deepEqual(renderer.root.findByType('h1').children, ['Undiscovered'])
     assert.equal(renderer.root.findByType('details').props.open, false)
   } finally {
     if (renderer) await act(async () => renderer.unmount())

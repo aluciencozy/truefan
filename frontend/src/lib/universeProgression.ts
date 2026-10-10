@@ -9,6 +9,10 @@ export interface ReleaseGuide {
 }
 export type MediaStates = Record<string, UserMediaState>
 
+export function worldTitle(media: Media, guide: ReleaseGuide | undefined): string {
+  return guide?.status === 'locked' ? 'Undiscovered' : media.title
+}
+
 /** Unknown components sort after known components at the same precision; no date is invented. */
 export function compareRelease(a: Media, b: Media): number {
   for (const part of ['year', 'month', 'day'] as const) {
