@@ -123,7 +123,7 @@ export default function App() {
   }
 
   function enter(item: Media) {
-    if (awaitingState || saving || (universe && guide[item.id]?.status === 'locked')) return
+    if (item.anilist_id && (awaitingState || saving || (universe && guide[item.id]?.status === 'locked'))) return
     setMedia(item); setProgress(Math.min(item.total_units, states[item.id]?.progress?.unit ?? (item.anilist_id ? 0 : 1)))
     setSelectedId(null); setGraph(null); setError(''); setGenerationError(''); setView('characters')
   }
