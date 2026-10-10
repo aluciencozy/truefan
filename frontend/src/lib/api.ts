@@ -1,9 +1,11 @@
 import { authClient } from './auth'
-import type { CurrentUser, FlowGraphResponse, GenerationStatus, GraphExtractRequest, GraphResponse, HealthResponse, Media, Universe, UserMediaState, UserProgress } from './types'
+
+import type { FlowGraphResponse, GraphResponse, HealthResponse, Media, Node, Universe, UniverseExpandRequest, UserMediaState, CurrentUser, GenerationStatus, UserProgress } from './types'
+
 
 const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
-async function request<T>(path: string, signal?: AbortSignal, authenticated = false, options: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, signal?: AbortSignal, authenticated = false, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers)
   if (authenticated) {
     if (!authClient) throw new Error('Configure Neon Auth before accessing your account.')
@@ -26,6 +28,8 @@ async function request<T>(path: string, signal?: AbortSignal, authenticated = fa
 export const api = {
   health: (signal?: AbortSignal) => request<HealthResponse>('/health', signal),
   search: (q: string, signal?: AbortSignal) => request<Media[]>(`/api/media/search?q=${encodeURIComponent(q)}`, signal),
+  searchUniverses: (q: string, discover = false, signal?: AbortSignal) =>
+    request<UniverseSearchResponse>(`/api/universes/search?q=${encodeURIComponent(q)}&discover=${discover}`, signal),
   media: (id: string, signal?: AbortSignal) => request<Media>(`/api/media/${encodeURIComponent(id)}`, signal),
   graph: (id: string, progress: number, signal?: AbortSignal) =>
     request<GraphResponse>(`/api/media/${encodeURIComponent(id)}/graph?progress=${progress}`, signal),

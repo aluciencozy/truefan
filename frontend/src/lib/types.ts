@@ -69,3 +69,8 @@ export interface Universe {
   root_id: string; media: Media[]; relationships: UniverseRelation[]; truncated: boolean
   franchise_id?: string | null; cache?: UniverseCache | null
 }
+
+export interface UniverseSearchResult {
+  franchise_id: string; title: string; entry_media_id: string; cover_url: string | null
+}
+export interface UniverseSearchResponse { results: UniverseSearchResult[]; auto_open: boolean }

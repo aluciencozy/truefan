@@ -14,7 +14,7 @@ returns only facts at or before the user's exact progress.
 - Vite + React + TypeScript dashboard with Tailwind and React Flow.
 - Backend media search, selected media, progress selector, graph, and entity details.
 - FastAPI health check and hard-coded, backend-filtered graph responses.
-- Neon Auth UI for Google-only sign-in, sign-out, account settings, sessions, and a protected API identity check.
+- Neon Auth UI for Google-only sign-in, sign-out, account settings, and a protected API identity check.
 - Persistent per-user media progress through authenticated FastAPI endpoints.
 - Lazy Neon Postgres connection helper; no database or external credentials needed to boot.
 - Dynamic AniList search and reusable Neon franchise caches with bounded discovery and explicit expansion.
@@ -173,8 +173,20 @@ curl 'http://localhost:8000/api/media/lantern-harbor/graph?progress=3'
 ```
 
 The home route (`/`) is the TrueFan search hero, using Catppuccin Mocha and
-self-hosted JetBrains Mono. Submitting a title opens `/explore?q=...`; submitting
-an empty search opens the guest demo. The explorer retains media selection,
+self-hosted JetBrains Mono. Homepage suggestions are distinct cached franchises
+(for example, “Fate Universe”), grouped by surviving franchise ID and strong
+AniList relationship membership. Member titles such as “Fate/Zero” find the same
+universe while preserving the matching work as its entry point. Suggestions and Enter open it directly
+at `/explore?media=anilist-...`, preserving the selected work as its entry point.
+Typing is debounced and searches Neon only. Enter or **Discover this universe**
+resolves an uncached title using AniList search and the existing bounded discovery
+pipeline, with at most three discoveries per explicit search. Unambiguous results
+open automatically; ambiguous results stay in the homepage dropdown. Unresolved
+equally relevant candidates at the discovery limit require a more specific query.
+Labels shorten stored slash/season names for display; names never establish membership.
+Franchise search requires the existing Neon cache; provider/storage errors stay inline.
+Submitting an empty search opens the guest demo.
+The TrueFan header link returns home to search again. The explorer retains media selection,
 progress filtering, and account controls. Home-page image nodes are decorative
 artwork reused from the Figma design, not factual story relationships. Assets
 live in `frontend/public/home/`; the font license is in `frontend/public/fonts/`.
@@ -261,6 +273,8 @@ See the [implemented schema](docs/IMPLEMENTATION.md#5-actual-database-schema) an
 The account pages use `createAuthClient` from `@neondatabase/neon-js/auth`, its
 React adapter, and `NeonAuthUIProvider`, `AuthView`, and `AccountView` from
 `@neondatabase/auth-ui`. Cross-origin SDK requests include session credentials.
+Account details live on `/account/settings`; legacy security/session links redirect
+there. The minimal account page omits provider and session management.
 This follows the [official managed-auth guidance](https://github.com/neondatabase/agent-skills/blob/main/skills/neon-auth/references/managed-auth.md).
 The frontend provider uses the supported
 `social={{ providers: ['google'] }}` and `credentials={false}` options:
@@ -325,7 +339,7 @@ JWT can remain valid until expiry; no immediate bearer-token revocation is promi
 3. Open Account on the dashboard and click **Verify API session**; `/api/me` should return your subject.
 4. Select episode 2 and click **Save progress**. Change to episode 1, then click **Retrieve progress**; it should restore episode 2.
 5. Reload the page: the session should restore. Retrieve progress again to prove persistence.
-6. Visit `/account/settings` for account settings and `/account/sessions` for sessions.
+6. Visit `/account/settings` to update account details or sign out; `/account/security` and `/account/sessions` redirect there.
 7. Sign out via `/auth/sign-out`. The dashboard should show sign-in links; private API requests without a JWT must return 401.
 8. Sign in as another user and verify there is no saved progress until that user saves it.
 
@@ -346,6 +360,7 @@ these contracts in `src/lib/types.ts`.
 | --- | --- |
 | `GET /health` | `{ "status": "ok", "mode": "demo" }`; does not imply DB/provider readiness |
 | `GET /api/media/search?q=...` | See [search behavior](docs/IMPLEMENTATION.md#search-and-universe-discovery) |
+| `GET /api/universes/search?q=...&discover=false` | Public; `{ results: [{ franchise_id, title, entry_media_id, cover_url }], auto_open }`; five distinct cached franchises; `discover=true` permits bounded on-demand discovery when no cached match exists |
 | `GET /api/media/{id}` | One `Media`; unknown IDs return 404 |
 | `GET /api/media/{id}/universe` | Public cache-first franchise graph; `root_id` remains the exact selected work |
 | `POST /api/media/{id}/universe/expand` | Public bounded frontier expansion; body `{ "expected_revision": N }`; stale revision is 409 |
@@ -438,12 +453,23 @@ versions. Do not replace an early description with a full-story biography.
 ## Universe exploration and release guidance
 
 Search results keep their exact AniList media ID and your typed query. Selecting
-an anime opens an effectively infinite React Flow canvas. Select a destination
+an anime opens a spacious React Flow canvas at a readable zoom near the selected
+work. Pan and zoom to explore; **Fit View** shows the complete discovered graph.
+Pan bounds and minimum zoom are derived from its layout. Select a destination
 to smoothly focus it, inspect its connections, and use **Enter anime** (or
 double-click an accessible node) to open the existing episode-filtered character
-graph. **Return home** focuses the original selection; zoom controls, fit-view and
-a desktop minimap navigate the map. Returning from characters keeps the canvas
-and camera mounted. The minimap is hidden on narrow mobile screens.
+graph. **Return home** focuses the original selection. Returning from characters
+keeps the universe canvas and camera mounted. The map uses the homepage's dark
+Catppuccin Mocha palette and locally hosted Pixelify Sans typography, with cover
+art, thin connections, and distinct locked/available/completed states.
+
+Selecting a character focuses its node and opens a Motion detail panel on the
+right half of the desktop canvas (a bottom panel on mobile). Closing restores
+the previous camera. Details show only the filtered graph's descriptions,
+relationships, and provenance. Character artwork is not supplied by the API,
+so characters use monograms. Changing progress immediately removes old graphs
+and details. Motion respects reduced-motion settings; layouts do not recalculate
+while panning or zooming.
 
 `universeModel.ts` normalizes stable typed connections while preserving the
 original directed AniList evidence. PREQUEL reverses placement direction;
@@ -552,6 +578,20 @@ AI calls or Neon writes. The [earlier Jikan report](docs/jikan-feasibility.md) r
 record of that investigation.
 
 ## Hugging Face extraction experiment
+
+For a simple one-request check using a made-up story, set `HF_TOKEN` and
+`HF_MODEL` in `backend/.env`, install `backend/requirements.txt`, and run from
+`backend/`:
+
+```bash
+.venv/bin/python scripts/hf_extraction_smoke.py
+```
+
+This optional smoke test checks JSON structure, entity names, relationship
+endpoints, and exact evidence quotes. It prints the model response and exits
+with a nonzero status on failure. It makes no database writes, does not verify
+semantic correctness or spoiler safety, and can consume inference credits.
+Keep captured model responses outside the repository.
 
 From `backend/`, using the server-only `HF_TOKEN` in `backend/.env`:
 
@@ -682,6 +722,7 @@ installed SDK and HTTP fixtures. Protected API success and Postgres save/retriev
 still require a live check after the fix.
 A build, an OAuth redirect, or mocked JWT tests do not prove the complete live flow.
 
+
 ## Seeding the curated demo catalog
 
 `schema.sql` also defines `media`, `entities` and `relationships` (`unlock_episode` = the
@@ -691,3 +732,63 @@ episodes 1/5/10/15/20 and 24 edges up to episode 25). It is idempotent. Seed rev
 unreviewed (`verified = false`); they err late, never early. Without the seed, or when
 Neon is unreachable, the extract endpoint falls back to the same data compiled into
 `app/services/seed_catalog.py`.
+
+## Community (Figma: Truefan)
+
+`/community` implements the Figma design in typed React components. Shared colors,
+local Pixelify Sans/Inter fonts, starry backgrounds, and control styles live in
+`frontend/src/index.css`; original Figma SVG assets live in `frontend/public/community`. The shared palette
+is used throughout the app; Community and Library typography/form tokens are
+scoped to their pages to preserve the homepage and constellation explorer styles. The palette
+matches Truefan’s Community frame (`123:30`): charcoal `#1e1e2e`, panels
+`#181825`, borders `#45475a`, pale text `#cdd6f4`, and lavender `#cba6f7`.
+The sidebar links Explore, My Library (`/library`), and Community. Community has
+Discussions, Theories, and Reviews, search/media filters, latest/popular sorting,
+post links, optional review ratings, likes, and comments. There are no episode controls
+on this page. My Library reads the signed-in user's existing saved progress.
+
+Community data is stored in Neon Postgres. With backend dependencies and
+`DATABASE_URL` configured, initialize its additive tables once:
+
+```sh
+cd backend
+python -m app.init_community
+```
+
+The initializer does not populate the live feed. Optionally use
+`python -m app.init_community --seed-demo` for three clearly marked example posts;
+these have zero likes/comments. If storage is unavailable, the UI shows a labelled
+design preview and disables publishing/reactions rather than inventing activity.
+Deploy the updated backend and frontend to make these changes available online;
+initialize the tables on the same Neon branch used by that deployment.
+
+Community API contracts (also available in `/openapi.json`):
+
+| Endpoint | Access / behavior |
+| --- | --- |
+| `GET /api/community/posts` | Public; `category`, `media`, `q`, `sort`, `include_spoilers`, `offset`; 20 posts per page and `has_more`. |
+| `POST /api/community/posts` | Verified Neon bearer JWT; category, media, title, body, `contains_spoilers`, optional rating 1–5 for reviews. |
+| `GET /api/community/posts/{id}` | Public; respects `include_spoilers`, including copied post links. |
+| `PUT /api/community/posts/{id}/like` | Verified JWT; `{ "liked": true }` or false; one like per user/post. |
+| `GET /api/community/posts/{id}/comments` | Public; filters parent and comment spoiler flags; latest 100 comments. |
+| `POST /api/community/posts/{id}/comments` | Verified JWT; body and `contains_spoilers`; inherits a spoiler parent's flag. |
+| `POST /api/community/presence` | Public heartbeat with browser `visitor_id` UUID and category `page`; optional verified JWT. |
+| `GET /api/community/library` | Verified JWT; only the caller's saved media. |
+
+The visitor badge counts activity within the last 90 seconds, refreshing every
+25 seconds while the page is visible. Anonymous visitors are counted by browser,
+and authenticated visitors are deduplicated by verified user ID across browsers.
+It is an estimate of recent presence, not a fabricated fixed “128” or an exact count
+of humans. Counts span the Community tabs. Public posts use stable pseudonyms;
+ownership comes exclusively from the verified JWT, never request-supplied user IDs.
+
+Spoiler posts and comments are excluded in backend queries by default, including
+search/media options and comment counts. Authors supply spoiler flags; this does
+not automatically detect spoilers or apply graph reveal points to community text.
+
+Validation: frontend build/typecheck, existing SDK token regression, and community
+API tests. Real Postgres regression tests use isolated temporary tables and verify
+like deduplication, presence expiry/deduplication, filtering, and comments. Run them
+with `TRUEFAN_COMMUNITY_DB_TESTS=1 python -m unittest discover -s tests -p test_community.py`.
+These tests do not certify a live Google sign-in and publishing session.
+

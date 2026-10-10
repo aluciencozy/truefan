@@ -12,10 +12,15 @@ from app.schemas import (AskRequest, ExtractRequest, FlowGraphResponse, GraphExt
                          HealthResponse, Media, PlaceholderResponse, RevealPoint)
 from app.services.catalog import load_catalog
 from app.services.demo import ENTITIES, MEDIA, RELATIONSHIPS
+
 from app.services.graph import filter_graph, to_flow_graph
 from app.services import anilist, generation, franchises, huggingface
+
+from app.services.graph import filter_graph
+from app.services import anilist, generation, franchises, universe_search
+
 from app.schemas import (Universe, GenerationStatus, UniverseExpandRequest,
-                         UserMediaState, UserMediaStateUpdate)
+                         UserMediaState, UserMediaStateUpdate, UniverseSearchResponse)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,11 +34,16 @@ async def lifespan(app: FastAPI):
     stop.set()
 
 app = FastAPI(lifespan=lifespan, title="Spoiler-Aware Media Knowledge Graph", version="0.1.0")
+
 # Explicit origins only (never "*"): credentials and the Authorization header are in play.
 ALLOWED_ORIGINS = list(dict.fromkeys(
     ["http://localhost:3000", "http://127.0.0.1:3000", settings.frontend_url.rstrip("/")]))
 app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
+
+from app.community_api import router as community_router
+app.include_router(community_router)
+
 
 
 def get_media(media_id: str) -> Media:
@@ -88,6 +98,16 @@ def search_media(q: str = Query(default="", max_length=200)):
             local = []
         if demo or local: return demo + local
         raise HTTPException(502, 'AniList search unavailable; try again shortly') from None
+
+
+@app.get('/api/universes/search', response_model=UniverseSearchResponse)
+def search_universes(q: str = Query(default='', max_length=200), discover: bool = False) -> UniverseSearchResponse:
+    try:
+        return universe_search.search(q, discover)
+    except (RuntimeError, psycopg.Error):
+        raise HTTPException(503, 'Universe search unavailable; check the franchise cache and try again') from None
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(502, 'Universe discovery unavailable; try again shortly') from None
 
 
 @app.get("/api/media/{media_id}", response_model=Media)

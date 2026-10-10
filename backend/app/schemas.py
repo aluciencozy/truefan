@@ -189,6 +189,18 @@ class Universe(BaseModel):
     cache: UniverseCache | None = None
 
 
+class UniverseSearchResult(BaseModel):
+    franchise_id: str
+    title: str
+    entry_media_id: str
+    cover_url: str | None = None
+
+
+class UniverseSearchResponse(BaseModel):
+    results: list[UniverseSearchResult]
+    auto_open: bool = False
+
+
 class UniverseExpandRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     expected_revision: int = Field(ge=0)
