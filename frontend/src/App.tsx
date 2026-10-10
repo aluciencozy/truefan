@@ -56,7 +56,7 @@ export default function App() {
     <header className="app-header"><div><div className="brand">Story atlas</div>
       <h1>Follow the story.<br />Keep the mystery.</h1>
       <p>A spoiler-aware media knowledge graph, one reveal at a time.</p></div>
-      <div className="header-meta"><span role="status" className="connection">{health}</span><AuthPanel /></div>
+      <div className="header-meta"><span role="status" className="connection">{health}</span><AuthPanel media={media} progress={progress} onProgress={unit => { setProgress(unit); setSelectedId(null); setGraph(null) }} /></div>
     </header>
     <main className="workspace">
       <MediaControls query={query} onQuery={setQuery} onSearch={() => void search()} results={results}

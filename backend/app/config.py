@@ -11,8 +11,7 @@ class Settings(BaseSettings):
     anilist_api_url: str = "https://graphql.anilist.co"
     frontend_url: str = "http://localhost:3000"
     neon_auth_jwks_url: str = ""
-    neon_auth_issuer: str = ""
-    neon_auth_audience: str = ""
+    neon_auth_base_url: str = ""
 
 
 settings = Settings()

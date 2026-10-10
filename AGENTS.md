@@ -10,6 +10,7 @@ curated series is enough for the demo. Prefer small, working hackathon changes.
   Run `npm install`, `npm run dev`, `npm run build`, `npm run typecheck` here.
 - `backend/app/`: FastAPI contracts, integrations, auth verification, graph rules.
   In `backend/`: `uv venv`, activate `.venv`, `uv pip install -r requirements.txt`,
+  `python -m app.init_db` (once, with direct DB URL),
   `uvicorn app.main:app --reload`; check `python -m unittest discover -s tests`.
 - Neon Postgres stores app data; Neon Auth manages users and sessions.
   Vercel hosts frontend; Railway hosts backend. `neon.ts` enables managed Auth.
@@ -26,7 +27,10 @@ curated series is enough for the demo. Prefer small, working hackathon changes.
   New facts need reveal points; never send future facts to hide with frontend CSS.
 - Use Neon Auth for credentials/sessions; never invent a parallel password store.
   Validate JWTs in FastAPI; derive record ownership from verified `sub`, never
-  a client-supplied user ID. Demo graph is public; private saved progress is planned.
+  a client-supplied user ID. Demo graph is public; saved progress is user-owned.
+  Use official Neon SDK/UI. Get bearer JWTs via `.token()`; opaque sessions are
+  not JWTs. Verifier derives issuer/audience from Auth URL origin, JWKS from full
+  base URL; accept EdDSA only. Never claim mock tests verify a live Neon login.
 - `VITE_*` values are public. Keep DATABASE_URL, HF_TOKEN, and Neon API credentials
   server-only. Use local `.env` files and examples; never commit secrets or tokens.
 - Preserve extraction provenance. Model-generated relationships/reveal points

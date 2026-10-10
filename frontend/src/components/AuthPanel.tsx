@@ -1,42 +1,38 @@
 import { useState } from 'react'
-import type { FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { authClient } from '../lib/auth'
 import { api } from '../lib/api'
+import type { Media } from '../lib/types'
 
-export default function AuthPanel() {
-  if (!authClient) return <p className="account-note">Guest demo. Configure Neon Auth to enable accounts.</p>
-  return <ConfiguredAuth />
+interface Props {
+  media: Media | null
+  progress: number
+  onProgress: (unit: number) => void
 }
 
-function ConfiguredAuth() {
+export default function AuthPanel(props: Props) {
+  if (!authClient) return <p className="account-note">Guest demo. Configure Neon Auth to enable accounts.</p>
+  return <ConfiguredAuth {...props} />
+}
+
+function ConfiguredAuth({ media, progress, onProgress }: Props) {
   const client = authClient!
   const session = client.useSession()
-  const [signUp, setSignUp] = useState(false)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const data = new FormData(event.currentTarget)
+  async function accountAction(action: 'check' | 'save' | 'load') {
     setBusy(true); setMessage('')
     try {
-      const credentials = { email: String(data.get('email')), password: String(data.get('password')) }
-      const result = signUp
-        ? await client.signUp.email({ ...credentials, name: String(data.get('name')) })
-        : await client.signIn.email(credentials)
-      if (result.error) throw new Error(result.error.message || 'Authentication failed.')
-      setMessage(signUp ? 'Account created. If email verification is enabled, check your inbox before signing in.' : 'Signed in.')
-      await client.getSession()
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Authentication failed.') }
-    finally { setBusy(false) }
-  }
-
-  async function accountAction(action: 'check' | 'out') {
-    setBusy(true); setMessage('')
-    try {
-      if (action === 'out') {
-        const result = await client.signOut()
-        if (result.error) throw new Error(result.error.message || 'Sign out failed.')
+      if (action === 'save' && media) {
+        await api.saveProgress(media.id, progress)
+        setMessage(`Saved ${media.progress_unit} ${progress}.`)
+      } else if (action === 'load' && media) {
+        const saved = await api.progress(media.id)
+        if (saved) {
+          onProgress(saved.progress.unit)
+          setMessage(`Retrieved ${media.progress_unit} ${saved.progress.unit}.`)
+        } else setMessage('No saved progress for this story yet.')
       } else {
         const user = await api.me()
         setMessage(`Backend verified your identity: ${user.id}`)
@@ -48,14 +44,14 @@ function ConfiguredAuth() {
   return <details className="account-panel"><summary>Account{session.data ? `: ${session.data.user.name}` : ''}</summary>
     {session.isPending ? <p>Checking session…</p> : session.error ? <p role="alert">Session check failed. Check the Neon Auth URL and try reloading.</p> : session.data ? <div className="flex flex-wrap gap-3 mt-3">
       <button disabled={busy} onClick={() => void accountAction('check')}>Verify API session</button>
-      <button disabled={busy} onClick={() => void accountAction('out')}>Sign out</button>
-    </div> : <form onSubmit={submit} className="auth-form mt-3">
-      {signUp ? <label>Name<input name="name" required autoComplete="name" /></label> : null}
-      <label>Email<input name="email" type="email" required autoComplete="email" /></label>
-      <label>Password<input name="password" type="password" required minLength={8} autoComplete={signUp ? 'new-password' : 'current-password'} /></label>
-      <button className="primary" disabled={busy}>{busy ? 'Please wait…' : signUp ? 'Create account' : 'Sign in'}</button>
-      <button type="button" disabled={busy} onClick={() => { setSignUp(!signUp); setMessage('') }}>{signUp ? 'Use an existing account' : 'Create an account'}</button>
-    </form>}
+      <button disabled={busy || !media} onClick={() => void accountAction('save')}>Save progress</button>
+      <button disabled={busy || !media} onClick={() => void accountAction('load')}>Retrieve progress</button>
+      <Link to="/account/settings">Account settings</Link>
+      <Link to="/auth/sign-out">Sign out</Link>
+    </div> : <div className="flex gap-3 mt-3">
+      <Link to="/auth/sign-in">Sign in</Link>
+      <Link to="/auth/sign-up">Create account</Link>
+    </div>}
     <p role="status">{message}</p>
   </details>
 }

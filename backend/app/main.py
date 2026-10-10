@@ -1,7 +1,8 @@
 from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Query
 from app.auth import current_user
-from app.schemas import CurrentUser
+from app.schemas import CurrentUser, UserProgress
+from app.services import progress as progress_service
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.schemas import (AskRequest, ExtractRequest, GraphResponse, HealthResponse,
@@ -12,7 +13,7 @@ from app.services.graph import filter_graph
 app = FastAPI(title="Spoiler-Aware Media Knowledge Graph", version="0.1.0")
 app.add_middleware(CORSMiddleware,
                    allow_origins=[settings.frontend_url.rstrip("/")],
-                   allow_methods=["GET", "POST"], allow_headers=["Content-Type", "Authorization"])
+                   allow_methods=["GET", "POST", "PUT"], allow_headers=["Content-Type", "Authorization"])
 
 
 def get_demo(media_id: str) -> Media:
@@ -58,5 +59,19 @@ def ask(request: AskRequest):
 
 @app.get("/api/me", response_model=CurrentUser)
 def me(user: Annotated[CurrentUser, Depends(current_user)]):
-    """Identity proof only; user progress persistence is a future feature."""
     return user
+
+
+@app.get("/api/me/progress/{media_id}", response_model=UserProgress | None)
+def read_progress(media_id: str, user: Annotated[CurrentUser, Depends(current_user)]):
+    get_demo(media_id)
+    return progress_service.get_progress(user.id, media_id)
+
+
+@app.put("/api/me/progress/{media_id}", response_model=UserProgress)
+def write_progress(media_id: str, progress: RevealPoint,
+                   user: Annotated[CurrentUser, Depends(current_user)]):
+    media = get_demo(media_id)
+    if progress.unit > media.total_units:
+        raise HTTPException(422, "Progress exceeds this media’s total units")
+    return progress_service.save_progress(user.id, UserProgress(media_id=media_id, progress=progress))

@@ -14,7 +14,8 @@ returns only facts at or before the user's exact progress.
 - Vite + React + TypeScript dashboard with Tailwind and React Flow.
 - Backend media search, selected media, progress selector, graph, and entity details.
 - FastAPI health check and hard-coded, backend-filtered graph responses.
-- Optional Neon Auth sign-up, sign-in, sign-out, session display, and an API identity check.
+- Neon Auth UI for sign-up, sign-in, sign-out, account settings, sessions, and a protected API identity check.
+- Persistent per-user media progress through authenticated FastAPI endpoints.
 - Lazy Neon Postgres connection helper; no database or external credentials needed to boot.
 - Typed extraction/Q&A contracts and integration placeholders; neither calls an AI model.
 
@@ -24,8 +25,8 @@ Moving backwards removes later information immediately, including selected detai
 Progress 0 gives an empty graph. No real-series spoilers are included in the fixture.
 
 This is boilerplate, not a finished product. Search currently returns only this
-fixture. Accounts use real Neon Auth when configured, but saved progress,
-database tables, production deployments, and a real demo series are not implemented.
+fixture. Accounts use real Neon Auth when configured, but production deployments and a real demo series are not implemented.
+Saved progress needs the application table initialized as described below.
 
 ## Example experience
 
@@ -37,7 +38,7 @@ database tables, production deployments, and a real demo series are not implemen
 6. With Neon Auth configured, open Account, create an account or sign in, then
    use “Verify API session” to exercise the protected FastAPI endpoint.
 
-Eventually, signed-in users will resume stored progress across devices and media.
+Signed-in users can save and retrieve progress across reloads and devices.
 Spoiler-safe profiles and Q&A will share the same progress boundary.
 
 ## Architecture and stack
@@ -48,13 +49,14 @@ Vite + React browser app (Vercel)
   └─ HTTP / JSON → FastAPI (Railway)
                     ├─ reveal-point filtering
                     ├─ JWT verification for user-owned APIs
-                    ├─ Neon Postgres (planned app persistence)
+                    ├─ Neon Postgres (per-user progress)
                     ├─ AniList GraphQL (planned metadata)
                     └─ Hugging Face Inference Providers (planned extraction)
 ```
 
 The frontend is a separate SPA; there are no Next.js, SSR, or frontend API routes.
-React Flow uses `@xyflow/react`. Tailwind uses its Vite plugin. FastAPI uses
+React Flow uses `@xyflow/react`. Tailwind uses its Vite plugin. React Router handles
+`/auth/:path` and `/account/:path`; official Neon UI components handle credentials. FastAPI uses
 Pydantic for contracts, pydantic-settings for configuration, psycopg for Postgres,
 and PyJWT with cryptography for signed identity verification.
 
@@ -64,7 +66,7 @@ and PyJWT with cryptography for signed identity verification.
 /
 ├── frontend/
 │   ├── src/
-│   │   ├── components/       # MediaControls, GraphCanvas, EntityDetails, AuthPanel
+│   │   ├── components/       # Media controls, graph, details, Neon Auth provider/pages
 │   │   ├── lib/              # API client, shared API types, Neon Auth client
 │   │   ├── App.tsx           # Dashboard state and requests
 │   │   ├── main.tsx
@@ -72,7 +74,8 @@ and PyJWT with cryptography for signed identity verification.
 │   ├── .env.example
 │   ├── package.json
 │   ├── tsconfig.json
-│   └── vite.config.ts
+│   ├── vite.config.ts
+│   └── vercel.json          # SPA route rewrites
 ├── backend/
 │   ├── app/
 │   │   ├── main.py           # Endpoints and CORS
@@ -80,8 +83,10 @@ and PyJWT with cryptography for signed identity verification.
 │   │   ├── config.py         # Server configuration
 │   │   ├── auth.py           # Verified Neon identity dependency
 │   │   ├── database.py       # Lazy Postgres connection
-│   │   └── services/         # Demo data, filtering, AniList/HF placeholders
-│   ├── tests/test_graph.py   # Small spoiler-boundary regression checks
+│   │   ├── schema.sql        # Application user_progress table
+│   │   ├── init_db.py        # Explicit table setup command
+│   │   └── services/         # Progress storage, demo data, filtering, AniList/HF placeholders
+│   ├── tests/               # Auth, ownership, and spoiler-boundary checks
 │   ├── .env.example
 │   ├── Procfile              # Railway start command
 │   └── requirements.txt
@@ -175,9 +180,8 @@ to verify the graph and details update. Stop FastAPI and reload to check the err
 | `FRONTEND_URL` | Backend | Exact allowed browser origin; defaults to `http://localhost:3000` |
 | `VITE_API_URL` | Frontend | Public FastAPI origin; defaults to `http://localhost:8000` |
 | `VITE_NEON_AUTH_URL` | Frontend | Public branch-specific Neon Auth endpoint; blank disables account UI |
-| `NEON_AUTH_JWKS_URL` | Backend | Trusted HTTPS public signing-key endpoint for the same branch |
-| `NEON_AUTH_ISSUER` | Backend | Exact expected JWT `iss` from that branch |
-| `NEON_AUTH_AUDIENCE` | Backend | Expected `aud` when the configured issuer uses an audience |
+| `NEON_AUTH_BASE_URL` | Backend | Full branch Auth URL, identical to `VITE_NEON_AUTH_URL`; required for protected APIs |
+| `NEON_AUTH_JWKS_URL` | Backend, optional | Trusted Neon-supplied JWKS URL override; normally derived from the base URL |
 | `NEON_API_KEY` | CLI only, optional | Secret project-scoped automation credential; otherwise use CLI login |
 
 Never put a secret in a `VITE_*` variable: those values are embedded in browser
@@ -205,26 +209,76 @@ The provided `neon.ts` replaces the need to run `neon config init` again.
 Optional `neon skills -y` / `neon mcp -y` configure coding-agent integrations;
 they are not needed to run the apps and may modify agent configuration files.
 
-After enabling Auth, copy the branch's public Auth URL into `VITE_NEON_AUTH_URL`.
-Configure trusted frontend domains in Neon Auth for localhost and your deployed
-Vercel origin. Enable/configure email and password sign-in in Neon Console.
-Copy the correct issuer and JWKS URL into backend settings. Consult the branch's
-Auth configuration/token contract; do not guess these values from the project ID.
-Neon's JWT plugin publishes JWKS at the Auth base URL's `/.well-known/jwks.json`.
+The minimum account/progress configuration is:
 
-The browser SDK handles credentials and session cookies. This repo does not store
-passwords or create an additional session system. The account panel subscribes
-to the SDK session hook. Private API requests call `authClient.token()` and send
-`Authorization: Bearer <token>`; FastAPI verifies the signature, expiry, issuer,
-subject, and audience when configured. It returns the verified subject at `/api/me`.
-No raw tokens are written to localStorage by application code.
+```dotenv
+# frontend/.env (public values)
+VITE_API_URL=http://localhost:8000
+VITE_NEON_AUTH_URL=<the full Auth URL from Neon Console → Auth>
 
-The demo endpoints remain public. Missing/invalid credentials on `/api/me` return
-401; missing verifier configuration or an unavailable identity provider returns
-503. Logging out clears the SDK session; an already issued JWT may remain valid
-until expiry. Add revocation checks if later private operations require immediate
-server-side logout enforcement. Password reset, OAuth, and account management are
-future work; email-verification behavior depends on Neon Auth settings.
+# backend/.env (DATABASE_URL contains a secret)
+DATABASE_URL=<connection string from Neon Console → Connect>
+FRONTEND_URL=http://localhost:3000
+NEON_AUTH_BASE_URL=<the same full Auth URL, including /neondb/auth>
+```
+
+Use the same Neon branch for Auth and Postgres. Never derive an Auth endpoint
+from a database hostname or project ID. The supplied production Auth URL has been
+written to local environment files; it is deliberately not a default in source code.
+`NEON_AUTH_JWKS_URL` is optional; use only a trusted value supplied by Neon.
+`NEON_AUTH_ISSUER` and `NEON_AUTH_AUDIENCE` are no longer used. No Next.js cookie
+secret, Data API URL, frontend database credentials, or application signing secret
+is needed. `HF_TOKEN` is unrelated to authentication.
+
+Initialize the application table once, with the backend environment activated:
+
+```bash
+cd backend
+python -m app.init_db
+```
+
+For schema setup, use the direct Neon connection string from Console → Connect
+(turn off connection pooling); the app can use the pooled string afterwards.
+The SQL creates only `public.user_progress`; it leaves Neon's auth tables alone.
+
+The account pages use `createAuthClient` from `@neondatabase/neon-js/auth`, its
+React adapter, and `NeonAuthUIProvider`, `AuthView`, and `AccountView` from
+`@neondatabase/auth-ui`. Cross-origin SDK requests include session credentials.
+This follows the [official managed-auth guidance](https://github.com/neondatabase/agent-skills/blob/main/skills/neon-auth/references/managed-auth.md).
+Configure your frontend origin in Neon Auth trusted domains; localhost may be
+pre-approved. Email verification follows the branch settings. For shared SMTP,
+use verification codes when required; do not assume verification links work.
+
+FastAPI credentials are separate: `authClient.token()` issues a bearer JWT.
+`current_user()` uses the full Auth URL plus `/.well-known/jwks.json` for keys,
+checks EdDSA signatures, and requires issuer and audience equal to the Auth URL's
+origin. It also checks expiry, issued-at, and a nonempty user subject. The full
+`/neondb/auth` path belongs in the JWKS URL, not the issuer/audience. These rules
+follow [Neon's Python JWT verification example](https://neon.com/docs/auth/guides/plugins/jwt).
+Session cookie identifiers are not accepted as JWTs. Tokens are never logged or
+stored by application code. Every saved-progress query includes the verified
+subject; the browser cannot choose another user ID.
+
+Missing/invalid bearer credentials return 401. Missing configuration, unavailable
+keys, or unavailable progress storage return 503. Public demo graph endpoints
+stay accessible to guests. Sign-out ends the SDK browser session, but an issued
+JWT can remain valid until expiry; no immediate bearer-token revocation is promised.
+
+### Verify the real flow
+
+1. Run both apps, then open `/auth/sign-up` and register a test user.
+2. Complete any email verification, sign out, and explicitly sign in at `/auth/sign-in`.
+3. Open Account on the dashboard and click **Verify API session**; `/api/me` should return your subject.
+4. Select episode 2 and click **Save progress**. Change to episode 1, then click **Retrieve progress**; it should restore episode 2.
+5. Reload the page: the session should restore. Retrieve progress again to prove persistence.
+6. Visit `/account/settings` for account settings and `/account/sessions` for sessions.
+7. Sign out via `/auth/sign-out`. The dashboard should show sign-in links; private API requests without a JWT must return 401.
+8. Sign in as another user and verify there is no saved progress until that user saves it.
+
+If authentication works but `/token` does not, inspect trusted domains, cross-origin
+cookie blocking, and the Auth URL. Safari/third-party cookie policies can prevent
+the direct cross-origin session flow; same-parent-domain or proxy deployment may
+be necessary. A build or a mocked JWT test is not proof of a live Neon login.
 
 ## Frontend/backend communication and contracts
 
@@ -243,6 +297,8 @@ these contracts in `src/lib/types.ts`.
 | `POST /api/extract` | `ExtractRequest`; returns 501 with a typed `not_implemented` message |
 | `POST /api/ask` | `AskRequest`; returns 501 without generating an answer |
 | `GET /api/me` | Bearer token required; returns `{ "id": "verified-user-subject" }` |
+| `PUT /api/me/progress/{media_id}` | Bearer token plus `{ "unit": N }`; upserts only this user’s progress; invalid units return 422 |
+| `GET /api/me/progress/{media_id}` | Bearer token; returns `UserProgress` or `null` when unsaved |
 
 Example graph shape (additional provenance fields omitted here for readability):
 
@@ -294,7 +350,8 @@ specifies the unit label. Progress 0 means nothing completed. Seasons/episode
 numbers will map into this order through a story-unit table. Branched game
 stories will need an explicit path-aware extension instead of guessing a sequence.
 
-Planned tables (not migrated yet):
+`public.user_progress` is implemented in `app/schema.sql`. The broader graph
+schema remains planned:
 
 | Concept | Planned fields / ownership |
 | --- | --- |
@@ -308,8 +365,8 @@ Planned tables (not migrated yet):
 | neon_auth user/session/account | Managed by Neon Auth; use its actual provisioned schema instead of recreating it |
 
 User-owned progress APIs must derive ownership from verified identity and apply
-that owner in every query. The current progress selector is transient guest state
-and is not saved. Plan foreign keys for media/endpoints, uniqueness constraints,
+that owner in every query. Guest progress is transient; signed-in users save/retrieve it explicitly from the
+Account panel. Plan foreign keys for media/endpoints, uniqueness constraints,
 and indexes by media/reveal unit. Keep source and review metadata with each fact.
 
 **Important future limit:** a single reveal point on an entity only protects its
@@ -366,8 +423,8 @@ Wikipedia/MediaWiki sources can be considered later; no scraping is implemented.
   URL to Railway `DATABASE_URL`; add the Vercel domain to Neon Auth trusted origins.
 
 No deployment has been performed by this scaffold. No Docker, CI/CD, or auth
-middleware framework is required. Future client routes may need a Vercel SPA
-rewrite; the current single-page dashboard does not.
+middleware framework is required. `frontend/vercel.json` rewrites frontend routes to `index.html`, so direct auth
+and account links work on Vercel.
 
 ## Hackathon scope and next steps
 
@@ -380,7 +437,7 @@ Recommended next five implementation tasks:
 
 1. Install dependencies, link/deploy Neon Auth, and verify sign-up/session/JWT flow end to end.
 2. Choose one real demo series; curate story units and review entity/relationship reveal points.
-3. Add Neon schema and user-owned progress save/resume endpoints behind verified auth.
+3. Expand the graph schema and add automatic saved-progress resume if useful.
 4. Replace fixture search with AniList metadata while keeping graph facts curated.
 5. Run one provenance-preserving Hugging Face extraction experiment, then deploy the demo to Vercel/Railway.
 
@@ -398,8 +455,8 @@ Source permissions, metadata limits, inference latency/cost, and manual review
 will constrain ingestion. Search snippets and even hidden future node counts
 can spoil; return only the allowed facts, not the full graph for frontend filtering.
 
-The starter's Auth SDK is a prerelease dependency. Pin a verified lockfile after
-installation and check its API before changing versions. Neon authentication
+The Neon SDK/UI are prerelease dependencies. Run `npm install` to update the lockfile
+after dependency changes and check the installed APIs before upgrading. Neon authentication
 needs branch-specific configuration and trusted domains to work in the browser.
 
 ## Reference documentation
@@ -410,3 +467,11 @@ needs branch-specific configuration and trusted domains to work in the browser.
 - [Neon Auth SDK](https://github.com/neondatabase/neon-js/tree/main/packages/auth)
 - [Neon CLI workflow](https://neon.com/blog/just-landed-in-the-neon-cli)
 - [Hugging Face Inference Client](https://huggingface.co/docs/huggingface_hub/main/package_reference/inference_client)
+
+## Auth review validation status
+
+The verifier and progress ownership tests pass using locally signed Ed25519 fixtures
+and mocked database queries. Live Neon registration, JWT issuance, and Postgres
+save/retrieve are still unverified: this agent workspace blocks external DNS and
+browser/server networking. The latest SDK/UI packages also need installation before
+the updated frontend can be built and checked. Do not treat this status as live proof.

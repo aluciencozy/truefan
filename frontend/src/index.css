@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@neondatabase/auth-ui/tailwind";
 @import "@xyflow/react/dist/style.css";
 
 :root { font-family: "Segoe UI", system-ui, sans-serif; color: #173e53; background: #f0f5f8; font-synthesis: none; }
@@ -49,3 +50,6 @@ h1 { font-size: clamp(32px, 4vw, 52px); line-height: 1.1; letter-spacing: -.04em
 @media (max-width: 1150px) { .workspace { grid-template-columns: 230px minmax(300px, 1fr); } .details { grid-column: 1 / -1; } }
 @media (max-width: 700px) { .app-shell { padding: 20px; } .app-header { flex-direction: column; } .header-meta { text-align: left; } .workspace { grid-template-columns: minmax(0, 1fr); } .graph-heading { flex-wrap: wrap; } .graph-canvas { height: 380px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.auth-page { max-width: 720px; margin: 40px auto; }
+a { color: #214e66; text-decoration: underline; text-underline-offset: 3px; }

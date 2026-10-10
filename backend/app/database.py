@@ -8,5 +8,5 @@ def connection():
     if not settings.database_url:
         raise RuntimeError("Set DATABASE_URL before using database features.")
     import psycopg
-    with psycopg.connect(settings.database_url) as conn:
+    with psycopg.connect(settings.database_url, connect_timeout=5) as conn:
         yield conn

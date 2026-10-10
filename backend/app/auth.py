@@ -11,27 +11,41 @@ from app.schemas import CurrentUser
 bearer = HTTPBearer(auto_error=False)
 
 
+def verification_config() -> tuple[str, str]:
+    """Neon Managed Better Auth: iss/aud are the origin, JWKS uses the full base path.
+
+    https://neon.com/docs/auth/guides/plugins/jwt (Python verification example).
+    Values come only from trusted configuration, never a JWT's claims/headers.
+    """
+    base = settings.neon_auth_base_url.rstrip("/")
+    parsed = urlparse(base)
+    if (parsed.scheme != "https" or not parsed.hostname or parsed.username
+            or parsed.password or parsed.query or parsed.fragment):
+        raise HTTPException(503, "Configure NEON_AUTH_BASE_URL from the Neon branch Auth URL")
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+    jwks_url = settings.neon_auth_jwks_url or f"{base}/.well-known/jwks.json"
+    jwks = urlparse(jwks_url)
+    if (jwks.scheme != "https" or not jwks.hostname or jwks.username or jwks.password
+            or jwks.fragment):
+        raise HTTPException(503, "Configure a trusted HTTPS Neon Auth JWKS URL")
+    return origin, jwks_url
+
+
 @lru_cache
-def jwks_client() -> PyJWKClient:
-    # The URL comes from trusted server configuration, never the request/JWT.
-    return PyJWKClient(settings.neon_auth_jwks_url, timeout=5)
+def jwks_client(url: str) -> PyJWKClient:
+    return PyJWKClient(url, timeout=5)
 
 
 def current_user(credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]) -> CurrentUser:
     if credentials is None:
         raise HTTPException(401, "Sign in required", headers={"WWW-Authenticate": "Bearer"})
-    if (not settings.neon_auth_issuer
-            or urlparse(settings.neon_auth_jwks_url).scheme != "https"):
-        raise HTTPException(503, "Configure the Neon Auth issuer and HTTPS JWKS URL")
+    origin, jwks_url = verification_config()
     try:
-        key = jwks_client().get_signing_key_from_jwt(credentials.credentials)
+        key = jwks_client(jwks_url).get_signing_key_from_jwt(credentials.credentials)
         claims = jwt.decode(
-            credentials.credentials, key.key,
-            algorithms=["EdDSA", "RS256", "ES256"],
-            issuer=settings.neon_auth_issuer,
-            audience=settings.neon_auth_audience or None,
-            options={"require": ["exp", "iss", "sub"],
-                     "verify_aud": bool(settings.neon_auth_audience)},
+            credentials.credentials, key.key, algorithms=["EdDSA"],
+            issuer=origin, audience=origin,
+            options={"require": ["exp", "iat", "iss", "aud", "sub"]},
         )
         subject = claims["sub"]
         if not isinstance(subject, str) or not subject:
