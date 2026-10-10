@@ -62,7 +62,7 @@ export default function Constellation({ nodes, edges, selectedId, onSelect, labe
   const interactiveNodes = useMemo(() => nodes.map(node => ({ ...node, width: 170, height: 160, focusable: false,
     data: { ...node.data, active: node.id === selectedId, onActivate: onSelect } })), [nodes, selectedId, onSelect])
   return <div ref={container} className="graph-canvas celestial" aria-label={label}>
-    <ReactFlowProvider><ReactFlow nodes={interactiveNodes} edges={edges} nodeTypes={nodeTypes}
+    <ReactFlowProvider><ReactFlow nodes={interactiveNodes} edges={edges} nodeTypes={nodeTypes} proOptions={{ hideAttribution: true }}
       minZoom={limits.minZoom} maxZoom={1.8} translateExtent={limits.extent} fitViewOptions={{ padding: .3, maxZoom: 1.1 }}
       nodesDraggable={false} nodesConnectable={false} zoomOnDoubleClick={false}
       onNodeClick={(_, node) => onSelect(node.id)}>
