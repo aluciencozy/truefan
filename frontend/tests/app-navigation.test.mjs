@@ -16,6 +16,7 @@ const source = (await readFile(sourceUrl, 'utf8'))
   .replace("import { Link, useSearchParams } from 'react-router-dom'", "const Link = 'a'; const useSearchParams = () => [new URLSearchParams('q=anime')]")
   .replace(/import (\w+) from '\.\/components\/[^']+'/g, (_, name) => `const ${name} = '${name}'`)
   .replace("import { api } from './lib/api'", 'const api = globalThis.__navigationApi')
+  .replace("import { libraryApi } from './lib/library'", 'const libraryApi = {}')
 let { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } })
 outputText = outputText.replace(/from (["'])([^"']+)\1/g, (_, quote, name) => {
   const url = name.startsWith('.') ? new URL(`${name}.ts`, sourceUrl).href : pathToFileURL(require.resolve(name)).href

@@ -715,10 +715,10 @@ is used throughout the app; Community and Library typography/form tokens are
 scoped to their pages to preserve the homepage and constellation explorer styles. The palette
 matches Truefan’s Community frame (`123:30`): charcoal `#1e1e2e`, panels
 `#181825`, borders `#45475a`, pale text `#cdd6f4`, and lavender `#cba6f7`.
-The sidebar links Explore, My Library (`/library`), and Community. Community has
+The sidebar links Explore, Saved universes (`/library`), and Community. Community has
 Discussions, Theories, and Reviews, search/media filters, latest/popular sorting,
 post links, optional review ratings, likes, and comments. There are no episode controls
-on this page. My Library reads the signed-in user's existing saved progress.
+on this page. Saved universes has its own owner-scoped library API, documented below.
 
 Community data is stored in Neon Postgres. With backend dependencies and
 `DATABASE_URL` configured, initialize its additive tables once:
@@ -764,3 +764,49 @@ API tests. Real Postgres regression tests use isolated temporary tables and veri
 like deduplication, presence expiry/deduplication, filtering, and comments. Run them
 with `TRUEFAN_COMMUNITY_DB_TESTS=1 python -m unittest discover -s tests -p test_community.py`.
 These tests do not certify a live Google sign-in and publishing session.
+
+
+### Saved universes
+
+`/library` recreates the Figma **Saved universes** frame (`22:1755`) with original
+constellation SVGs repeating in a three-row sequence, anime cover art, and a
+planet empty state based on the **Truefan / Website Community — Desktop** frame.
+Sign in, select a story in Explore, then click **Save universe**. Library links
+open the exact saved work with `/explore?universe=anilist-ID` rather than searching
+by title. Existing viewing-progress records also appear, grouped by cached strong
+franchise membership. Pins, private 1–5 ratings, and abandoned entries survive
+reloads. Search, status/media filters, sorting, and list/grid layouts are functional.
+
+Run `python -m app.init_db` against the deployment database before using the new
+API. The additive `user_saved_universes` table stores a catalog root snapshot,
+save/exploration timestamps, pin/rating preferences, and an abandonment tombstone,
+keyed by verified Neon JWT subject and root media ID. Abandon removes the library
+entry, preserves individual viewing history, and suppresses automatic re-import
+from progress. Explicitly saving a member of that strong franchise restores the
+entry. Weak side-story boundaries do not merge two independently saved universes.
+
+| Endpoint | Access / behavior |
+| --- | --- |
+| `GET /api/me/universes` | Verified Neon JWT; caller's grouped `SavedUniverse[]`; cached metadata only, no discovery or inference. |
+| `POST /api/me/universes/{media_id}` | Verified JWT; explicitly save or restore a universe; bounded cache-first discovery can run on this action. |
+| `PUT /api/me/universes/{media_id}` | Verified JWT; `{ "pinned": true }` and/or `{ "rating": 1..5 }`; `rating: null` clears the private rating. Returns updated `SavedUniverse`; unsaved/other-owner entry is 404. |
+| `POST /api/me/universes/{media_id}/abandon` | Verified JWT; tombstone caller's saved universe; returns `{ "media_id": "...", "abandoned": true }`. |
+
+`SavedUniverse` includes `media_id`, `title`, `cover_url`, `type`, `format`, ordered
+`titles`, `viewed_count`, `total_count`, `coverage_incomplete`, `pinned`, `rating`,
+`saved_at`, and `last_explored_at`. Each title includes catalog metadata,
+`release_date`, and a completion boolean. A viewed node is a **completed work**
+(season, sequel, movie, etc.), not an episode count. Explicit completion flags win;
+legacy progress counts as complete only when the work's total is known. Manual
+unlocks never count as completion. Known release dates come first, then undated
+works, with stable IDs resolving ties. Release order is not guaranteed narrative
+chronology. Cached franchise discovery is provisional and bounded, so counts can
+grow after discovery/expansion and are labelled as discovered titles. The library
+never returns descriptions or character facts. Storage failures are errors with
+retry, not fake empty libraries. Account changes clear and abort pending state.
+
+Validation: frontend `npm test`, `npm run build`; backend
+`python -m unittest discover -s tests`. Library tests cover work completion,
+release ordering, grouped legacy progress, tombstones, verified ownership,
+preference validation, repeating previews, pin/rating actions, cancellation,
+failed deletion, last-item empty state, and account changes.
