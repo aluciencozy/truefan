@@ -169,7 +169,15 @@ curl 'http://localhost:8000/api/media/lantern-harbor/graph?progress=1'
 curl 'http://localhost:8000/api/media/lantern-harbor/graph?progress=3'
 ```
 
-The two graph calls should return 3 and 5 entities respectively. In the browser,
+The home route (`/`) is the TrueFan search hero, using Catppuccin Mocha and
+self-hosted JetBrains Mono. Submitting a title opens `/explore?q=...`; submitting
+an empty search opens the guest demo. The explorer retains media selection,
+progress filtering, and account controls. Home-page image nodes are decorative
+artwork reused from the Figma design, not factual story relationships. Assets
+live in `frontend/public/home/`; the font license is in `frontend/public/fonts/`.
+Log in and Sign up use the existing Neon Auth routes.
+
+The two graph calls should return 3 and 5 entities respectively. In `/explore`,
 “Backend connected” proves the `/health` call succeeded. The visible graph comes
 from FastAPI, not a separate frontend fixture. Change episodes and click a node
 to verify the graph and details update. Stop FastAPI and reload to check the error UI.

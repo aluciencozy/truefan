@@ -11,11 +11,11 @@ export default function MediaControls({ query, onQuery, onSearch, results, media
     <h2>Your story</h2>
     <form onSubmit={submit} className="mt-5">
       <label htmlFor="search">Find media</label>
-      <input id="search" value={query} onChange={event => onQuery(event.target.value)} placeholder="Try Fate or Steins;Gate" />
+      <input id="search" maxLength={200} value={query} onChange={event => onQuery(event.target.value)} placeholder="Try Fate or Steins;Gate" />
       <button type="submit" className="primary mt-3 w-full" disabled={searching}>{searching ? 'Searching…' : 'Search'}</button>
     </form>
     <div className="mt-5" aria-label="Search results">
-      {results.length ? results.map(item => <button className="media-result" key={item.id}
+      {searching ? <p role="status">Searching for stories…</p> : results.length ? results.map(item => <button className="media-result" key={item.id}
         aria-pressed={item.id === media?.id} onClick={() => onSelect(item)}>
         <strong>{item.title}</strong><span>{item.format || item.type} / {item.total_units} {item.progress_unit}s</span>
       </button>) : <p className="text-sm">No matching media. Try another title.</p>}

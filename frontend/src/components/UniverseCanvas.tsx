@@ -6,7 +6,7 @@ export default function UniverseCanvas({ universe, onSelect }: { universe: Unive
   const nodes: Node[] = universe.media.map((media, index) => ({
     id: media.id, data: { label: `${media.title}${media.format ? ` (${media.format})` : ''}` },
     position: { x: (index % 4) * 250, y: Math.floor(index / 4) * 160 },
-    style: { background: '#e1eef7', border: '1px solid #7891a0', borderRadius: 10, padding: 14, color: '#173e53' },
+    style: { background: '#313244', border: '1px solid #b4befe', borderRadius: 10, padding: 14, color: '#cdd6f4' },
   }))
   const edges: Edge[] = universe.relationships.map((edge, index) => ({
     id: `media-edge-${index}`, source: edge.source, target: edge.target, label: edge.type.toLowerCase().replaceAll('_', ' '),

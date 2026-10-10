@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import GraphCanvas from './components/GraphCanvas'
 import UniverseCanvas from './components/UniverseCanvas'
 import EntityDetails from './components/EntityDetails'
@@ -14,8 +15,10 @@ const stages = {
 }
 
 export default function App() {
+  const [searchParams] = useSearchParams()
+  const initialQuery = searchParams.get('q') || ''
   const [health, setHealth] = useState('Connecting to backend…')
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery)
   const [results, setResults] = useState<Media[]>([])
   const [media, setMedia] = useState<Media | null>(null)
   const [progress, setProgress] = useState(1)
@@ -25,7 +28,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [generationError, setGenerationError] = useState('')
-  const [searching, setSearching] = useState(false)
+  const [searching, setSearching] = useState(true)
   const [revision, setRevision] = useState(0)
   const attempted = useRef(new Set<string>())
   const searchController = useRef<AbortController | null>(null)
@@ -36,11 +39,16 @@ export default function App() {
     api.health(controller.signal).then(() => setHealth('Backend connected')).catch(() => {
       if (!controller.signal.aborted) setHealth('Backend unavailable')
     })
-    api.search('', controller.signal).then(items => { setResults(items); setMedia(items[0] ?? null) }).catch(error => {
+    setQuery(initialQuery); setSearching(true); setResults([]); setError(''); setGenerationError('')
+    setMedia(null); setProgress(1); setGraph(null); setSelectedId(null); setUniverse(null); setView('characters')
+    api.search(initialQuery, controller.signal).then(items => {
+      if (controller.signal.aborted) return
+      setResults(items); if (!initialQuery) setMedia(items[0] ?? null)
+    }).catch(error => {
       if (!controller.signal.aborted) setError(error.message)
-    })
+    }).finally(() => { if (!controller.signal.aborted) setSearching(false) })
     return () => { controller.abort(); searchController.current?.abort(); universeController.current?.abort() }
-  }, [])
+  }, [initialQuery])
 
   useEffect(() => {
     if (!media || view !== 'characters') return
@@ -103,7 +111,7 @@ export default function App() {
   const running = generation && ['queued','retrieving','generating'].includes(generation.status)
 
   return <div className="app-shell">
-    <header className="app-header"><div><div className="brand">TrueFan / Story atlas</div>
+    <header className="app-header"><div><Link className="brand" to="/">TrueFan / Home</Link>
       <h1>Explore the universe.<br />Follow the story.</h1>
       <p>Media connections and experimental AI character knowledge.</p></div>
       <div className="header-meta"><span role="status" className="connection">{health}</span><AuthPanel media={media} progress={progress} onProgress={unit => { setProgress(unit); setSelectedId(null); setGraph(null) }} /></div>
