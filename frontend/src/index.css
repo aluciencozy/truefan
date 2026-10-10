@@ -150,7 +150,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .error { color: #f38ba8; gap: 20px; }
 .react-flow { --xy-background-color: transparent; --xy-edge-stroke: #b4befe50; --xy-edge-stroke-width: 1; --xy-edge-label-color: #cdd6f4; --xy-edge-label-background-color: #181825; --xy-controls-button-background-color: #181825; --xy-controls-button-background-color-hover: #313244; --xy-controls-button-color: #cdd6f4; --xy-controls-button-border-color: transparent; --xy-attribution-background-color: #11111b; }
 .react-flow__attribution { font-size: 9px; }
-.universe-canvas .react-flow__edge-path { vector-effect: non-scaling-stroke; }
+.universe-canvas.overview-mode .react-flow__edge-path { vector-effect: non-scaling-stroke; }
 .react-flow__controls { border: 1px solid #45475a90; border-radius: 999px; padding: 5px; box-shadow: none; overflow: hidden; margin: 24px 36px; }
 .react-flow__controls button { width: 30px; height: 30px; border-radius: 50%; padding: 8px; }
 .react-flow__node-destination { width: 176px; height: 174px; border: none; background: none; }
@@ -164,12 +164,8 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .destination.locked .destination-orbit { border-style: dashed; border-color: #585b7080; box-shadow: none; }
 .destination.locked strong { color: #9399b2; }
 .destination.completed .destination-orbit { border-color: #a6e3a180; box-shadow: 0 0 24px #a6e3a110; }
-.destination.focused .destination-orbit, .destination:hover .destination-orbit { border-color: var(--lavender); box-shadow: 0 0 0 6px #b4befe0a, 0 0 0 13px #b4befe05, 0 0 40px #b4befe30; transform: scale(1.06); }
+.destination:hover .destination-orbit { border-color: var(--lavender); box-shadow: 0 0 0 6px #b4befe0a, 0 0 0 13px #b4befe05, 0 0 40px #b4befe30; }
 .destination.focused strong { color: #f5e0dc; }
-.destination.distant strong { font-family: var(--display); font-size: 20px; -webkit-line-clamp: 1; }
-.destination.distant .destination-state { display: none; }
-.destination.distant .destination-orbit { transform: scale(2); transform-origin: center; }
-.destination.distant strong { margin-top: 65px; font-size: 26px; }
 .destination .react-flow__handle { top: 50px; opacity: 0; width: 2px; height: 2px; min-width: 0; min-height: 0; }
 .watched-badge, .release-badge, .lock-badge { position: absolute; border-radius: 20px; display: grid; place-items: center; font-size: 11px; min-width: 23px; height: 23px; right: -3px; top: 0; background: #a6e3a1; color: #181825; }
 .release-badge { top: auto; bottom: 0; background: var(--mauve); padding: 0 6px; }
@@ -182,26 +178,78 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .canvas-status { position: absolute; bottom: 78px; left: 36px; font-size: 11px; padding: 10px 14px; background: var(--base); border-radius: 8px; pointer-events: none; }
 .canvas-legend { font-family: var(--display); font-size: 14px; text-align: center; color: var(--subtext); margin-bottom: 24px; pointer-events: none; }
 .canvas-legend span { display: block; font-size: 11px; color: #7f849c; margin-top: 6px; }
-.universe-inspector { position: absolute; right: 24px; top: 12px; width: 300px; max-height: calc(100% - 44px); overflow: auto; z-index: 8; border: 1px solid #45475a80; border-radius: 18px; background: #181825fa; box-shadow: 0 16px 60px #0005; scrollbar-width: thin; animation: inspector-enter .3s ease-out; }
-@keyframes inspector-enter { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
-.universe-inspector > button:not(.inspector-close) { margin: 15px; font-size: 11px; }
-.inspector-close { position: absolute; z-index: 2; right: 12px; top: 12px; width: 32px; height: 32px; padding: 0; font-size: 20px; }
+/* A fixed stage: the worlds travel while the reading position stays still. */
+.universe-canvas { isolation: isolate; }
+.universe-nebula { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 34% 48%, #cba6f716, transparent 42%), radial-gradient(ellipse at 80% 20%, #89b4fa0a, transparent 50%); }
+.universe-canvas::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 4; box-shadow: inset 0 0 110px 30px #11111b80; }
+.universe-canvas .react-flow__pane { cursor: default; }
+.destination-orbit { flex-shrink: 0; will-change: transform; transition: border-color .3s, box-shadow .3s; }
+.destination strong, .destination-state { flex-shrink: 0; }
+.destination.focused .destination-orbit { border-color: var(--mauve); box-shadow: 0 0 0 5px #cba6f70b, 0 0 0 12px #cba6f707, 0 0 48px #cba6f744; }
+.destination.focused strong { margin-top: 51px; max-width: 235px; width: 235px; font-family: var(--display); font-size: 20px; line-height: 1.15; }
+.destination.remote strong, .destination.remote .destination-state { opacity: .25; }
+.destination strong { transition: opacity .5s, margin-top .5s; }
+.destination .react-flow__handle { left: 50%; right: auto; }
+.arrival-ring { position: absolute; inset: -8px; border-radius: 50%; border: 1px solid var(--mauve); pointer-events: none; }
+.overview-mode .destination strong { margin-top: 38px; font-size: 20px; }
+.overview-mode .destination-state { display: none; }
+.branch-region { border: 0; border-top: 1px dashed #b4befe14; border-radius: 0; }
+.branch-region > span { text-align: left; padding: 7px 0 0 14px; color: #7f849c; font-size: 12px; }
+.orbit-relation { font-family: "Inter", sans-serif; font-size: 10px; fill: var(--subtext); paint-order: stroke; stroke: var(--crust); stroke-width: 4px; pointer-events: none; }
+.journey-trail { pointer-events: none; }
+.universe-canvas .react-flow__viewport { will-change: transform; }
+.overview-control { margin: 16px 36px; }
+.overview-control button { display: flex; align-items: center; gap: 9px; padding: 9px 14px; font-size: 11px; background: #181825d9; border-color: #b4befe50; }
+.overview-control button[aria-pressed="true"] { color: var(--mauve); border-color: var(--mauve); }
+.universe-inspector { position: absolute; left: calc(34% + 132px); top: 48%; translate: 0 -50%; width: min(330px, 36%); max-height: calc(100% - 150px); overflow: auto; z-index: 8; border: 1px solid #cba6f738; border-radius: 16px; background: #181825f5; box-shadow: 0 18px 70px #0005, -16px 0 70px #cba6f709; scrollbar-width: thin; font-family: "Inter", sans-serif; }
+.universe-inspector::before { content: ""; position: fixed; width: 48px; left: -48px; top: 50%; border-top: 1px solid #cba6f745; pointer-events: none; }
+.universe-inspector .reload-state { margin: 0 22px 18px; font-size: 10px; }
+.state-notice { margin: 15px 22px; font-size: 11px; }
 .universe-details { border: 0; background: none; padding: 22px; }
-.focus-art { height: 135px; display: grid; place-items: center; background: radial-gradient(ellipse, #45475a40, transparent 70%); overflow: hidden; margin-bottom: 18px; }
-.focus-art img { width: 94px; height: 130px; object-fit: cover; border-radius: 8px; box-shadow: 0 8px 24px #0005; }
-.focus-art > span { font-size: 54px; color: var(--lavender); }
-.universe-details:has(.watch-state.locked) .focus-art img { filter: grayscale(.8); opacity: .6; }
-.universe-details h2 { font-size: 24px; line-height: 1.15; margin-bottom: 12px; }
-.universe-details p { font-size: 11px; }
+.world-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.world-focus-label { font-size: 11px; color: var(--mauve); }
+.universe-details h2 { font-size: 27px; line-height: 1.08; margin: 0 0 12px; }
+.universe-details p { font-size: 12px; line-height: 1.6; }
+.world-summary { margin: 0 0 14px; }
+.world-metadata { display: flex; flex-wrap: wrap; gap: 6px 12px; color: var(--subtext); font-size: 10px; }
+.world-metadata > span + span { border-left: 1px solid var(--border); padding-left: 12px; }
+.world-progress { margin-top: 19px; }
+.world-progress > div { display: flex; justify-content: space-between; gap: 10px; font-size: 10px; color: var(--muted); }
+.world-progress strong { color: var(--text); font-weight: 500; }
+.world-progress progress { display: block; width: 100%; height: 3px; margin-top: 9px; appearance: none; border: 0; border-radius: 5px; background: var(--surface); overflow: hidden; }
+.world-progress progress::-webkit-progress-bar { background: var(--surface); }
+.world-progress progress::-webkit-progress-value { background: var(--lavender); }
+.world-progress progress::-moz-progress-bar { background: var(--lavender); }
 .universe-details > button { width: 100%; margin-top: 12px; font-size: 12px; }
-.watch-state { border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px; display: inline-block; font-size: 10px; }
+.universe-details .enter-world { display: flex; align-items: center; justify-content: space-between; border-radius: 10px; padding: 12px 15px; margin-top: 20px; font-weight: 600; }
+.universe-details .complete-world { background: transparent; border: 0; padding: 5px; color: var(--muted); font-size: 10px; }
+.watch-state { border: 1px solid var(--border); border-radius: 20px; padding: 4px 9px; display: inline-block; font-size: 10px; }
 .watch-state.completed { color: #a6e3a1; border-color: #a6e3a180; }
 .watch-state.available { color: var(--lavender); border-color: #b4befe60; }
-.relation-list { margin-top: 24px; border-top: 1px solid #45475a70; padding-top: 18px; font-size: 12px; }
-.relation-list > div { margin-top: 15px; }
+.relation-list { margin-top: 18px; border-top: 1px solid #45475a70; padding-top: 13px; font-size: 11px; }
+.relation-list > div { margin-top: 13px; }
 .relation-list span { display: block; color: #9399b2; font-size: 10px; }
 .relation-list button { border: none; padding: 5px 0; border-radius: 0; text-align: left; color: var(--subtext); background: transparent; font-size: 11px; }
 .guidance-note { font-size: 9px !important; color: #9399b2; }
+.journey-navigation { margin-bottom: 24px; width: max-content; max-width: calc(100% - 32px); }
+.journey-controls { display: flex; align-items: center; gap: 28px; background: #181825d9; border: 1px solid #45475a80; border-radius: 999px; padding: 7px; box-shadow: 0 12px 40px #0003; }
+.journey-controls button { font-size: 11px; padding: 10px 16px; border: 0; background: var(--surface); }
+.journey-controls > span { text-align: center; font-family: var(--display); font-size: 17px; color: var(--subtext); }
+.journey-controls small { display: block; font-family: "Inter", sans-serif; font-size: 10px; color: var(--muted); margin-top: 3px; }
+.journey-announcement { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 759px) {
+  .graph-stage:has(.universe-layer:not([hidden])) { min-height: 760px; }
+  .universe-inspector { left: 50%; top: 43%; translate: -50% 0; width: min(360px, calc(100% - 32px)); max-height: calc(57% - 105px); }
+  .universe-inspector::before { display: none; }
+  .universe-canvas .canvas-toolbar { margin: 14px 16px; max-width: calc(100% - 145px); }
+  .canvas-toolbar button { padding: 7px 9px; font-size: 9px; }
+  .overview-control { margin: 14px 16px; }
+  .overview-control button { font-size: 10px; padding: 8px 11px; }
+  .journey-controls { gap: 12px; }
+  .journey-controls button { font-size: 10px; padding: 10px 12px; }
+  .journey-controls > span { font-size: 14px; }
+  .journey-controls small { font-size: 9px; }
+}
 /* Portraits belong only to entities already revealed by the graph API. */
 .star-node { width: 170px; height: 160px; text-align: center; cursor: pointer; color: var(--text); --star-color: #b4befe; }
 .star-node.faction { --star-color: #cba6f7; }
@@ -270,7 +318,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
   .react-flow__controls { margin: 20px; }
   .canvas-legend { right: 20px; left: auto; transform: none; max-width: 170px; text-align: right; font-size: 12px; }
   .canvas-legend span { font-size: 10px; }
-  .universe-inspector { top: 70px; right: 12px; width: min(300px, calc(100% - 24px)); max-height: calc(100% - 90px); }
   .character-layer > .details { width: 100%; top: 44%; border-left: 0; border-top: 1px solid #45475a90; border-radius: 22px 22px 0 0; padding: 20px 24px; }
   .detail-portrait { height: 120px; }
   .detail-portrait span { width: 80px; height: 80px; font-size: 32px; }

@@ -492,8 +492,8 @@ become a TV-season viewing prerequisite. Adaptation/version branches remain conn
 These heuristics describe provisional groups, not canonical continuity facts.
 
 `universeLayout.ts` lazily loads ELK.js and places fixed-size nodes inside inferred
-branch regions, then places those regions in radial constellations using a deterministic semantic
-spanning forest (sequel links first, adaptation/version links next, branch links
+branch lanes, then arranges those lanes as left-to-right branching paths using a
+deterministic semantic spanning forest (sequel links first, adaptation/version links next, branch links
 then weak associations). Disconnected components are packed separately. This
 scaffold only controls geometry; the rendered connections retain the general graph. Input
 IDs/edges are sorted and layout uses a fixed seed. Release dates, watched state
@@ -510,7 +510,26 @@ year/month, then uses stable media ID. Partial dates stay labeled partial and
 undated entries sort last. Nothing invents a date or treats a release sequence as
 story chronology or guaranteed spoiler-free viewing.
 
-All discovered nodes stay visible. **Locked** shows title, cover and actual
+The universe opens in **Focus Mode**, with an enlarged glowing world near the
+middle-left and a compact details panel beside it (below it on small screens).
+The camera frames a local neighborhood; remote worlds recede until visited.
+Arrow keys follow spatially aligned connected neighbors. **Previous/Next** prefer
+primary prequel/sequel connections, with other actual connections as fallbacks.
+Click a world or a connection to travel. **Overview** smoothly fits all discovered
+worlds; toggle it again to return to the same selection, or select a world to
+focus it. Free panning, wheel/pinch zoom, and automatic focus panning are disabled
+in both modes. Character graph camera controls remain independent.
+
+React Flow interpolates the camera along straight connections; Motion animates
+node scale, arrival rings, traveling light trails and the details panel. Layout
+only runs when the discovered model changes, never during camera movement or
+progress updates. Reduced-motion preferences disable the cinematic transitions.
+The panel's short summary uses relationship/format metadata rather than provider
+plot synopses, which have no spoiler-safe reveal boundary. Recorded progress is
+shown as saved; explicit completion does not fabricate watched episode numbers.
+**Enter World** opens the existing progress-filtered character graph.
+
+All discovered nodes remain in the map. **Locked** shows title, cover and actual
 connections, with no episode metadata/story details or character entry.
 **Available** can be entered; **Completed** remains accessible and has a watched
 marker. Incomplete covers are dimmed. Each inferred branch has its own available
