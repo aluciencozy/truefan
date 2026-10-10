@@ -133,8 +133,24 @@ class FranchiseDatabaseTests(unittest.TestCase):
         self.assertFalse(progress.get_media_states('a', [unknown.id])[0].completed)
         overridden = progress.update_media_state('a', unknown.id, UserMediaStateUpdate(manual_unlocked=True))
         self.assertFalse(overridden.completed); self.assertEqual(overridden.progress.unit, 1)
-        watched = progress.update_media_state('a', unknown.id, UserMediaStateUpdate(completed=True))
+        watched = progress.update_media_state('a', unknown.id, UserMediaStateUpdate(completed=True), unknown)
         self.assertTrue(watched.completed); self.assertEqual(watched.progress.unit, 1)
+
+    def test_mark_completed_saves_final_episode_for_new_and_existing_progress(self):
+        media = anilist.normalize(entry(19603))
+        app.dependency_overrides[current_user] = lambda: CurrentUser(id='a')
+        try:
+            for initial_unit in (None, 2):
+                if initial_unit is not None:
+                    progress.save_progress('a', UserProgress(media_id=media.id, progress=RevealPoint(unit=initial_unit)), media)
+                with patch('app.main.get_media', return_value=media):
+                    code, state = asyncio.run(request('/api/me/media-state/' + media.id, 'PUT', {'completed': True}))
+                self.assertEqual(code, 200)
+                self.assertTrue(state['completed']); self.assertEqual(state['progress']['unit'], 13)
+                self.assertEqual(progress.get_progress('a', media.id).progress.unit, 13)
+                self.assertEqual(progress.get_media_states('a', [media.id])[0].progress.unit, 13)
+        finally:
+            app.dependency_overrides.clear()
 
     def test_persisted_frontier_expansion_and_failure_preserve_prior_snapshot(self):
         saved = franchises.publish(self.discover(1, [(2, 'SEQUEL')]))

@@ -183,7 +183,8 @@ export default function App() {
         if (epoch === accountEpoch.current) onState(saved)
       } else {
         setStates(previous => flags.manual_unlocked ? unlockMedia(previous, item.id) : {
-          ...previous, [item.id]: { media_id: item.id, progress: previous[item.id]?.progress ?? null,
+          ...previous, [item.id]: { media_id: item.id, progress: item.total_units_known
+            ? { unit: Math.max(previous[item.id]?.progress?.unit ?? 0, item.total_units) } : previous[item.id]?.progress ?? null,
             manual_unlocked: previous[item.id]?.manual_unlocked ?? false, completed: true },
         })
       }

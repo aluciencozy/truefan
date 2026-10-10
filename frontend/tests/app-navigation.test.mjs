@@ -29,6 +29,36 @@ const first = { ...fixture, id: 'anilist-1', title: 'First', anilist_id: 1, rele
 const sequel = { ...first, id: 'anilist-2', title: 'Sequel', anilist_id: 2, release_date: { year: 2001, month: 1, day: 1 } }
 const universe = { root_id: first.id, media: [first, sequel], relationships: [{ source: first.id, target: sequel.id, type: 'SEQUEL' }], truncated: false }
 
+for (const signedIn of [false, true]) test(`marking completed opens the final episode for ${signedIn ? 'signed-in users' : 'guests'}`, async () => {
+  globalThis.__navigationQuery = `media=${first.id}`
+  const media = { ...first, total_units_known: true }
+  const graphCalls = []
+  Object.assign(api, {
+    media: async () => media, universe: async () => ({ ...universe, media: [media, sequel] }),
+    mediaState: async () => [{ media_id: media.id, progress: { unit: 1 }, completed: false, manual_unlocked: true }],
+    saveMediaState: async (id, flags) => {
+      assert.equal(id, media.id); assert.deepEqual(flags, { completed: true })
+      return { media_id: id, progress: { unit: media.total_units }, completed: true, manual_unlocked: true }
+    },
+    graph: async (id, unit) => { graphCalls.push(unit); return { media_id: id, progress: { unit }, entities: [], relationships: [], generation: null } },
+  })
+  let renderer
+  try {
+    await act(async () => { renderer = create(createElement(App)) })
+    const props = name => renderer.root.findByType(name).props
+    if (signedIn) await act(async () => props('AuthPanel').onIdentity('account-1'))
+    await act(async () => props('UniverseDetails').onComplete(media))
+    assert.equal(props('UniverseDetails').state.progress.unit, media.total_units)
+    assert.equal(props('UniverseCanvas').guide[media.id].status, 'completed')
+    await act(async () => props('UniverseDetails').onEnter(media))
+    assert.equal(props('ProgressControl').progress, media.total_units)
+    assert.deepEqual(graphCalls, [media.total_units])
+  } finally {
+    if (renderer) await act(async () => renderer.unmount())
+    globalThis.__navigationQuery = 'q=anime'
+  }
+})
+
 test('changing progress clears portraits and selected details before the next graph arrives', async () => {
   globalThis.__navigationQuery = 'media=lantern-harbor'
   const pending = []

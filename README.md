@@ -380,7 +380,7 @@ these contracts in `src/lib/types.ts`.
 | `GET /api/media/{id}/universe` | Public cache-first franchise graph; `root_id` remains the exact selected work |
 | `POST /api/media/{id}/universe/expand` | Public bounded frontier expansion; body `{ "expected_revision": N }`; stale revision is 409 |
 | `GET /api/me/media-state?media_id=...` | Bearer token; 1–50 unique IDs; returns `{media_id, progress, completed, manual_unlocked}[]` |
-| `PUT /api/me/media-state/{id}` | Bearer token; supplied `completed`/`manual_unlocked` flags only; preserves saved units |
+| `PUT /api/me/media-state/{id}` | Bearer token; supplied `completed`/`manual_unlocked` flags only; marking completed advances progress to the known final unit; other updates and unknown totals preserve saved units |
 | `GET /api/media/{id}/graph?progress=N` | Required non-negative completed unit; returns filtered `GraphResponse`; out-of-range returns 422 |
 | `POST /api/extract` | `ExtractRequest`; returns 501 with a typed `not_implemented` message |
 | `POST /api/ask` | `AskRequest`; returns 501 without generating an answer |
