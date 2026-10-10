@@ -22,8 +22,9 @@ Set these server-only Railway/local variables and redeploy the backend normally:
 | GENERATION_MAX_CONCURRENT | 2 | Shared database-wide active jobs; 1–4 |
 | GENERATION_LEASE_SECONDS | 180 | Renewable worker lease; 120–600 |
 | GENERATION_ADMIN_SUBJECT | empty | Verified JWT sub allowed to request refresh |
-| UNIVERSE_NODE_CAP | 25 | Maximum discovered nodes; 1–50 |
-| UNIVERSE_DEPTH | 1 | Relation traversal depth; 0–2 |
+
+Universe discovery controls are documented in the
+[implementation configuration reference](IMPLEMENTATION.md#environment-variables).
 
 Nothing adds a frontend secret or changes hosting configuration. HF_MODEL selection
 is centralized in settings; routes, graph logic and frontend contain no model choice.
@@ -37,9 +38,8 @@ ID when later extension/retry runs use a different configured model.
 - `GET /api/media/search?q=...`: existing Media contract extended with AniList IDs,
   covers, format and prologue flag; empty search keeps the fictional demo available.
 - `GET /api/media/{id}`: neutral metadata; IDs use `anilist-{numeric-id}`.
-- `GET /api/media/{id}/universe`: `root_id`, `media`, typed media relationships,
-  and `truncated`. Bounded breadth-first traversal follows actual AniList relations.
-  It does not invent continuity corrections or turn alternate routes into sequels.
+- Universe discovery and expansion: see the
+  [authoritative cache and API reference](IMPLEMENTATION.md#7-http-api-reference).
 - `GET /api/media/{id}/graph?progress=N`: existing backend-filtered graph, plus
   `experimental` and `generation`. A missing cache returns an empty graph with
   `not_generated`; GET never causes inference or a user-progress write.
