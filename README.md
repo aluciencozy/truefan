@@ -109,7 +109,27 @@ npm run dev
 
 Open **http://localhost:3000**. The port is fixed so it matches backend CORS.
 
-Backend:
+Backend (with `uv`):
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) if needed:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+```bash
+cd backend
+cp -n .env.example .env
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+Skip copying `.env` if it is already configured. `uv` uses the existing
+`requirements.txt`; no `pyproject.toml` or `uv.lock` is required.
+
+Backend (alternative with standard Python/pip):
 
 ```bash
 cd backend

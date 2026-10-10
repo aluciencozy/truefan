@@ -9,7 +9,7 @@ curated series is enough for the demo. Prefer small, working hackathon changes.
 - `frontend/`: Vite + React + TypeScript, Tailwind, React Flow, Neon Auth UI.
   Run `npm install`, `npm run dev`, `npm run build`, `npm run typecheck` here.
 - `backend/app/`: FastAPI contracts, integrations, auth verification, graph rules.
-  In `backend/`: create/activate `.venv`, `pip install -r requirements.txt`,
+  In `backend/`: `uv venv`, activate `.venv`, `uv pip install -r requirements.txt`,
   `uvicorn app.main:app --reload`; check `python -m unittest discover -s tests`.
 - Neon Postgres stores app data; Neon Auth manages users and sessions.
   Vercel hosts frontend; Railway hosts backend. `neon.ts` enables managed Auth.
