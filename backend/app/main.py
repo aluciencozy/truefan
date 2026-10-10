@@ -28,6 +28,8 @@ async def lifespan(app: FastAPI):
     stop.set()
 
 app = FastAPI(lifespan=lifespan, title="Spoiler-Aware Media Knowledge Graph", version="0.1.0")
+from app.community_api import router as community_router
+app.include_router(community_router)
 app.add_middleware(CORSMiddleware,
                    allow_origins=[settings.frontend_url.rstrip("/")],
                    allow_methods=["GET", "POST", "PUT"], allow_headers=["Content-Type", "Authorization"])

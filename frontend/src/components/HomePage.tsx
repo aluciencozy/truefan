@@ -37,7 +37,7 @@ export default function HomePage() {
       <Link className="home-brand" to="/" aria-label="TrueFan home">
         <img src="/home/brand.svg" width="30" height="30" alt="" />TrueFan
       </Link>
-      <nav className="home-account" aria-label="Account">{authClient ? <AccountLinks /> : <GuestLinks />}</nav>
+      <nav className="home-account" aria-label="Account"><Link to="/community">Community</Link>{authClient ? <AccountLinks /> : <GuestLinks />}</nav>
     </header>
     <main className="home-hero celestial">
       <div className="home-graph" aria-hidden="true">

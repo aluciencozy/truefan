@@ -210,7 +210,7 @@ export default function App() {
     <header className="app-header">
       <Link className="home-brand" to="/" aria-label="TrueFan home"><img src="/home/brand.svg" width="30" height="30" alt="" />TrueFan</Link>
       <span className="explorer-title">✧ Constellation explorer</span>
-      <div className="header-meta"><span role="status" className="connection">{health}</span><AuthPanel media={inUniverse ? null : media}
+      <div className="header-meta"><Link className="app-community-link" to="/community">Community ✦</Link><span role="status" className="connection">{health}</span><AuthPanel media={inUniverse ? null : media}
         progress={Math.max(progress, media ? states[media.id]?.progress?.unit ?? 0 : 0)} onIdentity={onIdentity} onState={onState}
         onProgress={unit => { setProgress(unit); setSelectedId(null); setGraph(null) }} /></div>
     </header>

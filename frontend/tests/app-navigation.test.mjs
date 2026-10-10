@@ -51,7 +51,8 @@ for (const scenario of ['loading', 'failed', 'saving', 'ready', 'guest']) {
       if (scenario === 'saving' || scenario === 'ready') await act(async () => state.resolve([]))
       if (scenario === 'saving') await act(async () => props('UniverseDetails').onComplete(first))
 
-      if (['loading', 'failed', 'saving'].includes(scenario)) {
+      // A failed saved-state load uses main's guest-style entry at progress zero.
+      if (['loading', 'saving'].includes(scenario)) {
         await act(async () => props('UniverseCanvas').onEnter(first))
         await act(async () => props('UniverseDetails').onEnter(first))
         assert.equal(graphCalls.length, 0)
