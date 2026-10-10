@@ -1,12 +1,18 @@
 // Keep in sync with backend/app/schemas.py; /openapi.json is the API contract.
 export interface RevealPoint { unit: number }
 export interface UserProgress { media_id: string; progress: RevealPoint }
+export interface MediaReleaseDate { year: number | null; month: number | null; day: number | null }
+export interface UserMediaState {
+  media_id: string; progress: RevealPoint | null; completed: boolean; manual_unlocked: boolean
+}
 export interface Media {
   id: string
   title: string
   type: 'anime' | 'tv' | 'manga' | 'game' | 'movie'
   progress_unit: 'episode' | 'chapter' | 'movie' | 'milestone'
   total_units: number
+  total_units_known?: boolean
+  release_date?: MediaReleaseDate | null
   description: string
   anilist_id: number | null
   has_prologue: boolean
@@ -40,6 +46,12 @@ export interface GenerationStatus {
   processed_units: number; supported_units: number[]; episode_cap: number
   error: string | null; updated_at: string | null; experimental: boolean
 }
+export interface UniverseCache {
+  refreshed_at: string | null; stale: boolean; incomplete: boolean; revision: number
+  can_expand: boolean; limitations: string[]
+}
+export interface UniverseRelation { source: string; target: string; type: string }
 export interface Universe {
-  root_id: string; media: Media[]; relationships: { source: string; target: string; type: string }[]; truncated: boolean
+  root_id: string; media: Media[]; relationships: UniverseRelation[]; truncated: boolean
+  franchise_id?: string | null; cache?: UniverseCache | null
 }
