@@ -34,7 +34,7 @@ export function universeStatus(item: SavedUniverse): 'Exploring' | 'Completed' {
 export function estimatedHoursWatched(items: SavedUniverse[]): number {
   const minutes = new Map<string, number>()
   for (const item of items) for (const title of item.titles) {
-    minutes.set(title.media_id, title.estimated_minutes_watched)
+    minutes.set(title.media_id, Math.max(minutes.get(title.media_id) ?? 0, title.estimated_minutes_watched))
   }
   return [...minutes.values()].reduce((total, value) => total + value, 0) / 60
 }

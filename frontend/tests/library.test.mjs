@@ -41,6 +41,9 @@ test('estimated hours sum distinct titles across universes, including partial pr
   const first=fixture(1), second=fixture(2)
   second.titles.push({...first.titles[0]},{...fixture(3).titles[0],estimated_minutes_watched:120})
   assert.equal(helpers.estimatedHoursWatched([first,second]),7.5)
+  second.titles[1].estimated_minutes_watched=88
+  assert.equal(helpers.estimatedHoursWatched([first,second]),472/60)
+  assert.equal(helpers.estimatedHoursWatched([second,first]),472/60)
   assert.equal(helpers.estimatedHoursWatched([]),0)
 })
 

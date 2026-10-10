@@ -64,8 +64,13 @@ function UniverseRow({item, index, menu, busy, onMenu, onAction}: {item: SavedUn
     if (!menu) return
     const dropdown = menuRef.current
     const viewport = dropdown?.closest('.library-scroll')
-    if (dropdown && viewport && dropdown.getBoundingClientRect().bottom > viewport.getBoundingClientRect().bottom - 48) {
-      dropdown.style.top = 'auto'; dropdown.style.bottom = '32px'
+    if (dropdown && viewport) {
+      const bounds = dropdown.getBoundingClientRect()
+      const visible = viewport.getBoundingClientRect()
+      const upwardTop = dropdown.parentElement!.getBoundingClientRect().bottom - 32 - bounds.height
+      if (bounds.bottom > visible.bottom - 48 && upwardTop >= visible.top + 16) {
+        dropdown.style.top = 'auto'; dropdown.style.bottom = '32px'
+      }
     }
     dropdown?.scrollIntoView({block: 'nearest'})
     dropdown?.querySelector('button')?.focus()

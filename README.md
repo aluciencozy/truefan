@@ -904,6 +904,8 @@ entry. Weak side-story boundaries do not merge two independently saved universes
 show **estimated hours watched** across distinct titles in the caller's saved
 universes: 22 minutes per episode (including partial saved progress) and 120
 minutes per completed movie, including AniList entries with `format: MOVIE`.
+If cached universes disagree on a shared title's estimate, the largest estimate
+is used so changing pin or sort order cannot change the total.
 Known episode totals cap progress and supply the count for completed works;
 unknown totals use saved episode progress. Prologues count as one episode unit.
 Manga chapters, game milestones, and manual unlocks add no watch time. Removing a
