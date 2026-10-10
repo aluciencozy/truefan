@@ -25,6 +25,11 @@ class MediaReleaseDate(BaseModel):
         return self
 
 
+class TrendingCover(BaseModel):
+    id: int = Field(gt=0)
+    cover_url: str = Field(pattern=r'^https://s4\.anilist\.co/')
+
+
 class Media(BaseModel):
     id: str
     title: str
@@ -63,6 +68,8 @@ class Entity(BaseModel):
     description: str
     revealed_at: RevealPoint
     provenance: Provenance
+    portrait_url: str | None = None
+    portrait_large_url: str | None = None
 
 
 class Relationship(BaseModel):
@@ -187,6 +194,18 @@ class Universe(BaseModel):
     truncated: bool = False
     franchise_id: str | None = None
     cache: UniverseCache | None = None
+
+
+class UniverseSearchResult(BaseModel):
+    franchise_id: str
+    title: str
+    entry_media_id: str
+    cover_url: str | None = None
+
+
+class UniverseSearchResponse(BaseModel):
+    results: list[UniverseSearchResult]
+    auto_open: bool = False
 
 
 class UniverseExpandRequest(BaseModel):

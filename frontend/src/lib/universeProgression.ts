@@ -9,6 +9,10 @@ export interface ReleaseGuide {
 }
 export type MediaStates = Record<string, UserMediaState>
 
+export function worldTitle(media: Media, guide: ReleaseGuide | undefined): string {
+  return guide?.status === 'locked' ? 'Undiscovered' : media.title
+}
+
 /** Unknown components sort after known components at the same precision; no date is invented. */
 export function compareRelease(a: Media, b: Media): number {
   for (const part of ['year', 'month', 'day'] as const) {
@@ -28,13 +32,20 @@ export function releaseLabel(media: Media): string {
 export function buildReleaseGuide(model: UniverseModel, states: MediaStates): Record<string, ReleaseGuide> {
   const media = new Map(model.media.map(item => [item.id, item]))
   const guide: Record<string, ReleaseGuide> = {}
+  const main = model.groups.find(group => group.id === 'group:main')
+  const mainIds = new Set(main?.mediaIds ?? [])
+  const startingPoint = model.media.filter(item => mainIds.has(item.id)).sort(compareRelease)[0]
   model.branches.forEach((branch, branchIndex) => {
     const ordered = branch.mediaIds.map(id => media.get(id)!).sort(compareRelease)
+    const connections = model.links.filter(link => branch.mediaIds.includes(link.source) && mainIds.has(link.target)
+      || branch.mediaIds.includes(link.target) && mainIds.has(link.source))
+    const parent = connections.find(link => ['SPIN_OFF', 'SIDE_STORY', 'PARENT'].includes(link.kind)) ?? connections[0]
+    const prerequisite = main?.branchIds.includes(branch.id) ? null
+      : parent ? media.get(mainIds.has(parent.source) ? parent.source : parent.target)! : startingPoint
     let suggested = false
     ordered.forEach((item, index) => {
       const saved = states[item.id]
-      // Undated entries cannot block a branch forever. They can be entered through override as well.
-      const previous = index && item.release_date?.year ? ordered[index - 1] : null
+      const previous = index ? ordered[index - 1] : prerequisite
       const status: WatchStatus = saved?.completed ? 'completed'
         : saved?.manual_unlocked || (saved?.progress?.unit ?? 0) > 0 || !previous || states[previous.id]?.completed ? 'available' : 'locked'
       guide[item.id] = {

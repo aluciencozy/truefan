@@ -2,8 +2,11 @@ from collections import OrderedDict, deque
 from dataclasses import dataclass
 import threading
 import time
+import re
+import unicodedata
+from urllib.parse import urlparse
 from app.config import settings
-from app.schemas import Media, MediaReleaseDate, Universe, UniverseEdge
+from app.schemas import GraphResponse, Media, MediaReleaseDate, TrendingCover, Universe, UniverseEdge
 from app.services.http import fetch
 
 FIELDS = 'id type chapters idMal title{romaji english} format episodes startDate{year month day} coverImage{medium}'
@@ -52,6 +55,71 @@ def details(media_id: str) -> dict:
 def search_media(search: str) -> list[Media]:
     data = query('query($q:String){Page(page:1,perPage:10){media(search:$q,type:ANIME,isAdult:false){' + FIELDS + '}}}', {'q': search})
     return [normalize(row) for row in data['Page']['media']]
+
+
+def trending_covers() -> list[TrendingCover]:
+    data = query('''query{Page(page:1,perPage:16){
+        media(type:ANIME,isAdult:false,sort:TRENDING_DESC){id coverImage{medium}}
+    }}''', {})
+    covers = []
+    for row in data['Page']['media']:
+        url = (row.get('coverImage') or {}).get('medium')
+        if isinstance(url, str) and url.startswith('https://s4.anilist.co/'):
+            covers.append(TrendingCover(id=row['id'], cover_url=url))
+    return covers
+
+
+def character_profiles(anilist_id: int) -> list[dict]:
+    # Reuse the one-hour query cache per anime/page, never request individual characters.
+    profiles = []
+    page = 1
+    while True:
+        data = query('''query($id:Int,$page:Int){Media(id:$id){characters(page:$page,perPage:50){
+            pageInfo{hasNextPage} nodes{id name{full first native alternative} image{medium large}}
+        }}}''', {'id': anilist_id, 'page': page})['Media']['characters']
+        profiles.extend(data['nodes'])
+        if not data['pageInfo']['hasNextPage']:
+            return profiles
+        page += 1
+
+
+def normalized_character_name(name: str) -> str:
+    # AniList aliases can contain parenthesized translations, e.g. Saber (セイバー).
+    name = unicodedata.normalize('NFKD', re.sub(r'\([^)]*\)', '', name).casefold())
+    name = ''.join(char for char in name if not unicodedata.combining(char))
+    return ' '.join(sorted(re.sub(r'[^\w]+', ' ', name).replace('_', ' ').split()))
+
+
+def character_portraits(graph: GraphResponse, anilist_id: int | None) -> GraphResponse:
+    if anilist_id is None or not any(entity.type == 'character' for entity in graph.entities):
+        return graph
+    try:
+        profiles = character_profiles(anilist_id)
+        matches: dict[str, dict[int, dict]] = {}
+        for profile in profiles:
+            names = profile['name']
+            for name in [names.get('full'), names.get('first'), names.get('native'), *(names.get('alternative') or [])]:
+                key = normalized_character_name(name) if name else ''
+                if key:
+                    matches.setdefault(key, {})[profile['id']] = profile
+        entities = []
+        for entity in graph.entities:
+            candidates = matches.get(normalized_character_name(entity.name), {}) if entity.type == 'character' else {}
+            portrait = large = None
+            if len(candidates) == 1:
+                image = next(iter(candidates.values())).get('image') or {}
+                portrait = image.get('medium')
+                large = image.get('large')
+                # Only accept the provider's HTTPS CDN images.
+                portrait, large = [url if url and urlparse(url).scheme == 'https'
+                                   and urlparse(url).hostname == 's4.anilist.co' else None
+                                   for url in (portrait, large)]
+            entities.append(entity.model_copy(update={'portrait_url': portrait or large,
+                                                      'portrait_large_url': large or portrait}))
+        return graph.model_copy(update={'entities': entities})
+    except (ValueError, KeyError, TypeError):
+        # Portrait metadata is optional; provider outages must not hide the graph.
+        return graph
 
 
 # Evidence for provisional membership only, never watch prerequisites.

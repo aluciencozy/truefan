@@ -5,7 +5,7 @@ from app.database import connection
 def main():
     with connection() as conn:
         conn.execute(Path(__file__).with_name("schema.sql").read_text())
-    print("Application progress, generated-graph, and franchise-cache tables are ready.")
+    print("Application progress, saved-universe, generated-graph, and franchise-cache tables are ready.")
 
 
 if __name__ == "__main__":

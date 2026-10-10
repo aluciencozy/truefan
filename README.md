@@ -14,7 +14,7 @@ returns only facts at or before the user's exact progress.
 - Vite + React + TypeScript dashboard with Tailwind and React Flow.
 - Backend media search, selected media, progress selector, graph, and entity details.
 - FastAPI health check and hard-coded, backend-filtered graph responses.
-- Neon Auth UI for Google-only sign-in, sign-out, account settings, sessions, and a protected API identity check.
+- Neon Auth UI for Google-only sign-in, sign-out, account settings, and a protected API identity check.
 - Persistent per-user media progress through authenticated FastAPI endpoints.
 - Lazy Neon Postgres connection helper; no database or external credentials needed to boot.
 - Dynamic AniList search and reusable Neon franchise caches with bounded discovery and explicit expansion.
@@ -29,22 +29,29 @@ reveals three nodes, episode 2 reveals a faction, and episode 3 reveals an objec
 Moving backwards removes later information immediately, including selected details.
 Progress 0 gives an empty graph. No real-series spoilers are included in the fixture.
 
-The starter fixture remains available alongside dynamic AniList search. Accounts use real Neon Auth when configured. Automatic experimental
-graphs now supplement it; existing production deployments require the updated code
+The development fixture remains available through its API and explicit
+`/explore?media=lantern-harbor` route; the search UI presents real stories.
+Accounts use real Neon Auth when configured. Automatic experimental graphs
+now supplement it; existing production deployments require the updated code
 and additive schema to enable the new flow.
 Saved progress needs the application table initialized as described below.
 
 ## Example experience
 
-1. Search for Lantern Harbor and select it.
-2. Select the last episode you **finished**, initially episode 1.
-3. Pan/zoom the graph and select Mira to read an introductory description.
-4. Finish episode 2 and advance the selector: new connections become visible.
-5. Rewind to episode 1: the new faction and its relationships disappear.
-6. With Neon Auth configured, open Account, sign in with Google, then
-   use “Verify API session” to exercise the protected FastAPI endpoint.
+1. Search for an anime title on the homepage and choose its universe.
+2. Open an available world, set your progress, and explore its revealed characters.
 
-Signed-in users can save and retrieve progress across reloads and devices.
+For the deterministic development fixture, open `/explore?media=lantern-harbor`
+and follow these checks:
+
+1. Select the last episode you **finished**, initially episode 1.
+2. Pan/zoom the graph and select Mira to read an introductory description.
+3. Finish episode 2 and advance the selector: new connections become visible.
+4. Rewind to episode 1: the new faction and its relationships disappear.
+5. With Neon Auth configured, use the account icon to sign in with Google.
+   Episode changes save automatically; opening a story restores watched progress.
+
+Signed-in progress persists across reloads and devices.
 Spoiler-safe profiles and Q&A will share the same progress boundary.
 
 ## Architecture and stack
@@ -173,16 +180,35 @@ curl 'http://localhost:8000/api/media/lantern-harbor/graph?progress=3'
 ```
 
 The home route (`/`) is the TrueFan search hero, using Catppuccin Mocha and
-self-hosted JetBrains Mono. Submitting a title opens `/explore?q=...`; submitting
-an empty search opens the guest demo. The explorer retains media selection,
+self-hosted JetBrains Mono. Homepage suggestions are distinct cached franchises
+(for example, “Fate Universe”), grouped by surviving franchise ID and strong
+AniList relationship membership. Member titles such as “Fate/Zero” find the same
+universe while preserving the matching work as its entry point. Suggestions and Enter open it directly
+at `/explore?media=anilist-...`, preserving the selected work as its entry point.
+Typing is debounced and searches Neon only. Enter or **Discover this universe**
+resolves an uncached title using AniList search and the existing bounded discovery
+pipeline, with at most three discoveries per explicit search. Unambiguous results
+open automatically; ambiguous results stay in the homepage dropdown. Unresolved
+equally relevant candidates at the discovery limit require a more specific query.
+Labels shorten stored slash/season names for display; names never establish membership.
+Franchise search requires the existing Neon cache; provider/storage errors stay inline.
+Empty searches stay on the current page. Opening `/explore` without a selected
+story shows the shared search; it does not automatically load the development fixture.
+The constellation displays story totals without numbered branch labels.
+The explorer’s **Find another story** uses the same search component, suggestions,
+discovery, and direct universe navigation as the homepage. The TrueFan header link
+returns home to search again. The explorer retains media selection,
 progress filtering, and account controls. Home-page image nodes are decorative
-artwork reused from the Figma design, not factual story relationships. Assets
-live in `frontend/public/home/`; the font license is in `frontend/public/fonts/`.
+AniList covers from the top 16 non-adult trending anime, fetched through the backend's
+one-hour provider cache. Only IDs and cover URLs are returned; these nodes do not
+represent factual story relationships. Loading, missing covers, and provider/image
+failures leave neutral circles without blocking search. Static hero SVGs live in
+`frontend/public/home/`; the font license is in `frontend/public/fonts/`.
 Log in and Sign up use the existing Neon Auth routes.
 
-The two graph calls should return 3 and 5 entities respectively. In `/explore`,
-“Backend connected” proves the `/health` call succeeded. The visible graph comes
-from FastAPI, not a separate frontend fixture. Change episodes and click a node
+The two fixture graph calls should return 3 and 5 entities respectively. In
+`/explore?media=lantern-harbor`,
+the visible graph comes from FastAPI, not a separate frontend fixture. Change episodes and click a node
 to verify the graph and details update. Stop FastAPI and reload to check the error UI.
 
 ## Environment variables
@@ -261,6 +287,8 @@ See the [implemented schema](docs/IMPLEMENTATION.md#5-actual-database-schema) an
 The account pages use `createAuthClient` from `@neondatabase/neon-js/auth`, its
 React adapter, and `NeonAuthUIProvider`, `AuthView`, and `AccountView` from
 `@neondatabase/auth-ui`. Cross-origin SDK requests include session credentials.
+Account details live on `/account/settings`; legacy security/session links redirect
+there. The minimal account page omits provider and session management.
 This follows the [official managed-auth guidance](https://github.com/neondatabase/agent-skills/blob/main/skills/neon-auth/references/managed-auth.md).
 The frontend provider uses the supported
 `social={{ providers: ['google'] }}` and `credentials={false}` options:
@@ -322,12 +350,12 @@ JWT can remain valid until expiry; no immediate bearer-token revocation is promi
 
 1. Run both apps, then open `/auth/sign-in`; only the Google login button should appear, without email/password fields.
 2. Click Google, complete sign-in, and confirm you return to the dashboard with an Account session.
-3. Open Account on the dashboard and click **Verify API session**; `/api/me` should return your subject.
-4. Select episode 2 and click **Save progress**. Change to episode 1, then click **Retrieve progress**; it should restore episode 2.
-5. Reload the page: the session should restore. Retrieve progress again to prove persistence.
-6. Visit `/account/settings` for account settings and `/account/sessions` for sessions.
+3. Open a story and select episode 2. The footer should show **Saved** after the authenticated progress request completes.
+4. Rewind to episode 1: later facts disappear while watched history remains at episode 2.
+5. Reload and reopen the story: the session and watched episode 2 should restore automatically.
+6. Visit `/account/settings` to update account details or sign out; `/account/security` and `/account/sessions` redirect there.
 7. Sign out via `/auth/sign-out`. The dashboard should show sign-in links; private API requests without a JWT must return 401.
-8. Sign in as another user and verify there is no saved progress until that user saves it.
+8. Sign in as another user and verify there is no saved progress until that user updates an episode.
 
 If authentication works but `/token` does not, inspect trusted domains, cross-origin
 cookie blocking, and the Auth URL. Safari/third-party cookie policies can prevent
@@ -346,11 +374,13 @@ these contracts in `src/lib/types.ts`.
 | --- | --- |
 | `GET /health` | `{ "status": "ok", "mode": "demo" }`; does not imply DB/provider readiness |
 | `GET /api/media/search?q=...` | See [search behavior](docs/IMPLEMENTATION.md#search-and-universe-discovery) |
+| `GET /api/media/trending` | Public; `{ id: number, cover_url: string }[]` for up to 16 non-adult anime in AniList `TRENDING_DESC` order; HTTPS AniList CDN covers only; one-hour provider cache; provider failures return 502; no DB/Auth required |
+| `GET /api/universes/search?q=...&discover=false` | Public; `{ results: [{ franchise_id, title, entry_media_id, cover_url }], auto_open }`; five distinct cached franchises; `discover=true` permits bounded on-demand discovery when no cached match exists |
 | `GET /api/media/{id}` | One `Media`; unknown IDs return 404 |
 | `GET /api/media/{id}/universe` | Public cache-first franchise graph; `root_id` remains the exact selected work |
 | `POST /api/media/{id}/universe/expand` | Public bounded frontier expansion; body `{ "expected_revision": N }`; stale revision is 409 |
 | `GET /api/me/media-state?media_id=...` | Bearer token; 1–50 unique IDs; returns `{media_id, progress, completed, manual_unlocked}[]` |
-| `PUT /api/me/media-state/{id}` | Bearer token; supplied `completed`/`manual_unlocked` flags only; preserves saved units |
+| `PUT /api/me/media-state/{id}` | Bearer token; supplied `completed`/`manual_unlocked` flags only; marking completed advances progress to the known final unit; other updates and unknown totals preserve saved units |
 | `GET /api/media/{id}/graph?progress=N` | Required non-negative completed unit; returns filtered `GraphResponse`; out-of-range returns 422 |
 | `POST /api/media/{id}/extract` | Bearer token plus `GraphExtractRequest` (`summary`, `source`, `reveal_point`, viewer `progress`); calls Hugging Face with server-only `HF_TOKEN`/`HF_MODEL` and returns React Flow `{nodes, edges}` (`FlowGraphResponse`, `origin: "ai"`, unverified). On any provider failure (timeout, 429, bad output, no token) it returns the curated graph from Neon (`origin: "database"`), the in-code seed (`"builtin"`), or an empty graph for uncurated titles. Every path is filtered by `progress`; progress beyond total 422. Separate from the cached, queued `POST /api/media/{id}/generation` |
 | `POST /api/extract` | `ExtractRequest`; returns 501 with a typed `not_implemented` message |
@@ -358,6 +388,15 @@ these contracts in `src/lib/types.ts`.
 | `GET /api/me` | Bearer token required; returns `{ "id": "verified-user-subject" }` |
 | `PUT /api/me/progress/{media_id}` | Bearer token plus `{ "unit": N }`; upserts only this user’s progress; invalid units return 422 |
 | `GET /api/me/progress/{media_id}` | Bearer token; returns `UserProgress` or `null` when unsaved |
+
+Visible character entities also include nullable `portrait_url` (medium) and
+`portrait_large_url` (large) from AniList. The backend matches normalized names,
+name order, and aliases against the selected media's `anilist_id`, after episode
+filtering. Ambiguous matches keep monograms. Cast pages reuse the existing
+one-hour AniList cache; names, aliases, biographies, and future cast entries are
+never added to the response. Nodes lazy-load portraits; details use the larger
+image, with monogram fallbacks on image errors or provider outages. AniList
+portraits are general profile art, not episode-specific artwork.
 
 Example graph shape (additional provenance fields omitted here for readability):
 
@@ -426,8 +465,9 @@ The following normalized-table layout remains an optional future direction:
 | neon_auth user/session/account | Managed by Neon Auth; use its actual provisioned schema instead of recreating it |
 
 User-owned progress APIs must derive ownership from verified identity and apply
-that owner in every query. Guest progress is transient; signed-in users save/retrieve it explicitly from the
-Account panel. Plan foreign keys for media/endpoints, uniqueness constraints,
+that owner in every query. Guest progress is transient; signed-in episode changes
+save automatically and story entry restores watched progress. Plan foreign keys
+for media/endpoints, uniqueness constraints,
 and indexes by media/reveal unit. Keep source and review metadata with each fact.
 
 **Important future limit:** a single reveal point on an entity only protects its
@@ -438,36 +478,57 @@ versions. Do not replace an early description with a full-story biography.
 ## Universe exploration and release guidance
 
 Search results keep their exact AniList media ID and your typed query. Selecting
-an anime opens an effectively infinite React Flow canvas. Select a destination
+an anime opens a spacious React Flow canvas at a readable zoom near the selected
+work. Pan and zoom to explore; **Fit View** shows the complete discovered graph.
+Pan bounds and minimum zoom are derived from its layout. Select a destination
 to smoothly focus it, inspect its connections, and use **Enter anime** (or
 double-click an accessible node) to open the existing episode-filtered character
-graph. **Return home** focuses the original selection; zoom controls, fit-view and
-a desktop minimap navigate the map. Returning from characters keeps the canvas
-and camera mounted. The minimap is hidden on narrow mobile screens.
+graph. **Return home** focuses the original selection. Returning from characters
+keeps the universe canvas and camera mounted. The map uses the homepage's dark
+Catppuccin Mocha palette and locally hosted Pixelify Sans typography, with cover
+art, thin connections, and distinct locked/available/completed states.
+
+Selecting a character focuses its node and opens a Motion detail panel on the
+right half of the desktop canvas (a bottom panel on mobile). Closing restores
+the previous camera. Details show only the filtered graph's descriptions,
+relationships, and provenance. Character artwork is not supplied by the API,
+so characters use monograms. Changing progress immediately removes old graphs
+and details. Motion respects reduced-motion settings; layouts do not recalculate
+while panning or zooming.
 
 `universeModel.ts` normalizes stable typed connections while preserving the
 original directed AniList evidence. PREQUEL reverses placement direction;
 reciprocal SEQUEL/PREQUEL evidence shares one connection. Alternatives are
 symmetric cross-links, never fabricated sequels. A deterministic, cycle-safe
-primary sequel forest retains other connections as dashed links. Straight
-continuation chains share an inferred branch; forks and multiple parents split
-branches. Explicit alternatives, spinoffs, side stories and adaptations prevent
-transitive branch merging. Different format families (TV/TV_SHORT/ONA versus
-films, OVAs or specials) also remain separate, so an optional OVA prequel does not
-become a TV-season viewing prerequisite. Adaptation/version branches remain connected nearby.
-These heuristics describe provisional groups, not canonical continuity facts.
+primary sequel forest retains other connections as dashed links. Connected
+sequels of the same format family share an inferred branch, including
+forks and multiple parents. Explicit alternatives, spinoffs, side stories and
+adaptations prevent transitive branch merging. Different format families
+(TV/TV_SHORT/ONA versus films, OVAs or specials) remain separate, so an optional
+OVA prequel does not become a TV-season viewing prerequisite.
+
+The map has two labeled clusters: **Main series** and **Spinoffs & related works**,
+separated by spacing, without borders or shaded containers. Muted gray labels
+keep the worlds as the visual focus.
+The main series is the selected entry's continuation branch; explicit parent,
+spinoff or side-story evidence leads back to its parent branch. An optional
+film/OVA entry uses a directly sequel/prequel-connected TV branch when one is
+available. All remaining branches share the related-works area while retaining
+independent release sequences. These are metadata heuristics, not canonical
+continuity facts; missing or conflicting provider relationships can misgroup works.
 
 `universeLayout.ts` lazily loads ELK.js and places fixed-size nodes inside inferred
-branch regions, then places those regions in radial constellations using a deterministic semantic
-spanning forest (sequel links first, adaptation/version links next, branch links
-then weak associations). Disconnected components are packed separately. This
-scaffold only controls geometry; the rendered connections retain the general graph. Input
-IDs/edges are sorted and layout uses a fixed seed. Release dates, watched state
-and overlays are absent from geometry inputs. Expansion preserves all existing
-media anchors, aligns new members to branch anchors when possible and appends
-colliding cards. This favors spatial memory over a perfect refreshed layout;
-branch regions/cross-links can become less tidy after several expansions.
-Layout failure falls back to deterministic branch lanes without hiding nodes.
+branches, with the main-series area above the related-works area. Branches in the
+related area are packed together. Cross-links remain visible but no longer decide
+the placement of the two areas. IDs/edges are sorted and layout uses a fixed seed.
+Small ID-based position offsets give connections gentle upward/downward angles
+without moving worlds on rerender or reload.
+Release dates, watched state and overlays are absent from geometry inputs.
+Expansion preserves existing media anchors, aligns new members to branch anchors
+when possible and appends colliding cards. This favors spatial memory over a
+perfect refreshed layout; spacing/cross-links can become less tidy after
+several expansions. Layout failure packs branches across rows with the same
+position offsets, avoiding a single vertical column of related works.
 
 **Release guidance** numbers entries *within each branch*, rather than
 interleaving unrelated continuities by global release date. Sorting compares
@@ -476,15 +537,41 @@ year/month, then uses stable media ID. Partial dates stay labeled partial and
 undated entries sort last. Nothing invents a date or treats a release sequence as
 story chronology or guaranteed spoiler-free viewing.
 
-All discovered nodes stay visible. **Locked** shows title, cover and actual
-connections, with no episode metadata/story details or character entry.
+The universe opens in **Focus Mode**, with an enlarged glowing world near the
+middle-left and a compact details panel beside it (below it on small screens).
+The camera frames a local neighborhood; remote worlds recede until visited.
+Arrow keys follow spatially aligned connected neighbors. **Previous/Next** prefer
+primary prequel/sequel connections, with other actual connections as fallbacks.
+Click a world or a connection to travel. **Overview** smoothly fits all discovered
+worlds; toggle it again to return to the same selection, or select a world to
+focus it. Free panning, wheel/pinch zoom, and automatic focus panning are disabled
+in both modes. Character graph camera controls remain independent.
+
+React Flow interpolates the camera along straight connections; Motion animates
+node scale, arrival rings, traveling light trails and the details panel. Layout
+only runs when the discovered model changes, never during camera movement or
+progress updates. Reduced-motion preferences disable the cinematic transitions.
+The panel's short summary uses relationship/format metadata rather than provider
+plot synopses, which have no spoiler-safe reveal boundary. Recorded progress is
+shown as saved; explicit completion does not fabricate watched episode numbers.
+**Enter World** opens the existing progress-filtered character graph.
+
+All discovered nodes remain in the map. **Locked** uses **Undiscovered** in place
+of the title across the map, details, connections, tooltips and screen-reader
+announcements. Covers have a strong blur and muted Catppuccin Mocha overlay,
+including on hover/focus. Actual connections remain visible, with no episode
+metadata/story details or character entry. This is a presentation preference;
+the public universe metadata API still returns titles and cover URLs.
 **Available** can be entered; **Completed** remains accessible and has a watched
-marker. Incomplete covers are dimmed. Each inferred branch has its own available
-starting point, so alternate/spinoff branches can be explored in parallel.
-Later dated releases in that branch are available after the preceding release
-is confirmed complete. Undated works remain available rather than blocking
-forever; partial-date suggestions are approximate. Existing positive watched
-progress or a manual override grants entry regardless of the suggestion.
+marker. Incomplete covers are dimmed. Only the earliest release in the
+main-series branch is available
+for a fresh viewer. Later entries require completion of the preceding release in
+their own branch. The first entry in a related branch requires a connected
+main-series entry to be completed, preferring explicit spinoff/side-story/parent
+relations; without a direct main-series link, it requires the main-series starting
+entry. Unknown release dates sort last and do not bypass these prerequisites;
+partial-date suggestions are approximate. Existing positive watched progress,
+confirmed completion or a manual override preserves access regardless of guidance.
 **Unlock anyway** changes availability only, preserving saved units/completions.
 **I finished this anime** explicitly confirms completion, including uncertain
 counts, without fabricating watched episode numbers.
@@ -493,8 +580,11 @@ Guest confirmations/overrides last for the current app session. Signed-in users
 load all discovered works' state through deterministic bulk batches of at most
 50 IDs and save flags immediately. Merged cached universes may contain more than
 50 nodes; they all remain visible.
-Episode selection remains a spoiler lens: use **Account → Save progress** to
-persist watched units. The frontend saves at least the previously recorded unit
+The compact episode stepper also accepts a typed episode number, with prologue
+numbering preserved. Every signed-in change automatically persists watched units;
+writes run in order and failures offer a retry. Character loading and generation
+status appear in the center of the canvas. The account icon opens an animated
+settings/logout dropdown. The frontend saves at least the previously recorded unit
 and does not erase completion when you rewind. API completion flags are
 authoritative; the frontend never infers completion from an unknown one-unit
 fallback or generation coverage. Account changes clear user state. Entry locks
@@ -552,6 +642,20 @@ AI calls or Neon writes. The [earlier Jikan report](docs/jikan-feasibility.md) r
 record of that investigation.
 
 ## Hugging Face extraction experiment
+
+For a simple one-request check using a made-up story, set `HF_TOKEN` and
+`HF_MODEL` in `backend/.env`, install `backend/requirements.txt`, and run from
+`backend/`:
+
+```bash
+.venv/bin/python scripts/hf_extraction_smoke.py
+```
+
+This optional smoke test checks JSON structure, entity names, relationship
+endpoints, and exact evidence quotes. It prints the model response and exits
+with a nonzero status on failure. It makes no database writes, does not verify
+semantic correctness or spoiler safety, and can consume inference credits.
+Keep captured model responses outside the repository.
 
 From `backend/`, using the server-only `HF_TOKEN` in `backend/.env`:
 
@@ -635,7 +739,7 @@ Recommended next five implementation tasks:
 
 1. Install dependencies, link/deploy Neon Auth, and verify Google sign-in/session/JWT flow end to end.
 2. Choose one real demo series; curate story units and review entity/relationship reveal points.
-3. Expand the graph schema and add automatic saved-progress resume if useful.
+3. Expand the graph schema as more curated stories become available.
 4. Coordinate the universe unlock UI with `fm/truefan-universe-explorer`; see the
    [backend contract and frontend dependency](docs/IMPLEMENTATION.md#7-http-api-reference).
 5. Run one provenance-preserving Hugging Face extraction experiment, then deploy the demo to Vercel/Railway.
@@ -681,6 +785,122 @@ requesting a token; the workaround passes a local regression check using the
 installed SDK and HTTP fixtures. Protected API success and Postgres save/retrieve
 still require a live check after the fix.
 A build, an OAuth redirect, or mocked JWT tests do not prove the complete live flow.
+
+## Community (Figma: Truefan)
+
+`/community` implements the Figma design in typed React components. Shared colors,
+local Pixelify Sans/Inter fonts, starry backgrounds, and control styles live in
+`frontend/src/index.css`, `frontend/src/components/CommunityPage.css`, and the shared
+`AppNavbar` / `GlitterStars` components; original Figma SVG assets live in
+`frontend/public/community`. The shared palette
+is used throughout the app; Community and Library typography/form tokens are
+scoped to their pages to preserve the homepage and constellation explorer styles. The palette
+matches the **TRUE FAN Community 1** frame (`123:30`): charcoal `#1e1e2e`, panels
+`#181825`, borders `#45475a`, pale text `#cdd6f4`, and lavender `#cba6f7`.
+A shared navbar across the homepage, explorer, saved universes, community, and account
+pages centers Explore, Saved Universes (`/library`), and Community, with account controls
+on the right. Its transparent header and blurred controls blend with each page. The active
+link animates gently, respects reduced motion, and moves to a centered second row on
+smaller screens. Community and Saved universes retain their gently twinkling dots and
+larger star accents; stars remain static when reduced motion is requested.
+The full-width Community feed uses smaller typography, media and tag dropdowns
+(Any tag shows all categories), search, and latest/popular sorting. Create post opens a
+form dialog; conversations open a readable dialog with scrolling posts/replies and a
+fixed reply form, native keyboard focus trapping, Escape dismissal, and focus return.
+Community supports
+post links, optional review ratings, likes, and comments. There are no episode controls
+on this page. Saved universes has its own owner-scoped library API, documented below.
+
+Community data is stored in Neon Postgres. With backend dependencies and
+`DATABASE_URL` configured, initialize its additive tables once:
+
+```sh
+cd backend
+python -m app.init_community
+```
+
+The initializer does not populate the live feed. Optionally use
+`python -m app.init_community --seed-demo` for three clearly marked example posts;
+these have zero likes/comments. If storage is unavailable, the UI shows a labelled
+design preview and disables publishing/reactions rather than inventing activity.
+Deploy the updated backend and frontend to make these changes available online;
+initialize the tables on the same Neon branch used by that deployment.
+
+Community API contracts (also available in `/openapi.json`):
+
+| Endpoint | Access / behavior |
+| --- | --- |
+| `GET /api/community/posts` | Public; optional `category` (omitted = all categories), `media`, `q`, `sort`, `include_spoilers`, `offset`; 20 posts per page and `has_more`. |
+| `POST /api/community/posts` | Verified Neon bearer JWT; category, media, title, body, `contains_spoilers`, optional rating 1–5 for reviews. |
+| `GET /api/community/posts/{id}` | Public; respects `include_spoilers`, including copied post links. |
+| `PUT /api/community/posts/{id}/like` | Verified JWT; `{ "liked": true }` or false; one like per user/post. |
+| `GET /api/community/posts/{id}/comments` | Public; filters parent and comment spoiler flags; latest 100 comments. |
+| `POST /api/community/posts/{id}/comments` | Verified JWT; body and `contains_spoilers`; inherits a spoiler parent's flag. |
+| `POST /api/community/presence` | Public heartbeat with browser `visitor_id` UUID and category `page`; optional verified JWT. |
+| `GET /api/community/library` | Verified JWT; only the caller's saved media. |
+
+The visitor badge counts activity within the last 90 seconds, refreshing every
+25 seconds while the page is visible. Anonymous visitors are counted by browser,
+and authenticated visitors are deduplicated by verified user ID across browsers.
+It is an estimate of recent presence, not a fabricated fixed “128” or an exact count
+of humans. Counts span Community categories. Public posts use stable pseudonyms;
+ownership comes exclusively from the verified JWT, never request-supplied user IDs.
+
+Spoiler posts and comments are excluded in backend queries by default, including
+search/media options and comment counts. Authors supply spoiler flags; this does
+not automatically detect spoilers or apply graph reveal points to community text.
+
+Validation: frontend build/typecheck, existing SDK token regression, and community
+API tests. Real Postgres regression tests use isolated temporary tables and verify
+like deduplication, presence expiry/deduplication, filtering, and comments. Run them
+with `TRUEFAN_COMMUNITY_DB_TESTS=1 python -m unittest discover -s tests -p test_community.py`.
+These tests do not certify a live Google sign-in and publishing session.
+
+
+### Saved universes
+
+`/library` recreates the Figma **Saved universes** frame (`22:1755`) with original
+constellation SVGs repeating in a three-row sequence, anime cover art, and a
+planet empty state based on the **Truefan / Website Community — Desktop** frame.
+Sign in, select a story in Explore, then click **Save universe**. Library links
+open the exact saved work with `/explore?universe=anilist-ID` rather than searching
+by title. Existing viewing-progress records also appear, grouped by cached strong
+franchise membership. Pins, private 1–5 ratings, and abandoned entries survive
+reloads. Search, status/media filters, sorting, and list/grid layouts are functional.
+
+Run `python -m app.init_db` against the deployment database before using the new
+API. The additive `user_saved_universes` table stores a catalog root snapshot,
+save/exploration timestamps, pin/rating preferences, and an abandonment tombstone,
+keyed by verified Neon JWT subject and root media ID. Abandon removes the library
+entry, preserves individual viewing history, and suppresses automatic re-import
+from progress. Explicitly saving a member of that strong franchise restores the
+entry. Weak side-story boundaries do not merge two independently saved universes.
+
+| Endpoint | Access / behavior |
+| --- | --- |
+| `GET /api/me/universes` | Verified Neon JWT; caller's grouped `SavedUniverse[]`; cached metadata only, no discovery or inference. |
+| `POST /api/me/universes/{media_id}` | Verified JWT; explicitly save or restore a universe; bounded cache-first discovery can run on this action. |
+| `PUT /api/me/universes/{media_id}` | Verified JWT; `{ "pinned": true }` and/or `{ "rating": 1..5 }`; `rating: null` clears the private rating. Returns updated `SavedUniverse`; unsaved/other-owner entry is 404. |
+| `POST /api/me/universes/{media_id}/abandon` | Verified JWT; tombstone caller's saved universe; returns `{ "media_id": "...", "abandoned": true }`. |
+
+`SavedUniverse` includes `media_id`, `title`, `cover_url`, `type`, `format`, ordered
+`titles`, `viewed_count`, `total_count`, `coverage_incomplete`, `pinned`, `rating`,
+`saved_at`, and `last_explored_at`. Each title includes catalog metadata,
+`release_date`, and a completion boolean. A viewed node is a **completed work**
+(season, sequel, movie, etc.), not an episode count. Explicit completion flags win;
+legacy progress counts as complete only when the work's total is known. Manual
+unlocks never count as completion. Known release dates come first, then undated
+works, with stable IDs resolving ties. Release order is not guaranteed narrative
+chronology. Cached franchise discovery is provisional and bounded, so counts can
+grow after discovery/expansion and are labelled as discovered titles. The library
+never returns descriptions or character facts. Storage failures are errors with
+retry, not fake empty libraries. Account changes clear and abort pending state.
+
+Validation: frontend `npm test`, `npm run build`; backend
+`python -m unittest discover -s tests`. Library tests cover work completion,
+release ordering, grouped legacy progress, tombstones, verified ownership,
+preference validation, repeating previews, pin/rating actions, cancellation,
+failed deletion, last-item empty state, and account changes.
 
 ## Seeding the curated demo catalog
 

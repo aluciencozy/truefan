@@ -87,3 +87,16 @@ class AuthTests(unittest.TestCase):
                 self.verify(token)
             self.assertEqual(raised.exception.status_code, 401)
 
+
+    def test_jwks_without_signing_keys_is_503_but_unknown_kid_is_401(self):
+        for payload in [{"keys": []}, {"keys": [{"kty": "OKP", "crv": "Ed25519", "x": "bad"}]}, {"nokeys": 1}, []]:
+            with self.subTest(payload=payload), patch.object(self.client, "fetch_data", return_value=payload):
+                self.client.jwk_set_cache = None
+                with self.assertRaises(HTTPException) as raised:
+                    self.verify(self.token())
+                self.assertEqual(raised.exception.status_code, 503)
+        claims = jwt.decode(self.token(), options={"verify_signature": False})
+        other_kid = jwt.encode(claims, self.private_key, algorithm="EdDSA", headers={"kid": "unknown-key"})
+        with self.assertRaises(HTTPException) as raised:
+            self.verify(other_kid)
+        self.assertEqual(raised.exception.status_code, 401)

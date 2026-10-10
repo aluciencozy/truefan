@@ -9,13 +9,13 @@ from app.services import progress as progress_service
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.schemas import (AskRequest, ExtractRequest, FlowGraphResponse, GraphExtractRequest, GraphResponse,
-                         HealthResponse, Media, PlaceholderResponse, RevealPoint)
+                         HealthResponse, Media, PlaceholderResponse, RevealPoint, TrendingCover)
 from app.services.catalog import load_catalog
 from app.services.demo import ENTITIES, MEDIA, RELATIONSHIPS
 from app.services.graph import filter_graph, to_flow_graph
-from app.services import anilist, generation, franchises, huggingface
+from app.services import anilist, generation, franchises, huggingface, universe_search
 from app.schemas import (Universe, GenerationStatus, UniverseExpandRequest,
-                         UserMediaState, UserMediaStateUpdate)
+                         UserMediaState, UserMediaStateUpdate, UniverseSearchResponse)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,11 +29,13 @@ async def lifespan(app: FastAPI):
     stop.set()
 
 app = FastAPI(lifespan=lifespan, title="Spoiler-Aware Media Knowledge Graph", version="0.1.0")
-# Explicit origins only (never "*"): credentials and the Authorization header are in play.
-ALLOWED_ORIGINS = list(dict.fromkeys(
-    ["http://localhost:3000", "http://127.0.0.1:3000", settings.frontend_url.rstrip("/")]))
-app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=True,
-                   allow_methods=["*"], allow_headers=["*"])
+from app.community_api import router as community_router
+app.include_router(community_router)
+from app.library_api import router as library_router
+app.include_router(library_router)
+app.add_middleware(CORSMiddleware,
+                   allow_origins=[settings.frontend_url.rstrip("/")],
+                   allow_methods=["GET", "POST", "PUT"], allow_headers=["Content-Type", "Authorization"])
 
 
 def get_media(media_id: str) -> Media:
@@ -90,6 +92,24 @@ def search_media(q: str = Query(default="", max_length=200)):
         raise HTTPException(502, 'AniList search unavailable; try again shortly') from None
 
 
+@app.get('/api/media/trending', response_model=list[TrendingCover])
+def trending_covers() -> list[TrendingCover]:
+    try:
+        return anilist.trending_covers()
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(502, 'AniList trending covers unavailable; try again shortly') from None
+
+
+@app.get('/api/universes/search', response_model=UniverseSearchResponse)
+def search_universes(q: str = Query(default='', max_length=200), discover: bool = False) -> UniverseSearchResponse:
+    try:
+        return universe_search.search(q, discover)
+    except (RuntimeError, psycopg.Error):
+        raise HTTPException(503, 'Universe search unavailable; check the franchise cache and try again') from None
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(502, 'Universe discovery unavailable; try again shortly') from None
+
+
 @app.get("/api/media/{media_id}", response_model=Media)
 def media_details(media_id: str):
     return get_media(media_id)
@@ -107,7 +127,8 @@ def media_graph(media_id: str, progress: int = Query(ge=0)):
     graph = filter_graph(media_id, RevealPoint(unit=progress), entities, edges)
     graph.experimental = True
     graph.generation = generation.status(row)
-    return graph
+    # Enrich only the episode-filtered graph; the full cast and aliases stay server-side.
+    return anilist.character_portraits(graph, media.anilist_id)
 
 
 @app.post("/api/media/{media_id}/extract", response_model=FlowGraphResponse)
@@ -177,8 +198,8 @@ def read_media_states(user: Annotated[CurrentUser, Depends(current_user)],
 @app.put('/api/me/media-state/{media_id}', response_model=UserMediaState)
 def write_media_state(media_id: str, update: UserMediaStateUpdate,
                       user: Annotated[CurrentUser, Depends(current_user)]):
-    get_media(media_id)
-    return progress_service.update_media_state(user.id, media_id, update)
+    media = get_media(media_id)
+    return progress_service.update_media_state(user.id, media_id, update, media)
 
 
 @app.get('/api/media/{media_id}/universe', response_model=Universe)

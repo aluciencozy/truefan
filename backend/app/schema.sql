@@ -105,3 +105,16 @@ CREATE TABLE IF NOT EXISTS public.media_relations (
     observed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (source, target, type)
 );
+
+-- Private library preferences; abandonment never deletes viewing history.
+CREATE TABLE IF NOT EXISTS public.user_saved_universes (
+    user_id TEXT NOT NULL,
+    root_media_id TEXT NOT NULL,
+    root_media JSONB NOT NULL,
+    saved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_explored_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    pinned BOOLEAN NOT NULL DEFAULT false,
+    rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+    abandoned BOOLEAN NOT NULL DEFAULT false,
+    PRIMARY KEY(user_id, root_media_id)
+);
