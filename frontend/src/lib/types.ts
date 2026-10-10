@@ -2,6 +2,7 @@
 export interface RevealPoint { unit: number }
 export interface UserProgress { media_id: string; progress: RevealPoint }
 export interface MediaReleaseDate { year: number | null; month: number | null; day: number | null }
+export interface TrendingCover { id: number; cover_url: string }
 export interface UserMediaState {
   media_id: string; progress: RevealPoint | null; completed: boolean; manual_unlocked: boolean
 }

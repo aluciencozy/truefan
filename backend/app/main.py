@@ -9,7 +9,7 @@ from app.services import progress as progress_service
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.schemas import (AskRequest, ExtractRequest, GraphResponse, HealthResponse,
-                         Media, PlaceholderResponse, RevealPoint)
+                         Media, PlaceholderResponse, RevealPoint, TrendingCover)
 from app.services.demo import ENTITIES, MEDIA, RELATIONSHIPS
 from app.services.graph import filter_graph
 from app.services import anilist, generation, franchises, universe_search
@@ -89,6 +89,14 @@ def search_media(q: str = Query(default="", max_length=200)):
             local = []
         if demo or local: return demo + local
         raise HTTPException(502, 'AniList search unavailable; try again shortly') from None
+
+
+@app.get('/api/media/trending', response_model=list[TrendingCover])
+def trending_covers() -> list[TrendingCover]:
+    try:
+        return anilist.trending_covers()
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(502, 'AniList trending covers unavailable; try again shortly') from None
 
 
 @app.get('/api/universes/search', response_model=UniverseSearchResponse)
