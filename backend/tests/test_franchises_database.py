@@ -1,4 +1,5 @@
 """Opt-in transactional checks. Never use the application/production DATABASE_URL."""
+import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 import os
@@ -8,11 +9,14 @@ import uuid
 from unittest.mock import patch
 import psycopg
 from psycopg.types.json import Jsonb
+from app.auth import current_user
 from app.config import settings
-from app.schemas import RevealPoint, UserProgress, UserMediaStateUpdate, UniverseExpandRequest
+from app.main import app
+from app.schemas import CurrentUser, RevealPoint, UserProgress, UserMediaStateUpdate, UniverseExpandRequest
 from app.services import anilist, franchises, progress
 from test_anilist import entry
 from test_generation_database import Proxy
+from test_franchises import request
 
 
 @unittest.skipUnless(os.environ.get('TRUEFAN_TEST_DATABASE_URL'),
@@ -160,7 +164,7 @@ class FranchiseDatabaseTests(unittest.TestCase):
         with patch.object(settings, 'universe_node_cap', 4), \
              patch('app.services.anilist.details', side_effect=lambda key: rows[key]) as provider:
             graph = franchises.expand('anilist-1', UniverseExpandRequest(expected_revision=1, depth=0))
-        self.assertEqual([call.args[0] for call in provider.call_args_list], ['anilist-1', 'anilist-2'])
+        self.assertEqual([call.args[0] for call in provider.call_args_list], ['anilist-2', 'anilist-1'])
         self.assertEqual({m.id for m in graph.media}, {'anilist-1', 'anilist-2', 'anilist-3'})
         self.assertTrue(graph.cache.can_expand)
 
@@ -205,6 +209,84 @@ class FranchiseDatabaseTests(unittest.TestCase):
             conn.execute("UPDATE public.user_progress SET completed_unit=12 WHERE user_id='a'")
         self.assertTrue(progress.get_media_states('a', ['anilist-1'])[0].completed)
         self.assertTrue(progress.update_media_state('a', 'anilist-1', UserMediaStateUpdate(manual_unlocked=False)).completed)
+
+    def test_smaller_expansion_bound_does_not_starve_retained_frontier(self):
+        with patch.object(settings, 'universe_node_cap', 2):
+            discovery = self.discover(1, [(2, 'SEQUEL'), (3, 'SEQUEL')])
+            franchises.publish(discovery)
+            saved = franchises.publish(discovery)
+            rows = {'anilist-1': entry(1, [(2, 'SEQUEL'), (3, 'SEQUEL')]),
+                    'anilist-2': entry(2, [(1, 'PREQUEL')])}
+            seen = []
+            for _ in range(2):
+                with patch('app.services.anilist.details', side_effect=lambda key: rows[key]) as provider:
+                    graph = franchises.expand('anilist-1', UniverseExpandRequest(
+                        expected_revision=saved.row['revision'], node_limit=1, depth=0))
+                self.assertEqual(provider.call_count, 1)
+                seen.append(provider.call_args.args[0])
+                self.assertEqual({m.id for m in graph.media}, {'anilist-1', 'anilist-2'})
+                saved = franchises.load('anilist-1')
+        self.assertEqual(seen, ['anilist-1', 'anilist-2'])
+        self.assertIn(('anilist-2', 'anilist-1', 'PREQUEL'),
+                      {(e.source, e.target, e.type) for e in saved.graph.relationships})
+        self.assertEqual(saved.row['discovery']['frontier'], ['anilist-1'])
+
+    def test_merged_frontier_larger_than_fetch_bound_rotates_all_pending_sources(self):
+        with patch.object(settings, 'universe_node_cap', 2):
+            franchises.publish(self.discover(1, [(2, 'SEQUEL'), (9, 'SEQUEL')]))
+            franchises.publish(self.discover(3, [(4, 'SEQUEL'), (9, 'SEQUEL')]))
+            saved = franchises.publish(self.discover(2, [(3, 'ALTERNATIVE')]))
+            pending = set(saved.row['discovery']['frontier'])
+            self.assertEqual(pending, {'anilist-1', 'anilist-3', 'anilist-4'})
+            rows = {f'anilist-{n}': entry(n, [(9, 'SEQUEL'), (2, 'PREQUEL')]) for n in (1, 3, 4)}
+            seen = set()
+            for _ in range(len(pending)):
+                with patch('app.services.anilist.details', side_effect=lambda key: rows[key]) as provider:
+                    graph = franchises.expand('anilist-1', UniverseExpandRequest(
+                        expected_revision=saved.row['revision'], node_limit=1, depth=0))
+                self.assertEqual(provider.call_count, 1)
+                seen.add(provider.call_args.args[0])
+                self.assertEqual({m.id for m in graph.media}, {f'anilist-{n}' for n in range(1, 5)})
+                saved = franchises.load('anilist-1')
+        self.assertEqual(seen, pending)
+        self.assertEqual(set(saved.row['discovery']['frontier']), pending)
+
+    def test_legacy_stored_prologue_accepts_final_unit_without_rewriting_graph(self):
+        media = anilist.normalize(entry(19603))
+        old = media.model_dump(exclude={'total_units_known', 'release_date'})
+        old['total_units'] = 12
+        franchises.publish(self.discover(19603, []))
+        with self.connection() as conn:
+            conn.execute("UPDATE public.franchise_media SET media=%s WHERE media_id=%s", (Jsonb(old), media.id))
+            conn.execute("""INSERT INTO public.generated_graphs(media_id,media,model,episode_cap,requested_by)
+                VALUES(%s,%s,'test',13,'test')""", (media.id, Jsonb(old)))
+            conn.execute("INSERT INTO public.user_progress(user_id,media_id,completed_unit) VALUES('legacy',%s,12)", (media.id,))
+        self.assertEqual(franchises.cached_media(media.id).total_units, 13)
+        self.assertEqual(franchises.load(media.id).graph.media[0].total_units, 13)
+        self.assertEqual(franchises.search_local('Same title')[0].total_units, 13)
+        self.assertFalse(progress.get_media_states('legacy', [media.id])[0].completed)
+        self.assertFalse(progress.update_media_state('legacy', media.id, UserMediaStateUpdate(manual_unlocked=True)).completed)
+        app.dependency_overrides[current_user] = lambda: CurrentUser(id='verified')
+        try:
+            with patch('app.database.connection', self.connection), \
+                 patch('app.services.generation.connection', self.connection), \
+                 patch('app.services.anilist.details') as provider:
+                code, details = asyncio.run(request('/api/media/' + media.id))
+                self.assertEqual(code, 200); self.assertEqual(details['total_units'], 13)
+                self.assertFalse(details['total_units_known'])
+                code, _ = asyncio.run(request('/api/media/' + media.id + '/graph?progress=13'))
+                self.assertEqual(code, 200)
+                code, data = asyncio.run(request('/api/me/progress/' + media.id, 'PUT', {'unit': 13}))
+                self.assertEqual(code, 200); self.assertEqual(data['progress']['unit'], 13)
+                provider.assert_not_called()
+        finally:
+            app.dependency_overrides.clear()
+        state = progress.get_media_states('verified', [media.id])[0]
+        self.assertEqual(state.progress.unit, 13); self.assertFalse(state.completed)
+        with self.connection() as conn:
+            stored, document = conn.execute('SELECT media,document FROM public.generated_graphs WHERE media_id=%s', (media.id,)).fetchone()
+        self.assertEqual(stored, old)
+        self.assertEqual(document, {'episodes': []})
 
     def test_legacy_inference_and_additive_migration_preserve_rows(self):
         with self.connection() as conn:

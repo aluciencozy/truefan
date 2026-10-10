@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 from pydantic import ValidationError
-from app.schemas import Media, MediaReleaseDate
+from app.schemas import Media, MediaReleaseDate, Universe
 from app.services import anilist
 
 
@@ -36,6 +36,25 @@ class MetadataTests(unittest.TestCase):
         self.assertFalse(anilist.normalize(unknown).total_units_known)
         for raw in ({'year': 2023, 'month': 2, 'day': 29}, {'month': 13}, {'day': 0}):
             with self.assertRaises(ValidationError): MediaReleaseDate.model_validate(raw)
+
+    def test_stored_prologue_units_are_canonical_and_idempotent(self):
+        base = anilist.normalize(entry(19603)).model_dump(exclude={'total_units_known', 'release_date'})
+        for total, expected in ((1, 1), (12, 13), (13, 13)):
+            for certainty in (None, False, True):
+                with self.subTest(total=total, certainty=certainty):
+                    stored = dict(base, total_units=total)
+                    if certainty is not None:
+                        stored['total_units_known'] = certainty
+                    media = Media.model_validate(stored)
+                    self.assertEqual(media.total_units, expected)
+                    self.assertEqual(media.total_units_known, certainty is True)
+                    self.assertEqual(stored['total_units'], total)
+                    self.assertEqual(Media.model_validate(media.model_dump()), media)
+                    self.assertEqual(Media.model_validate_json(media.model_dump_json()), media)
+                    graph = Universe.model_validate({'root_id': media.id, 'media': [stored], 'relationships': []})
+                    self.assertEqual(graph.media[0], media)
+        other = dict(base, id='anilist-1', total_units=12)
+        self.assertEqual(Media.model_validate(other).total_units, 12)
 
     def test_details_returns_selected_metadata_and_rejects_invalid_ids(self):
         with patch('app.services.anilist.query', return_value={'Media': entry(1)}):
@@ -114,6 +133,21 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual({(e.source, e.target, e.type) for e in warm.graph.relationships},
                          {('anilist-1', 'anilist-2', 'SEQUEL'), ('anilist-2', 'anilist-1', 'PREQUEL')})
         self.assertIn('node_cap', warm.limitations)
+
+    def test_revision_rotation_fetches_every_capped_retained_source(self):
+        rows = {f'anilist-{n}': entry(n, [(9, 'SEQUEL'), (1, 'PREQUEL')]) for n in range(1, 5)}
+        seed = Universe(root_id='anilist-1', media=[anilist.normalize(entry(n)) for n in range(1, 5)], relationships=[])
+        pending = {m.id for m in seed.media}
+        seen = set()
+        for revision in range(1, 5):
+            with patch('app.services.anilist.details', side_effect=lambda key: rows[key]) as provider:
+                result = anilist.discover('anilist-1', seed=seed, strong_ids=pending, frontier=pending,
+                                          node_limit=1, depth_limit=0, frontier_offset=revision)
+            self.assertEqual(provider.call_count, 1)
+            seen.add(provider.call_args.args[0])
+            self.assertEqual({m.id for m in result.graph.media}, pending)
+            self.assertEqual(result.frontier, pending)
+        self.assertEqual(seen, pending)
 
     def test_missing_or_mismatched_selected_media_fails(self):
         for raw in (None, entry(2)):

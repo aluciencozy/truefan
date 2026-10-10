@@ -39,6 +39,12 @@ class Media(BaseModel):
     release_date: MediaReleaseDate | None = None
     total_units_known: bool = False
 
+    @model_validator(mode='after')
+    def canonical_prologue_total(self) -> 'Media':
+        if self.id == 'anilist-19603' and self.has_prologue and self.total_units == 12:
+            self.total_units = 13
+        return self
+
 
 class Provenance(BaseModel):
     source: str

@@ -190,7 +190,8 @@ def expand(media_id: str, request: UniverseExpandRequest) -> Universe:
         try:
             discovery = anilist.discover(media_id, seed=snapshot.graph,
                 expanded=set(state.get('expanded_ids', [])), strong_ids=set(state.get('strong_ids', [])),
-                frontier=set(state['frontier']), node_limit=cap, depth_limit=depth)
+                frontier=set(state['frontier']), node_limit=cap, depth_limit=depth,
+                frontier_offset=snapshot.row['revision'])
         except (ValueError, KeyError, TypeError):
             # Do not change timestamps, revision, or existing metadata on a failed fetch.
             with connection() as conn:

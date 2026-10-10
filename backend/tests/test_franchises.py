@@ -97,6 +97,7 @@ class CacheTests(unittest.TestCase):
         self.assertEqual(result.root_id, 'anilist-2'); self.assertEqual(result.cache.revision, 3)
         self.assertEqual(discover.call_args.kwargs['frontier'], {'anilist-2'})
         self.assertEqual(discover.call_args.kwargs['expanded'], {'anilist-1'})
+        self.assertEqual(discover.call_args.kwargs['frontier_offset'], saved.row['revision'])
         publish.assert_called_once_with(discovery, expected=saved)
 
     def test_exhausted_expansion_does_not_replay_root(self):

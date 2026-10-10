@@ -74,7 +74,7 @@ class Discovery:
 def discover(media_id: str, *, seed: Universe | None = None,
              expanded: set[str] | None = None, strong_ids: set[str] | None = None,
              frontier: set[str] | None = None, node_limit: int | None = None,
-             depth_limit: int | None = None) -> Discovery:
+             depth_limit: int | None = None, frontier_offset: int = 0) -> Discovery:
     cap = node_limit if node_limit is not None else settings.universe_node_cap
     max_depth = depth_limit if depth_limit is not None else settings.universe_depth
     nodes = {m.id: m for m in seed.media} if seed else {}
@@ -82,7 +82,9 @@ def discover(media_id: str, *, seed: Universe | None = None,
     fetched = set(expanded or ())
     strong = set(strong_ids or {media_id})
     pending = set(frontier if frontier is not None else {media_id}) - fetched
-    queue = deque((item, 0) for item in sorted(pending))
+    ordered = sorted(pending)
+    offset = frontier_offset % len(ordered) if ordered else 0
+    queue = deque((item, 0) for item in ordered[offset:] + ordered[:offset])
     visited: set[str] = set()
     observed: set[str] = set()
     limits = {'inferred_membership'}
