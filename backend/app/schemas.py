@@ -1,5 +1,6 @@
 from typing import Literal
-from pydantic import BaseModel, Field
+from datetime import date
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class RevealPoint(BaseModel):
@@ -10,6 +11,18 @@ class RevealPoint(BaseModel):
 class UserProgress(BaseModel):
     media_id: str
     progress: RevealPoint
+
+
+class MediaReleaseDate(BaseModel):
+    year: int | None = Field(default=None, ge=1, le=9999)
+    month: int | None = Field(default=None, ge=1, le=12)
+    day: int | None = Field(default=None, ge=1, le=31)
+
+    @model_validator(mode='after')
+    def valid_full_date(self) -> 'MediaReleaseDate':
+        if self.year is not None and self.month is not None and self.day is not None:
+            date(self.year, self.month, self.day)
+        return self
 
 
 class Media(BaseModel):
@@ -23,6 +36,14 @@ class Media(BaseModel):
     has_prologue: bool = False
     cover_url: str | None = None
     format: str | None = None
+    release_date: MediaReleaseDate | None = None
+    total_units_known: bool = False
+
+    @model_validator(mode='after')
+    def canonical_prologue_total(self) -> 'Media':
+        if self.id == 'anilist-19603' and self.has_prologue and self.total_units == 12:
+            self.total_units = 13
+        return self
 
 
 class Provenance(BaseModel):
@@ -104,10 +125,47 @@ class UniverseEdge(BaseModel):
     type: str
 
 
+class UniverseCache(BaseModel):
+    refreshed_at: str | None = None
+    stale: bool = False
+    incomplete: bool = True
+    revision: int = Field(default=0, ge=0)
+    can_expand: bool = False
+    limitations: list[str] = Field(default_factory=list)
+
+
 class Universe(BaseModel):
     root_id: str
     media: list[Media]
     relationships: list[UniverseEdge]
     truncated: bool = False
+    franchise_id: str | None = None
+    cache: UniverseCache | None = None
+
+
+class UniverseExpandRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    expected_revision: int = Field(ge=0)
+    node_limit: int | None = Field(default=None, ge=1, le=50)
+    depth: int | None = Field(default=None, ge=0, le=2)
+
+
+class UserMediaState(BaseModel):
+    media_id: str
+    progress: RevealPoint | None = None
+    completed: bool = False
+    manual_unlocked: bool = False
+
+
+class UserMediaStateUpdate(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    completed: bool | None = None
+    manual_unlocked: bool | None = None
+
+    @model_validator(mode='after')
+    def supplied_flags(self) -> 'UserMediaStateUpdate':
+        if not self.model_fields_set or any(getattr(self, key) is None for key in self.model_fields_set):
+            raise ValueError('Supply at least one boolean flag')
+        return self
 
 GraphResponse.model_rebuild()

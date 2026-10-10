@@ -17,7 +17,9 @@ returns only facts at or before the user's exact progress.
 - Neon Auth UI for Google-only sign-in, sign-out, account settings, sessions, and a protected API identity check.
 - Persistent per-user media progress through authenticated FastAPI endpoints.
 - Lazy Neon Postgres connection helper; no database or external credentials needed to boot.
-- Dynamic AniList search and bounded media universe graph.
+- Dynamic AniList search and reusable Neon franchise caches with bounded discovery and explicit expansion.
+  See [franchise discovery and API details](docs/IMPLEMENTATION.md#search-and-universe-discovery);
+  unlock presentation remains a dependency on `fm/truefan-universe-explorer`.
 - Automatic experimental character extraction from Kitsu/TVmaze through configurable HF inference.
 - Shared Neon graph caching, bounded background jobs, resumable checkpoints, and per-episode filtering.
 - Legacy extraction/Q&A placeholder routes remain available; the new media-scoped generation route calls HF.
@@ -53,8 +55,8 @@ Vite + React browser app (Vercel)
   └─ HTTP / JSON → FastAPI (Railway)
                     ├─ reveal-point filtering
                     ├─ JWT verification for user-owned APIs
-                    ├─ Neon Postgres (per-user progress)
-                    ├─ AniList GraphQL (bounded franchise metadata)
+                    ├─ Neon Postgres (progress and shared caches)
+                    ├─ AniList GraphQL (media metadata)
                     └─ Hugging Face Inference Providers (experimental extraction)
 ```
 
@@ -87,7 +89,7 @@ and PyJWT with cryptography for signed identity verification.
 │   │   ├── config.py         # Server configuration
 │   │   ├── auth.py           # Verified Neon identity dependency
 │   │   ├── database.py       # Lazy Postgres connection
-│   │   ├── schema.sql        # Progress, shared graph cache, generation quota tables
+│   │   ├── schema.sql        # Application schema (see docs/IMPLEMENTATION.md)
 │   │   ├── init_db.py        # Explicit table setup command
 │   │   └── services/         # Progress, filtering, AniList, episode providers, inference, shared graph jobs
 │   ├── tests/               # Auth, ownership, and spoiler-boundary checks
@@ -252,7 +254,9 @@ python -m app.init_db
 
 For schema setup, use the direct Neon connection string from Console → Connect
 (turn off connection pooling); the app can use the pooled string afterwards.
-The SQL creates only `public.user_progress`; it leaves Neon's auth tables alone.
+The additive setup preserves existing progress and leaves Neon's auth tables alone.
+See the [implemented schema](docs/IMPLEMENTATION.md#5-actual-database-schema) and
+[franchise migration instructions](docs/IMPLEMENTATION.md#additive-deployment-migration).
 
 The account pages use `createAuthClient` from `@neondatabase/neon-js/auth`, its
 React adapter, and `NeonAuthUIProvider`, `AuthView`, and `AccountView` from
@@ -341,7 +345,7 @@ these contracts in `src/lib/types.ts`.
 | Endpoint | Contract / starter behavior |
 | --- | --- |
 | `GET /health` | `{ "status": "ok", "mode": "demo" }`; does not imply DB/provider readiness |
-| `GET /api/media/search?q=...` | Case-insensitive title search; returns `Media[]` for the fixture |
+| `GET /api/media/search?q=...` | See [search behavior](docs/IMPLEMENTATION.md#search-and-universe-discovery) |
 | `GET /api/media/{id}` | One `Media`; unknown IDs return 404 |
 | `GET /api/media/{id}/universe` | Public cache-first franchise graph; `root_id` remains the exact selected work |
 | `POST /api/media/{id}/universe/expand` | Public bounded frontier expansion; body `{ "expected_revision": N }`; stale revision is 409 |
@@ -404,8 +408,8 @@ specifies the unit label. Progress 0 means nothing completed. Seasons/episode
 numbers will map into this order through a story-unit table. Branched game
 stories will need an explicit path-aware extension instead of guessing a sequence.
 
-`public.user_progress`, `public.generated_graphs`, and `public.graph_generation_requests`
-are implemented in `app/schema.sql`. Generated graphs use episode snapshots in JSONB
+The [implemented database schema](docs/IMPLEMENTATION.md#5-actual-database-schema)
+is defined in `app/schema.sql`. Generated graphs use episode snapshots in JSONB
 so they can be cached across users while retaining progress-specific descriptions.
 The following normalized-table layout remains an optional future direction:
 
@@ -518,6 +522,14 @@ Run `npm test` in `frontend/` (Node 24 recommended) for pure normalization,
 release/progression/override, deterministic ELK, expansion-anchor, safe locked
 panel and Auth API checks. Backend tests remain in `backend/tests`.
 
+## AniList integration
+
+See [search and reusable franchise discovery](docs/IMPLEMENTATION.md#search-and-universe-discovery)
+for the implemented metadata flow and its limitations.
+AniList is metadata, not a trustworthy episode-by-episode reveal dataset. Character
+biographies and cast lists can themselves contain spoilers, so never send them
+straight to a progress-filtered profile. Other media providers can be added later.
+
 ## Episode-summary source investigation
 
 The standalone Kitsu/TVmaze comparison reuses the original Jikan probe's HTTP
@@ -623,7 +635,8 @@ Recommended next five implementation tasks:
 1. Install dependencies, link/deploy Neon Auth, and verify Google sign-in/session/JWT flow end to end.
 2. Choose one real demo series; curate story units and review entity/relationship reveal points.
 3. Expand the graph schema and add automatic saved-progress resume if useful.
-4. Replace fixture search with AniList metadata while keeping graph facts curated.
+4. Coordinate the universe unlock UI with `fm/truefan-universe-explorer`; see the
+   [backend contract and frontend dependency](docs/IMPLEMENTATION.md#7-http-api-reference).
 5. Run one provenance-preserving Hugging Face extraction experiment, then deploy the demo to Vercel/Railway.
 
 Future features include spoiler-safe versioned profiles, refusal-aware Q&A using
