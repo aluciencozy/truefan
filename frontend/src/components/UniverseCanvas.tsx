@@ -6,7 +6,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import type { Media, Universe } from '../lib/types'
 import { relationLabel } from '../lib/universeModel'
 import type { UniverseModel } from '../lib/universeModel'
-import { branchBounds, fallbackPositions, layoutUniverse, preservePositions, MEDIA_HEIGHT, MEDIA_WIDTH } from '../lib/universeLayout'
+import { groupBounds, fallbackPositions, layoutUniverse, preservePositions, MEDIA_HEIGHT, MEDIA_WIDTH } from '../lib/universeLayout'
 import type { Positions } from '../lib/universeLayout'
 import { connectedNeighbors, directionalNeighbor, focusViewport } from '../lib/universeNavigation'
 import type { ReleaseGuide } from '../lib/universeProgression'
@@ -38,7 +38,9 @@ const DestinationNode = memo(function DestinationNode({ data }: NodeProps<Destin
   </div>
 })
 
-function RegionNode() { return <div className="branch-region" aria-hidden="true" /> }
+function RegionNode({ data }: NodeProps<Node<{ label: string }, 'region'>>) {
+  return <div className="branch-region universe-group"><span>{data.label}</span></div>
+}
 
 type Journey = { id: string; from: string; serial: number }
 type OrbitEdge = Edge<{ incident: boolean; primary: boolean; label: string; journey: Journey | null }, 'orbit'>
@@ -167,8 +169,8 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
   }, [active, focusedId, neighbors, positions, previous, next, focus])
 
   const nodes = useMemo<Node[]>(() => [
-    ...branchBounds(model, positions).map(b => ({ id: b.id, type: 'region', position: { x: b.x, y: b.y },
-      data: {}, style: { width: b.width, height: b.height },
+    ...groupBounds(model, positions).map(b => ({ id: b.id, type: 'region', position: { x: b.x, y: b.y },
+      data: { label: b.label }, style: { width: b.width, height: b.height },
       selectable: false, focusable: false, zIndex: -1 })),
     ...model.media.filter(m => positions[m.id]).map(media => ({
       id: media.id, type: 'destination', focusable: false, position: positions[media.id], width: MEDIA_WIDTH, height: MEDIA_HEIGHT,

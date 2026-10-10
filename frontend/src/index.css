@@ -197,6 +197,8 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .overview-mode .destination strong { margin-top: 38px; font-size: 20px; }
 .overview-mode .destination-state { display: none; }
 .branch-region { border: 0; border-top: 1px dashed #b4befe14; border-radius: 0; }
+.universe-group { border: 1px solid #b4befe24; border-radius: 24px; background: #18182533; }
+.universe-group > span { display: block; padding: 18px 24px; color: #bac2de; font-size: 18px; font-weight: 600; }
 .orbit-relation { font-family: "Inter", sans-serif; font-size: 10px; fill: var(--subtext); paint-order: stroke; stroke: var(--crust); stroke-width: 4px; pointer-events: none; }
 .journey-trail { pointer-events: none; }
 .universe-canvas .react-flow__viewport { will-change: transform; }

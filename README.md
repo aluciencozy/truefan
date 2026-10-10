@@ -495,25 +495,30 @@ while panning or zooming.
 original directed AniList evidence. PREQUEL reverses placement direction;
 reciprocal SEQUEL/PREQUEL evidence shares one connection. Alternatives are
 symmetric cross-links, never fabricated sequels. A deterministic, cycle-safe
-primary sequel forest retains other connections as dashed links. Straight
-continuation chains share an inferred branch; forks and multiple parents split
-branches. Explicit alternatives, spinoffs, side stories and adaptations prevent
-transitive branch merging. Different format families (TV/TV_SHORT/ONA versus
-films, OVAs or specials) also remain separate, so an optional OVA prequel does not
-become a TV-season viewing prerequisite. Adaptation/version branches remain connected nearby.
-These heuristics describe provisional groups, not canonical continuity facts.
+primary sequel forest retains other connections as dashed links. Connected
+sequels of the same format family share an inferred branch, including
+forks and multiple parents. Explicit alternatives, spinoffs, side stories and
+adaptations prevent transitive branch merging. Different format families
+(TV/TV_SHORT/ONA versus films, OVAs or specials) remain separate, so an optional
+OVA prequel does not become a TV-season viewing prerequisite.
+
+The map has two labeled areas: **Main series** and **Spinoffs & related works**.
+The main series is the selected entry's continuation branch; explicit parent,
+spinoff or side-story evidence leads back to its parent branch. An optional
+film/OVA entry uses a directly sequel/prequel-connected TV branch when one is
+available. All remaining branches share the related-works area while retaining
+independent release sequences. These are metadata heuristics, not canonical
+continuity facts; missing or conflicting provider relationships can misgroup works.
 
 `universeLayout.ts` lazily loads ELK.js and places fixed-size nodes inside inferred
-branch lanes, then arranges those lanes as left-to-right branching paths using a
-deterministic semantic spanning forest (sequel links first, adaptation/version links next, branch links
-then weak associations). Disconnected components are packed separately. This
-scaffold only controls geometry; the rendered connections retain the general graph. Input
-IDs/edges are sorted and layout uses a fixed seed. Release dates, watched state
-and overlays are absent from geometry inputs. Expansion preserves all existing
-media anchors, aligns new members to branch anchors when possible and appends
-colliding cards. This favors spatial memory over a perfect refreshed layout;
-branch regions/cross-links can become less tidy after several expansions.
-Layout failure falls back to deterministic branch lanes without hiding nodes.
+branches, with the main-series area above the related-works area. Branches in the
+related area are packed together. Cross-links remain visible but no longer decide
+the placement of the two areas. IDs/edges are sorted and layout uses a fixed seed.
+Release dates, watched state and overlays are absent from geometry inputs.
+Expansion preserves existing media anchors, aligns new members to branch anchors
+when possible and appends colliding cards. This favors spatial memory over a
+perfect refreshed layout; group regions/cross-links can become less tidy after
+several expansions. Layout failure falls back to grouped branch lanes.
 
 **Release guidance** numbers entries *within each branch*, rather than
 interleaving unrelated continuities by global release date. Sorting compares
@@ -548,12 +553,15 @@ including on hover/focus. Actual connections remain visible, with no episode
 metadata/story details or character entry. This is a presentation preference;
 the public universe metadata API still returns titles and cover URLs.
 **Available** can be entered; **Completed** remains accessible and has a watched
-marker. Incomplete covers are dimmed. Each inferred branch has its own available
-starting point, so alternate/spinoff branches can be explored in parallel.
-Later dated releases in that branch are available after the preceding release
-is confirmed complete. Undated works remain available rather than blocking
-forever; partial-date suggestions are approximate. Existing positive watched
-progress or a manual override grants entry regardless of the suggestion.
+marker. Incomplete covers are dimmed. Only the earliest release in the
+main-series branch is available
+for a fresh viewer. Later entries require completion of the preceding release in
+their own branch. The first entry in a related branch requires a connected
+main-series entry to be completed, preferring explicit spinoff/side-story/parent
+relations; without a direct main-series link, it requires the main-series starting
+entry. Unknown release dates sort last and do not bypass these prerequisites;
+partial-date suggestions are approximate. Existing positive watched progress,
+confirmed completion or a manual override preserves access regardless of guidance.
 **Unlock anyway** changes availability only, preserving saved units/completions.
 **I finished this anime** explicitly confirms completion, including uncertain
 counts, without fabricating watched episode numbers.
