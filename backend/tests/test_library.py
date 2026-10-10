@@ -42,6 +42,26 @@ class ReadConnection:
     def fetchall(self): return next(self.results)
 
 class LibraryRulesTests(TestCase):
+    def test_estimates_partial_episodes_completed_movies_and_ignores_non_watch_units(self):
+        works = [media(1), media(2).model_copy(update={'format': 'MOVIE', 'total_units': 1}),
+                 media(3).model_copy(update={'type': 'movie', 'progress_unit': 'movie', 'total_units': 1}),
+                 media(4).model_copy(update={'type': 'manga', 'progress_unit': 'chapter'}),
+                 media(5).model_copy(update={'type': 'game', 'progress_unit': 'milestone'}),
+                 media(6)]
+        states = {r['media_id']: r for r in [state(1, False, 3), state(2, True, 0),
+                  state(3, None, 1), state(4, True), state(5, True), state(6, False, 0, True)]}
+        result = library.build_item(record(works[0]), works + [works[0]], states, incomplete=True)
+        self.assertEqual([t.estimated_minutes_watched for t in result.titles], [66, 120, 120, 0, 0, 0])
+
+    def test_estimates_cap_known_totals_and_use_saved_progress_for_unknown_totals(self):
+        works = [media(1), media(2), media(3, known=False),
+                 media(4).model_copy(update={'has_prologue': True, 'total_units': 13}),
+                 media(5).model_copy(update={'format': 'MOVIE', 'total_units': 1}), media(6)]
+        states = {r['media_id']: r for r in [state(1, False, 99), state(2, True, 0),
+                  state(3, True, 5), state(4, True, 13), state(5, False, 0, True)]}
+        result = library.build_item(record(works[0]), works, states, incomplete=False)
+        self.assertEqual([t.estimated_minutes_watched for t in result.titles], [264, 264, 110, 286, 0, 0])
+
     def test_counts_completed_works_not_episodes_and_orders_release_dates(self):
         works=[media(1,2020),media(2,2010),media(3,None,False),media(4,2022)]
         states={r['media_id']:r for r in [state(1),state(2,False,99,True),state(3,None,999,True),state(4,True,0)]}
@@ -59,6 +79,7 @@ class LibraryRulesTests(TestCase):
         discover.assert_not_called()
         self.assertEqual(len(result),1); self.assertEqual(result[0].total_count,2)
         self.assertEqual(result[0].viewed_count,1)
+        self.assertEqual(sum(t.estimated_minutes_watched for t in result[0].titles), 528)
         self.assertEqual(conn.calls[0][1],('verified-owner',)); self.assertEqual(conn.calls[1][1],('verified-owner',))
     def test_abandoned_group_does_not_reappear_from_sequel_progress(self):
         works=[media(1),media(2)]
@@ -80,6 +101,15 @@ class LibraryApiTests(TestCase):
     def test_every_endpoint_requires_verified_identity(self):
         for suffix,method,body in [('', 'GET',None),('/anilist-1','POST',None),('/anilist-1','PUT',{'pinned':True}),('/anilist-1/abandon','POST',None)]:
             self.assertEqual(asyncio.run(request('/api/me/universes'+suffix,method,body)).status_code,401)
+    def test_estimated_minutes_are_in_the_authenticated_library_response(self):
+        app.dependency_overrides[current_user] = lambda: CurrentUser(id='verified-owner')
+        work = media(1)
+        item = library.build_item(record(work), [work], {work.id: state(1, False, 3)}, incomplete=False)
+        with patch('app.services.library.list_saved', return_value=[item]) as listing:
+            response = asyncio.run(request('/api/me/universes'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]['titles'][0]['estimated_minutes_watched'], 66)
+        listing.assert_called_once_with('verified-owner')
     def test_verified_owner_passed_and_preferences_cannot_spoof_it(self):
         app.dependency_overrides[current_user]=lambda:CurrentUser(id='verified-owner')
         with patch('app.services.library.list_saved',return_value=[]) as listing:

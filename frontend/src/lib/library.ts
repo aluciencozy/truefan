@@ -5,6 +5,7 @@ import type { Media, MediaReleaseDate } from './types'
 export interface LibraryTitle {
   media_id: string; title: string; cover_url: string | null; type: Media['type']
   format: string | null; release_date: MediaReleaseDate | null; completed: boolean
+  estimated_minutes_watched: number
 }
 export interface SavedUniverse {
   media_id: string; title: string; cover_url: string | null; type: Media['type']; format: string | null
@@ -29,6 +30,13 @@ export const libraryArt = {
 }
 export function universeStatus(item: SavedUniverse): 'Exploring' | 'Completed' {
   return item.total_count > 0 && item.viewed_count === item.total_count ? 'Completed' : 'Exploring'
+}
+export function estimatedHoursWatched(items: SavedUniverse[]): number {
+  const minutes = new Map<string, number>()
+  for (const item of items) for (const title of item.titles) {
+    minutes.set(title.media_id, title.estimated_minutes_watched)
+  }
+  return [...minutes.values()].reduce((total, value) => total + value, 0) / 60
 }
 export function libraryOrder(items: SavedUniverse[], sort: string): SavedUniverse[] {
   return [...items].sort((a, b) => Number(b.pinned) - Number(a.pinned) || (sort === 'title' ? a.title.localeCompare(b.title)
