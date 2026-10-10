@@ -6,6 +6,8 @@ import { authClient } from '../lib/auth'
 import { libraryApi, libraryArt as art, libraryOrder, universeStatus } from '../lib/library'
 import type { LibraryService, SavedUniverse, UniversePreferences } from '../lib/library'
 import './LibraryPage.css'
+import PageNavigation from './PageNavigation'
+import GlitterStars from './GlitterStars'
 
 interface Viewer { id: string; name: string }
 type Modal = { kind: 'abandon' | 'rate'; item: SavedUniverse } | { kind: 'help' | 'activity' }
@@ -145,7 +147,7 @@ export function LibraryScreen({viewer, pending = false, service = libraryApi}: {
     if (kind === 'pin') void mutate(item, {pinned: !item.pinned})
     else {setRating(item.rating); setModal({kind, item})}
   }
-  return <main className="saved-library"><div className="library-topline"><nav aria-label="Breadcrumb"><Link to="/">Your observatory</Link><span> / </span><span>Library</span></nav><div><span>PERSONAL LIBRARY</span><button className="library-icon" aria-label="Recent exploration" onClick={() => setModal({kind: 'activity'})}><Icon name="bell" /></button><button className="library-icon" aria-label="About saved universes" onClick={() => setModal({kind: 'help'})}><Icon name="help" /></button></div></div>
+  return <div className="library-page"><GlitterStars /><PageNavigation viewer={viewer} /><main className="saved-library"><div className="library-topline"><nav aria-label="Breadcrumb"><Link to="/">Your observatory</Link><span> / </span><span>Library</span></nav><div><span>PERSONAL LIBRARY</span><button className="library-icon" aria-label="Recent exploration" onClick={() => setModal({kind: 'activity'})}><Icon name="bell" /></button><button className="library-icon" aria-label="About saved universes" onClick={() => setModal({kind: 'help'})}><Icon name="help" /></button></div></div>
     <header className="library-heading"><div><h1>Your universes</h1><p>The stories you saved, the connections you’re still discovering.</p></div><Link className="library-primary" to="/explore"><Icon name="plus" /> Discover & save</Link></header>
     <div className="library-stats"><span><b>{items.length}</b> saved universes</span><span><b>{exploring}</b> currently exploring</span><span><b>{items.reduce((total, item) => total + item.viewed_count, 0)}</b> titles viewed</span><i /><span className="last-universe"><Icon name="orbit" />{ordered.length ? `Last explored: ${libraryOrder(items, 'recent').sort((a,b) => Date.parse(b.last_explored_at) - Date.parse(a.last_explored_at))[0].title}` : 'Your next universe is waiting'}</span></div>
     <div className="library-tools"><label className="library-search"><Icon name="search" /><input ref={search} aria-label="Search saved universes" placeholder="Search saved universes..." value={query} onChange={event => setQuery(event.target.value)} /><kbd>⌘ K</kbd></label><button className={`library-pill ${filtersOpen ? 'selected' : ''}`} aria-expanded={filtersOpen} onClick={() => setFiltersOpen(value => !value)}><Icon name="filters" />Filters{format !== 'all' ? ' · 1' : ''}</button><label className="library-pill"><Icon name="sort" /><select aria-label="Sort saved universes" value={sort} onChange={event => setSort(event.target.value)}><option value="recent">Recently explored</option><option value="saved">Recently saved</option><option value="title">Title A–Z</option></select></label></div>
@@ -165,5 +167,5 @@ export function LibraryScreen({viewer, pending = false, service = libraryApi}: {
           : <><p>{ordered.length ? `You last explored ${[...items].sort((a,b) => Date.parse(b.last_explored_at) - Date.parse(a.last_explored_at))[0].title}.` : 'Your next story is waiting. Save your first universe to start tracking it here.'}</p><Link className="library-primary" to="/explore">Continue exploring ↗</Link></>}
       {mutationError && <p className="library-error" role="alert">{mutationError}</p>}
     </Dialog>}
-  </main>
+  </main></div>
 }

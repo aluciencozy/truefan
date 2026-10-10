@@ -18,7 +18,7 @@ def optional_user(credentials: Annotated[HTTPAuthorizationCredentials | None, De
 
 
 @router.get('/posts', response_model=CommunityFeed)
-def feed(user: Annotated[CurrentUser | None, Depends(optional_user)], category: Category = 'discussion',
+def feed(user: Annotated[CurrentUser | None, Depends(optional_user)], category: Category | None = None,
          media: str = Query(default='', max_length=200), q: str = Query(default='', max_length=200),
          sort: Literal['latest', 'popular'] = 'latest', include_spoilers: bool = False,
          offset: int = Query(default=0, ge=0, le=10000)) -> CommunityFeed:

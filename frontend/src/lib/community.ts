@@ -14,7 +14,7 @@ export interface PostCreate {
   category: PostCategory; media: string; title: string; body: string; contains_spoilers: boolean; rating: number | null
 }
 export interface LibraryItem { media_id: string; title: string; completed: boolean }
-export interface FeedFilters { category: PostCategory; media: string; q: string; sort: 'latest' | 'popular'; spoilers: boolean; offset: number }
+export interface FeedFilters { category: PostCategory | ''; media: string; q: string; sort: 'latest' | 'popular'; spoilers: boolean; offset: number }
 
 const json = (body: unknown, method = 'POST'): RequestInit => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 const spoilerQuery = (show: boolean) => `?include_spoilers=${show}`
@@ -23,6 +23,7 @@ export const communityApi = {
   feed: (filters: FeedFilters, signedIn: boolean, signal?: AbortSignal) => {
     const query = new URLSearchParams({ category: filters.category, media: filters.media, q: filters.q,
       sort: filters.sort, include_spoilers: String(filters.spoilers), offset: String(filters.offset) })
+    if (!filters.category) query.delete('category')
     return request<CommunityFeed>(`/api/community/posts?${query}`, signal, signedIn)
   },
   create: (post: PostCreate) => request<CommunityPost>('/api/community/posts', undefined, true, json(post)),

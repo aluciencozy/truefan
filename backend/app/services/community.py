@@ -54,17 +54,17 @@ def find_post(cur: Cursor[dict[str, Any]], post_id: UUID, user_id: str | None, i
     return CommunityPost.model_validate(row)
 
 
-def feed(category: Category, media: str, query: str, sort: str,
+def feed(category: Category | None, media: str, query: str, sort: str,
          include_spoilers: bool, user_id: str | None, offset: int) -> CommunityFeed:
     # Spoiler filtering precedes search, metadata, counts, and pagination.
     with storage() as cur:
         ordering = 'likes DESC, p.created_at DESC, p.id' if sort == 'popular' else 'p.created_at DESC, p.id'
         # Escape SQL LIKE wildcards so user queries are literal substring searches.
         search = '%' + query.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
-        cur.execute(post_select() + """ WHERE p.category=%s AND (NOT p.contains_spoilers OR %s)
+        cur.execute(post_select() + """ WHERE (%s::text IS NULL OR p.category=%s) AND (NOT p.contains_spoilers OR %s)
                     AND (%s='' OR p.media=%s) AND (p.title ILIKE %s OR p.body ILIKE %s)
                     ORDER BY """ + ordering + ' LIMIT 21 OFFSET %s',
-                    (include_spoilers, user_id, category, include_spoilers, media, media, search, search, offset))
+                    (include_spoilers, user_id, category, category, include_spoilers, media, media, search, search, offset))
         rows = cur.fetchall()
         cur.execute('SELECT DISTINCT media FROM public.community_posts WHERE NOT contains_spoilers OR %s ORDER BY media',
                     (include_spoilers,))
