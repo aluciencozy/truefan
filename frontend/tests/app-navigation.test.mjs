@@ -17,6 +17,7 @@ const source = ("import { createElement } from 'react'\n" + await readFile(sourc
   .replace("import { Link, useSearchParams } from 'react-router-dom'", "const Link = 'a'; const useSearchParams = () => [new URLSearchParams(globalThis.__navigationQuery)]")
   .replace(/import (\w+) from '\.\/components\/[^']+'/g, (_, name) => name === 'UniverseCanvas' ? `const UniverseCanvas = props => createElement('UniverseCanvas', props, props.details)` : `const ${name} = '${name}'`)
   .replace("import { api } from './lib/api'", 'const api = globalThis.__navigationApi')
+  .replace("import { libraryApi } from './lib/library'", 'const libraryApi = {}')
 let { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } })
 outputText = outputText.replace(/from (["'])([^"']+)\1/g, (_, quote, name) => {
   const url = name.startsWith('.') ? new URL(`${name}.ts`, sourceUrl).href : pathToFileURL(require.resolve(name)).href
@@ -62,8 +63,8 @@ test('changing progress clears portraits and selected details before the next gr
   }
 })
 
-test('direct media route opens its universe without a second search or character generation', async () => {
-  globalThis.__navigationQuery = `media=${sequel.id}`
+for (const parameter of ['media', 'universe']) test(`direct ${parameter} route opens its universe without a second search or character generation`, async () => {
+  globalThis.__navigationQuery = `${parameter}=${sequel.id}`
   const calls = []
   Object.assign(api, {
     health: async () => ({}),

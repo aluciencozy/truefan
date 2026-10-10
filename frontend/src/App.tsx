@@ -9,6 +9,7 @@ import MediaControls from './components/MediaControls'
 import AuthPanel from './components/AuthPanel'
 import ProgressControl from './components/ProgressControl'
 import { api } from './lib/api'
+import { libraryApi } from './lib/library'
 import { buildUniverseModel } from './lib/universeModel'
 import { buildReleaseGuide, confirmProgress, unlockMedia, worldTitle } from './lib/universeProgression'
 import type { MediaStates } from './lib/universeProgression'
@@ -26,7 +27,10 @@ export default function App() {
   const focusMedia = useCallback((item: Media) => { setFocusedId(item.id) }, [])
   const [searchParams] = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
-  const initialMedia = searchParams.get('media') || ''
+  const initialMedia = searchParams.get('media') || searchParams.get('universe') || ''
+  const [librarySaving, setLibrarySaving] = useState(false)
+  const [libraryMessage, setLibraryMessage] = useState('')
+  const libraryOperation = useRef(0)
   const [media, setMedia] = useState<Media | null>(null)
   const [progress, setProgress] = useState(1)
   const [graph, setGraph] = useState<GraphResponse | null>(null)
@@ -103,6 +107,22 @@ export default function App() {
     load.catch(error => { if (!controller.signal.aborted) setError(error.message) })
     return () => { controller.abort(); universeController.current?.abort() }
   }, [initialQuery, initialMedia, loadRevision])
+
+  useEffect(() => {libraryOperation.current++; setLibraryMessage(''); setLibrarySaving(false)}, [universe?.root_id, media?.id, identity])
+
+  async function saveUniverse() {
+    const id = universe?.root_id || media?.id
+    if (!id || !identity || librarySaving) return
+    const epoch = accountEpoch.current
+    const operation = libraryOperation.current
+    setLibrarySaving(true); setLibraryMessage('')
+    try {
+      await libraryApi.save(id)
+      if (accountEpoch.current === epoch && libraryOperation.current === operation) setLibraryMessage('Universe saved. Open Saved universes to see it.')
+    } catch (error) {if (accountEpoch.current === epoch && libraryOperation.current === operation) setLibraryMessage(error instanceof Error ? error.message : 'Could not save universe.')}
+    finally {if (accountEpoch.current === epoch && libraryOperation.current === operation) setLibrarySaving(false)}
+  }
+
 
   useEffect(() => {
     if (!media || view !== 'characters' || awaitingState) return
@@ -229,6 +249,8 @@ export default function App() {
           <h1>{headingMedia ? worldTitle(headingMedia, inUniverse ? guide[headingMedia.id] : undefined) : 'Every story is a universe.'}</h1>
           {inUniverse && <p>{model?.media.length ?? 0} stories</p>}</div>
           <div className="graph-actions">
+            <Link to="/library">Saved universes ↗</Link>
+            {media && (identity ? <button disabled={librarySaving || (inUniverse && !universe)} onClick={() => void saveUniverse()}>{librarySaving ? 'Saving…' : '＋ Save universe'}</button> : <Link to="/auth/sign-in">Sign in to save</Link>)}
             {universe && !inUniverse && <button onClick={() => { setView('universe'); setSelectedId(null); setError('') }}>← Universe</button>}
             {media && !inUniverse && <ProgressControl media={media} progress={progress} onProgress={changeProgress} disabled={awaitingState} />}
             <details ref={searchDrawer} className="explorer-search" open={!media && !initialMedia}>
@@ -237,6 +259,7 @@ export default function App() {
             </details>
           </div>
         </div>
+        {libraryMessage && <p className="generation-note" role="status">{libraryMessage}</p>}
         <div className="graph-stage">
           {universe && model && <div className="universe-layer" hidden={!inUniverse}><UniverseCanvas key={universe.root_id} universe={universe} model={model} guide={guide}
             focusedId={focusedId} active={inUniverse} onFocus={focusMedia} release={release} onRelease={() => setRelease(value => !value)}

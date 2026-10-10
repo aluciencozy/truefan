@@ -25,7 +25,7 @@ export default function CommunityShell({ viewer, children }: { viewer: Community
       <Link className="community-brand" to="/">TRUE FAN ✦</Link>
       <nav aria-label="Main navigation">
         <NavLink to="/explore"><CommunityIcon name="imgCompass" />Explore</NavLink>
-        <NavLink to="/library"><CommunityIcon name="imgLibrary" />My Library</NavLink>
+        <NavLink to="/library"><CommunityIcon name="imgLibrary" />Saved universes</NavLink>
         <NavLink to="/community"><CommunityIcon name="imgMessagesSquare" />Community</NavLink>
       </nav>
       <div className="community-invitation"><LittleUniverse /><h2>Your people.<br />Your universe.</h2><p>A little space for the things<br />you love a lot.</p></div>
