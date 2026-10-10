@@ -777,7 +777,10 @@ is used throughout the app; Community and Library typography/form tokens are
 scoped to their pages to preserve the homepage and constellation explorer styles. The palette
 matches Truefan’s Community frame (`123:30`): charcoal `#1e1e2e`, panels
 `#181825`, borders `#45475a`, pale text `#cdd6f4`, and lavender `#cba6f7`.
-The sidebar links Explore, Saved universes (`/library`), and Community. Community has
+A shared navbar across the homepage, explorer, saved universes, community, and account
+pages centers Explore, Saved Universes (`/library`), and Community, with account controls
+on the right. Its active tab uses a spring animation, respects reduced motion, and
+moves to a centered second row on smaller screens. Community has
 Discussions, Theories, and Reviews, search/media filters, latest/popular sorting,
 post links, optional review ratings, likes, and comments. There are no episode controls
 on this page. Saved universes has its own owner-scoped library API, documented below.

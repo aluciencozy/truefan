@@ -1,6 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react'
-import { Link } from 'react-router-dom'
-import { authClient } from '../lib/auth'
+import AppNavbar from './AppNavbar'
 import UniverseSearch from './UniverseSearch'
 
 // Decorative media artwork from the Figma hero, not story facts or relationships.
@@ -15,28 +14,11 @@ const artwork = [
   [380, 410, 32, 'anime-1-32', 0.18], [700, 345, 28, 'anime-2-28', 0.12],
 ] as const
 
-function GuestLinks() {
-  return <><Link to="/auth/sign-in">Log in</Link><Link className="home-signup" to="/auth/sign-up">Sign up</Link></>
-}
-
-function AccountLinks() {
-  const session = authClient!.useSession()
-  if (session.isPending) return <span role="status">Checking account…</span>
-  return session.data
-    ? <Link className="home-signup" to="/account/settings">My account</Link>
-    : <GuestLinks />
-}
-
 export default function HomePage() {
   const reduced = useReducedMotion()
 
   return <div className="home-page">
-    <header className="home-header">
-      <Link className="home-brand" to="/" aria-label="TrueFan home">
-        <img src="/home/brand.svg" width="30" height="30" alt="" />TrueFan
-      </Link>
-      <nav className="home-account" aria-label="Account"><Link to="/community">Community</Link>{authClient ? <AccountLinks /> : <GuestLinks />}</nav>
-    </header>
+    <AppNavbar />
     <main className="home-hero celestial">
       <div className="home-graph" aria-hidden="true">
         <img className="home-glow" src="/home/glow.svg" width="1100" height="680" alt="" />

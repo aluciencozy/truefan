@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { authClient } from '../lib/auth'
 import { libraryApi, libraryArt as art, libraryOrder, universeStatus } from '../lib/library'
 import type { LibraryService, SavedUniverse, UniversePreferences } from '../lib/library'
+import AppNavbar from './AppNavbar'
 import './LibraryPage.css'
 
 interface Viewer { id: string; name: string }
@@ -20,7 +21,7 @@ function ConnectedLibrary() {
   const session = authClient!.useSession()
   return <LibraryScreen key={session.data?.user.id ?? 'guest'} pending={session.isPending} viewer={session.data?.user ? {id: session.data.user.id, name: session.data.user.name || 'Fan'} : null} />
 }
-export default function LibraryPage() { return authClient ? <ConnectedLibrary /> : <LibraryScreen viewer={null} /> }
+export default function LibraryPage() { return <><AppNavbar />{authClient ? <ConnectedLibrary /> : <LibraryScreen viewer={null} />}</> }
 
 function Dialog({ title, onClose, busy, children }: { title: string; onClose: () => void; busy: boolean; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null)

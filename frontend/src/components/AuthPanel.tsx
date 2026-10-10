@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { authClient } from '../lib/auth'
 
-interface Props { onIdentity: (id: string | null) => void }
+interface Props { onIdentity?: (id: string | null) => void }
 
 export default function AuthPanel(props: Props) {
   if (!authClient) return null
@@ -17,7 +17,7 @@ function ConfiguredAuth({ onIdentity }: Props) {
   const panel = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const reduced = useReducedMotion()
-  useEffect(() => { if (!session.isPending) onIdentity(identity) }, [identity, session.isPending, onIdentity])
+  useEffect(() => { if (!session.isPending) onIdentity?.(identity) }, [identity, session.isPending, onIdentity])
   useEffect(() => {
     if (!open) return
     panel.current?.querySelector<HTMLAnchorElement>('a')?.focus()
