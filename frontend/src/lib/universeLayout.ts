@@ -13,6 +13,17 @@ const options = {
   'elk.padding': '[top=46,left=26,bottom=26,right=26]',
 }
 
+// Stable, bounded offsets soften the layout without closing the gaps between cards.
+function loosenPositions(positions: Positions): Positions {
+  return Object.fromEntries(Object.entries(positions).map(([id, point]) => {
+    let seed = 2166136261
+    for (const character of id) seed = Math.imul(seed ^ character.charCodeAt(0), 16777619)
+    seed = Math.imul(seed ^ (seed >>> 16), 0x85ebca6b)
+    return [id, { x: point.x + ((seed & 0xffff) / 65535 - .5) * 48,
+      y: point.y + ((seed >>> 16) / 65535 - .5) * 84 }]
+  }))
+}
+
 export function groupBounds(model: UniverseModel, positions: Positions): GroupBounds[] {
   return model.groups.flatMap(group => {
     const points = group.mediaIds.map(id => positions[id]).filter(Boolean)
@@ -57,15 +68,19 @@ export function preservePositions(model: UniverseModel, proposed: Positions, pre
 
 export function fallbackPositions(model: UniverseModel): Positions {
   const positions: Positions = {}
-  let row = 0
+  let top = 0
   for (const group of model.groups) {
+    const rowWidth = Math.max(MEDIA_WIDTH + 100, Math.sqrt(group.mediaIds.length * (MEDIA_WIDTH + 100) * (MEDIA_HEIGHT + 140) * 2))
+    let left = 0, row = top
     for (const branch of model.branches.filter(branch => group.branchIds.includes(branch.id))) {
-      branch.mediaIds.forEach((id, column) => { positions[id] = { x: column * (MEDIA_WIDTH + 100), y: row * (MEDIA_HEIGHT + 140) } })
-      row++
+      const width = branch.mediaIds.length * (MEDIA_WIDTH + 100)
+      if (left && left + width > rowWidth) { left = 0; row += MEDIA_HEIGHT + 140 }
+      branch.mediaIds.forEach((id, column) => { positions[id] = { x: left + column * (MEDIA_WIDTH + 100), y: row } })
+      left += width
     }
-    row++
+    top = row + MEDIA_HEIGHT + 140 + 180
   }
-  return positions
+  return loosenPositions(positions)
 }
 
 export async function layoutUniverse(model: UniverseModel, previous: Positions = {}): Promise<Positions> {
@@ -96,5 +111,6 @@ export async function layoutUniverse(model: UniverseModel, previous: Positions =
     }
     top += (region.height ?? 0) + 180
   }
-  return Object.keys(previous).length ? preservePositions(model, positions, previous) : positions
+  const loosened = loosenPositions(positions)
+  return Object.keys(previous).length ? preservePositions(model, loosened, previous) : loosened
 }

@@ -202,7 +202,7 @@ test('opening a spinoff follows parent evidence back to the main series', () => 
   }
 })
 
-test('main and related works have labeled, nonoverlapping areas in automatic and fallback layouts', async () => {
+test('main and related works have separate clusters in automatic and fallback layouts', async () => {
   const m = buildUniverseModel(graph([work('main'), work('s2', 2001), work('spin', 2002), work('spin2', 2003), work('side', 2004)], [
     edge('main', 's2', 'SEQUEL'), edge('s2', 'spin', 'SPIN_OFF'), edge('spin', 'spin2', 'SEQUEL'), edge('main', 'side', 'SIDE_STORY'),
   ]))
@@ -210,6 +210,38 @@ test('main and related works have labeled, nonoverlapping areas in automatic and
     const [main, related] = groupBounds(m, positions)
     assert.equal(main.label, 'Main series'); assert.equal(related.label, 'Spinoffs & related works')
     assert.ok(main.y + main.height < related.y)
+  }
+})
+
+test('world positions have stable vertical variation while preserving sequel order and card spacing', async () => {
+  const media = Array.from({ length: 12 }, (_, i) => work(`season-${String(i).padStart(2, '0')}`))
+  const universe = graph(media, media.slice(1).map((m, i) => edge(media[i].id, m.id, 'SEQUEL')))
+  const model = buildUniverseModel(universe)
+  for (const positions of [await layoutUniverse(model), fallbackPositions(model)]) {
+    assert.ok(new Set(Object.values(positions).map(p => p.y)).size > 1)
+    const heights = Object.values(positions).map(p => p.y)
+    assert.ok(Math.max(...heights) - Math.min(...heights) <= 84)
+    for (let i = 1; i < media.length; i++) {
+      assert.ok(positions[media[i].id].x - positions[media[i - 1].id].x >= MEDIA_WIDTH)
+      assert.notEqual(positions[media[i].id].y, positions[media[i - 1].id].y)
+    }
+  }
+  const shuffled = buildUniverseModel({ ...universe, media: [...media].reverse(), relationships: [...universe.relationships].reverse() })
+  assert.deepEqual(await layoutUniverse(model), await layoutUniverse(shuffled))
+  assert.deepEqual(fallbackPositions(model), fallbackPositions(shuffled))
+})
+
+test('fallback packs singleton related branches across rows without overlapping worlds', () => {
+  const media = Array.from({ length: 22 }, (_, i) => work(`side-${i}`))
+  const model = buildUniverseModel(graph(media, media.slice(1).map(m => edge(media[0].id, m.id, 'SIDE_STORY'))))
+  const positions = fallbackPositions(model)
+  const related = model.groups[1].mediaIds.map(id => positions[id])
+  assert.equal(Object.keys(positions).length, media.length)
+  assert.ok(Math.max(...related.map(p => p.y)) - Math.min(...related.map(p => p.y)) < 2000)
+  assert.ok(Math.max(...related.map(p => p.x)) - Math.min(...related.map(p => p.x)) > MEDIA_WIDTH * 2)
+  const points = Object.values(positions)
+  for (let i = 0; i < points.length; i++) for (let j = i + 1; j < points.length; j++) {
+    assert.ok(Math.abs(points[i].x - points[j].x) >= MEDIA_WIDTH || Math.abs(points[i].y - points[j].y) >= MEDIA_HEIGHT)
   }
 })
 

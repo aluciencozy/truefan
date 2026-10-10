@@ -1,6 +1,6 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { BaseEdge, Handle, Panel, Position, ReactFlow } from '@xyflow/react'
+import { Handle, Panel, Position, ReactFlow } from '@xyflow/react'
 import type { Edge, EdgeProps, Node, NodeProps, ReactFlowInstance } from '@xyflow/react'
 import { motion, useReducedMotion } from 'motion/react'
 import type { Media, Universe } from '../lib/types'
@@ -8,18 +8,22 @@ import { relationLabel } from '../lib/universeModel'
 import type { UniverseModel } from '../lib/universeModel'
 import { groupBounds, fallbackPositions, layoutUniverse, preservePositions, MEDIA_HEIGHT, MEDIA_WIDTH } from '../lib/universeLayout'
 import type { Positions } from '../lib/universeLayout'
-import { connectedNeighbors, directionalNeighbor, focusViewport } from '../lib/universeNavigation'
+import { connectedNeighbors, connectionDestination, directionalNeighbor, focusViewport } from '../lib/universeNavigation'
 import type { ReleaseGuide } from '../lib/universeProgression'
 import { worldTitle } from '../lib/universeProgression'
+import { CanvasPointerContext, useCanvasParallax } from '../lib/useCanvasParallax'
+import CursorStars from './CursorStars'
+import PointerEdge from './PointerEdge'
 
-type Destination = Node<{ media: Media; guide: ReleaseGuide; release: boolean; focused: boolean; nearby: boolean; overview: boolean; onFocus: (id: string) => void }, 'destination'>
+type Destination = Node<{ media: Media; guide: ReleaseGuide; release: boolean; focused: boolean; nearby: boolean; overview: boolean; preview: boolean; onFocus: (id: string) => void; onPreview: (id: string | null) => void }, 'destination'>
 const DestinationNode = memo(function DestinationNode({ data }: NodeProps<Destination>) {
   const reduced = useReducedMotion()
   const { media, guide, focused, release } = data
   const title = worldTitle(media, guide)
   return <div role="button" tabIndex={data.nearby || data.overview ? 0 : -1} title={title} aria-label={`${title}, ${guide.status}`} aria-current={focused ? 'true' : undefined}
+    onFocus={() => data.onPreview(media.id)} onBlur={() => data.onPreview(null)}
     onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); data.onFocus(media.id) } }}
-    className={`destination ${guide.status} ${focused ? 'focused' : ''} ${data.nearby || data.overview ? '' : 'remote'}`}>
+    className={`destination ${guide.status} ${focused ? 'focused' : ''} ${data.preview ? 'route-preview' : ''} ${data.nearby || data.overview ? '' : 'remote'}`}>
     <Handle type="target" position={Position.Left} />
     <motion.div className="destination-orbit" initial={false}
       animate={{ scale: data.overview ? 1.45 : focused ? 1.7 : 1, opacity: data.nearby || data.overview ? 1 : .28 }}
@@ -39,20 +43,21 @@ const DestinationNode = memo(function DestinationNode({ data }: NodeProps<Destin
 })
 
 function RegionNode({ data }: NodeProps<Node<{ label: string }, 'region'>>) {
-  return <div className="branch-region universe-group"><span>{data.label}</span></div>
+  return <div className="universe-group"><span>{data.label}</span></div>
 }
 
 type Journey = { id: string; from: string; serial: number }
-type OrbitEdge = Edge<{ incident: boolean; primary: boolean; label: string; journey: Journey | null }, 'orbit'>
+type OrbitEdge = Edge<{ incident: boolean; primary: boolean; preview: boolean; label: string; journey: Journey | null }, 'orbit'>
 const UniverseEdge = memo(function UniverseEdge({ id, source, sourceX, sourceY, targetX, targetY, data }: EdgeProps<OrbitEdge>) {
   const reduced = useReducedMotion()
   const path = `M ${sourceX},${sourceY} L ${targetX},${targetY}`
   const journey = data?.journey
   const travelPath = journey?.from === source ? path : `M ${targetX},${targetY} L ${sourceX},${sourceY}`
-  return <g className={`orbit-edge ${data?.incident ? 'incident' : ''}`}>
-    <BaseEdge id={id} path={path} interactionWidth={28} style={{ stroke: data?.incident ? '#b4befe' : '#6c7086', strokeWidth: data?.incident ? 1.5 : 1,
-      strokeDasharray: data?.primary ? undefined : '4 9', opacity: data?.incident ? .65 : .25 }} />
-    {data?.incident && data.label && <text x={(sourceX + targetX) / 2} y={(sourceY + targetY) / 2 - 12} textAnchor="middle" className="orbit-relation">{data.label}</text>}
+  return <g className={`orbit-edge ${data?.incident ? 'incident' : ''} ${data?.preview ? 'route-preview' : ''}`}>
+    <PointerEdge id={id} sourceX={sourceX} sourceY={sourceY} targetX={targetX} targetY={targetY} bend={!journey}
+      label={(data?.incident || data?.preview) ? data.label : undefined}
+      style={{ stroke: data?.preview ? '#cba6f7' : data?.incident ? '#b4befe' : '#6c7086', strokeWidth: data?.preview ? 3 : data?.incident ? 1.5 : 1,
+      strokeDasharray: data?.primary || data?.preview ? undefined : '4 9', opacity: data?.preview ? 1 : data?.incident ? .65 : .25 }} />
     {journey && !reduced && <g key={journey.serial} className="journey-trail" aria-hidden="true">
       <motion.path d={travelPath} fill="none" stroke="#cba6f7" strokeWidth={4} initial={{ pathLength: 0, opacity: 1 }}
         animate={{ pathLength: 1, opacity: [1, 1, 0] }} transition={{ duration: 1.05, ease: [.65, 0, .35, 1] }} />
@@ -78,15 +83,24 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
   const [layoutState, setLayoutState] = useState<'loading' | 'ready' | 'fallback'>('loading')
   const [size, setSize] = useState({ width: 1000, height: 650 })
   const [overview, setOverview] = useState(false)
+  const [detailsMinimized, setDetailsMinimized] = useState(false)
+  const detailsId = useId()
   const [flow, setFlow] = useState<ReactFlowInstance | null>(null)
   const [journey, setJourney] = useState<Journey | null>(null)
+  const [hovered, setHovered] = useState<{ nodeId?: string; edgeId?: string } | null>(null)
   const container = useRef<HTMLDivElement | null>(null)
+  const pointer = useCanvasParallax(container, active)
   const anchors = useRef<Positions>({})
   const previousFocus = useRef(focusedId)
   const travelSerial = useRef(0)
   const mediaById = useMemo(() => new Map(model.media.map(item => [item.id, item])), [model])
   const neighbors = useMemo(() => connectedNeighbors(model, focusedId), [model, focusedId])
   const nearby = useMemo(() => new Set([focusedId, ...neighbors]), [focusedId, neighbors])
+  const previewLink = model.links.find(link => link.id === hovered?.edgeId
+    || (hovered?.nodeId !== focusedId && ((link.source === focusedId && link.target === hovered?.nodeId)
+      || (link.target === focusedId && link.source === hovered?.nodeId))))
+  const previewId = hovered?.nodeId ?? (previewLink ? connectionDestination(previewLink, focusedId) : null)
+  const previewNode = useCallback((id: string | null) => setHovered(id ? { nodeId: id } : null), [])
   const illuminated = useMemo(() => {
     const origin = positions[focusedId]
     const distance = (id: string) => origin && positions[id] ? Math.hypot(positions[id].x - origin.x, positions[id].y - origin.y) : Infinity
@@ -141,6 +155,7 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
   const focus = useCallback((id: string) => {
     const media = mediaById.get(id)
     if (!media) return
+    setHovered(null)
     setOverview(false)
     onFocus(media)
   }, [mediaById, onFocus])
@@ -175,25 +190,29 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
     ...model.media.filter(m => positions[m.id]).map(media => ({
       id: media.id, type: 'destination', focusable: false, position: positions[media.id], width: MEDIA_WIDTH, height: MEDIA_HEIGHT,
       zIndex: focusedId === media.id ? 3 : 1,
-      data: { media, guide: guide[media.id], release, focused: focusedId === media.id, nearby: nearby.has(media.id), overview, onFocus: focus },
+      data: { media, guide: guide[media.id], release, focused: focusedId === media.id, nearby: nearby.has(media.id), overview,
+        preview: previewId === media.id && media.id !== focusedId, onFocus: focus, onPreview: previewNode },
       ariaLabel: `${worldTitle(media, guide[media.id])}, ${guide[media.id].status}. Select to explore this world.`,
     })),
-  ], [model, positions, guide, release, focusedId, nearby, overview, focus])
+  ], [model, positions, guide, release, focusedId, nearby, overview, focus, previewId, previewNode])
 
   const edges = useMemo<OrbitEdge[]>(() => model.links.filter(link => link.source !== link.target).map(link => ({
     id: link.id, source: link.source, target: link.target, type: 'orbit', focusable: false,
     ariaLabel: `${relationLabel(link.kind)} connection. Travel to the connected world.`,
     data: { incident: overview || illuminated.has(link.id) || journey?.id === link.id, primary: link.primary,
+      preview: previewLink?.id === link.id,
       label: overview ? '' : link.kind === 'SEQUEL' && link.relations.some(r => r.type.toUpperCase() === 'PREQUEL') ? 'prequel / sequel' : relationLabel(link.kind),
       journey: journey?.id === link.id ? journey : null },
-  })), [model, overview, illuminated, journey])
+  })), [model, overview, illuminated, journey, previewLink])
 
   return <div ref={container} className={`universe-canvas celestial ${overview ? 'overview-mode' : 'focus-mode'}`} aria-label="Anime universe canvas" aria-busy={layoutState === 'loading'}>
-    <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onInit={setFlow} proOptions={{ hideAttribution: true }}
+    <CanvasPointerContext.Provider value={pointer}><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onInit={setFlow} proOptions={{ hideAttribution: true }}
       minZoom={.01} maxZoom={1.8} nodesConnectable={false} nodesDraggable={false} elementsSelectable={false}
       panOnDrag={false} panOnScroll={false} zoomOnScroll={false} zoomOnPinch={false} zoomOnDoubleClick={false}
       preventScrolling selectionOnDrag={false} autoPanOnNodeFocus={false} autoPanOnNodeDrag={false}
-      onEdgeClick={(_, edge) => focus(edge.source === focusedId ? edge.target : edge.target === focusedId ? edge.source : edge.target)}
+      onNodeMouseEnter={(_, node) => previewNode(node.id)} onNodeMouseLeave={() => previewNode(null)}
+      onEdgeMouseEnter={(_, edge) => setHovered({ edgeId: edge.id })} onEdgeMouseLeave={() => setHovered(null)}
+      onEdgeClick={(_, edge) => focus(connectionDestination(edge, focusedId))}
       onNodeClick={(_, node) => focus(node.id)} colorMode="dark">
       <Panel position="top-left" className="canvas-toolbar">
         <button onClick={() => focus(universe.root_id)}>⌂ Home world</button>
@@ -214,15 +233,23 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
           <button disabled={!next} onClick={() => next && focus(next)} title={next ? worldTitle(mediaById.get(next)!, guide[next]) : 'No next connection'}>Next →</button>
         </div>
       </Panel>
-    </ReactFlow>
-    {!overview && layoutState !== 'loading' && <motion.div key={focusedId} className="universe-inspector"
+    </ReactFlow></CanvasPointerContext.Provider>
+    <CursorStars />
+    {!overview && layoutState !== 'loading' && <motion.div key={focusedId} className={`universe-inspector ${detailsMinimized ? 'details-minimized' : ''}`}
       initial={{ opacity: 0, x: reduced ? 0 : 18 }} animate={{ opacity: 1, x: 0 }}
       transition={{ duration: reduced ? 0 : .45, delay: reduced ? 0 : .35 }}>
-      {details}
+      <button className="inspector-toggle" aria-label={detailsMinimized ? 'Show details' : 'Minimize details'}
+        title={detailsMinimized ? 'Show details' : 'Minimize details'} aria-expanded={!detailsMinimized} aria-controls={detailsId}
+        onClick={() => setDetailsMinimized(value => !value)}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+          <path d={detailsMinimized ? 'M5 12h14M12 5v14' : 'M5 12h14'} />
+        </svg>{detailsMinimized && 'Show details'}
+      </button>
+      <div id={detailsId} hidden={detailsMinimized}>{details}</div>
     </motion.div>}
     <div className="journey-announcement" role="status" aria-live="polite">{mediaById.has(focusedId) ? worldTitle(mediaById.get(focusedId)!, guide[focusedId]) : ''}{overview ? ', Overview Mode' : ', Focus Mode'}</div>
     {layoutState === 'loading' && <div role="status" className="canvas-status">Mapping the universe…</div>}
-    {layoutState === 'fallback' && <div role="status" className="canvas-status">Automatic layout unavailable. Showing branch lanes.</div>}
+    {layoutState === 'fallback' && <div role="status" className="canvas-status">Automatic layout unavailable. Showing grouped worlds.</div>}
     {!model.media.length && <div className="canvas-status">No connected works discovered.</div>}
   </div>
 }

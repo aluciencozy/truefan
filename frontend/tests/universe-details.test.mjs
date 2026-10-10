@@ -24,10 +24,16 @@ function render(states, selected = media[1]) {
   return renderToStaticMarkup(createElement(Details, { media: selected, universe, model, guide: buildReleaseGuide(model, states), state: states[selected.id], release: true, busy: false, message: '', ...callbacks }))
 }
 
-test('Locked detail masks the title and retains exact relation evidence, with no entry, description, format, date or episode total', () => {
+test('Locked detail masks the title and retains previous-entry navigation, with no entry, description, format, date or episode total', () => {
   const html = render({})
-  assert.match(html, /Undiscovered/); assert.match(html, /sequel/); assert.match(html, /Unlock anyway/)
+  assert.match(html, /Undiscovered/); assert.match(html, /Previous: Work a/); assert.match(html, /Unlock anyway/)
   for (const unsafe of ['Work b', 'Enter World', 'SECRET STORY DETAIL', 'SECRET FORMAT', '2001-01-01', '12 episodes', 'I finished']) assert.ok(!html.includes(unsafe), unsafe)
+})
+test('story details omit the redundant focus label and connected-worlds section', () => {
+  for (const states of [{}, { b: { media_id: 'b', progress: null, completed: false, manual_unlocked: true } }]) {
+    const html = render(states)
+    assert.ok(!/In focus|Connected worlds|relation-list/i.test(html))
+  }
 })
 test('available detail masks locked connection titles and the locked universe name in its summary', () => {
   const html = render({}, media[0])

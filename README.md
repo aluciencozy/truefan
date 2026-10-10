@@ -506,7 +506,9 @@ adaptations prevent transitive branch merging. Different format families
 (TV/TV_SHORT/ONA versus films, OVAs or specials) remain separate, so an optional
 OVA prequel does not become a TV-season viewing prerequisite.
 
-The map has two labeled areas: **Main series** and **Spinoffs & related works**.
+The map has two labeled clusters: **Main series** and **Spinoffs & related works**,
+separated by spacing, without borders or shaded containers. Muted gray labels
+keep the worlds as the visual focus.
 The main series is the selected entry's continuation branch; explicit parent,
 spinoff or side-story evidence leads back to its parent branch. An optional
 film/OVA entry uses a directly sequel/prequel-connected TV branch when one is
@@ -518,11 +520,14 @@ continuity facts; missing or conflicting provider relationships can misgroup wor
 branches, with the main-series area above the related-works area. Branches in the
 related area are packed together. Cross-links remain visible but no longer decide
 the placement of the two areas. IDs/edges are sorted and layout uses a fixed seed.
+Small ID-based position offsets give connections gentle upward/downward angles
+without moving worlds on rerender or reload.
 Release dates, watched state and overlays are absent from geometry inputs.
 Expansion preserves existing media anchors, aligns new members to branch anchors
 when possible and appends colliding cards. This favors spatial memory over a
-perfect refreshed layout; group regions/cross-links can become less tidy after
-several expansions. Layout failure falls back to grouped branch lanes.
+perfect refreshed layout; spacing/cross-links can become less tidy after
+several expansions. Layout failure packs branches across rows with the same
+position offsets, avoiding a single vertical column of related works.
 
 **Release guidance** numbers entries *within each branch*, rather than
 interleaving unrelated continuities by global release date. Sorting compares

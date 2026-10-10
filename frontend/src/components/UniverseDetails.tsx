@@ -11,10 +11,9 @@ interface Props {
 }
 export default function UniverseDetails({ media, universe, model, guide, release, state, busy, onEnter, onUnlock, onComplete, onFocus, message }: Props) {
   const currentGuide = media && guide[media.id]
-  if (!media || !currentGuide) return <aside className="details panel"><h2>In focus</h2><p>Select a destination to explore.</p></aside>
+  if (!media || !currentGuide) return <aside className="details panel"><p>Select a destination to explore.</p></aside>
   const locked = currentGuide.status === 'locked'
   const group = model.groups.find(group => group.mediaIds.includes(media.id))
-  const relations = model.links.flatMap(link => link.relations).filter(r => r.source === media.id || r.target === media.id)
   const previous = model.media.find(item => item.id === currentGuide.previousId)
   const root = model.media.find(item => item.id === universe.root_id)
   const connections = model.links.filter(link => link.source === media.id || link.target === media.id)
@@ -26,7 +25,7 @@ export default function UniverseDetails({ media, universe, model, guide, release
   const summary = connections.length ? `A connected ${media.format === 'MOVIE' ? 'film' : 'world'} in ${root ? worldTitle(root, guide[root.id]) : 'this'}’s universe. Explore its ${kinds.join(', ')} connections.`
     : 'Your starting point in this universe. Enter to discover characters at your own pace.'
   return <aside className="details panel universe-details" aria-label="Selected anime">
-    <div className="world-panel-heading"><span className="world-focus-label">✦ In focus</span><span className={`watch-state ${currentGuide.status}`}>{locked ? 'Locked' : currentGuide.status === 'completed' ? 'Completed' : 'Available'}</span></div>
+    <div className="world-panel-heading"><span className={`watch-state ${currentGuide.status}`}>{locked ? 'Locked' : currentGuide.status === 'completed' ? 'Completed' : 'Available'}</span></div>
     <h2>{worldTitle(media, currentGuide)}</h2>
     <p className="world-focus-label">{group?.label}</p>
     {locked ? <><p>Continue from the previous entry, or choose your own starting point.</p>
@@ -42,14 +41,6 @@ export default function UniverseDetails({ media, universe, model, guide, release
       {currentGuide.status !== 'completed' && <button className="complete-world" disabled={busy} onClick={() => onComplete(media)}>I finished this anime</button>}
     </>}
     {message && <p role="status">{message}</p>}
-    <details className="relation-list"><summary>Connected worlds ({connections.length})</summary>
-      {relations.length ? relations.map(relation => {
-        const other = model.media.find(m => m.id === (relation.source === media.id ? relation.target : relation.source))
-        if (!other) return null
-        return <div key={JSON.stringify(relation)}><span>{relation.source === media.id ? 'Has ' : 'Related from: '}{relationLabel(relation.type)}</span>
-          <button onClick={() => onFocus(other)}>{worldTitle(other, guide[other.id])}</button></div>
-      }) : <p>No connections discovered yet.</p>}
-    </details>
     {(universe.truncated || universe.cache?.incomplete) && <p className="guidance-note">This is a bounded, incomplete map. More connections may exist.</p>}
     {universe.cache?.stale && <p className="guidance-note">Cached metadata may be out of date.</p>}
   </aside>
