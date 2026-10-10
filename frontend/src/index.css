@@ -81,7 +81,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .home-search-form input { flex: 1; min-width: 0; margin: 0; padding: 10px 0; border: 0; border-radius: 0; background: transparent; font-size: 16px; }
 .home-search-form input:focus-visible { outline: none; }
 .home-search-form input::placeholder { color: var(--muted); opacity: 1; }
-.home-search-box { position: relative; width: 100%; }
+.home-search-box { position: relative; width: 100%; color: var(--text); }
 .home-suggestions { position: absolute; top: calc(100% + 8px); width: 100%; max-height: min(320px, 35svh); overflow: auto; z-index: 20; padding: 8px; border: 1px solid var(--border); border-radius: 14px; background: var(--mantle); box-shadow: 0 16px 40px #0006; }
 .home-suggestions p { margin: 5px 10px 9px; font-size: 12px; line-height: 1.4; }
 .home-suggestions button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; }
@@ -113,13 +113,8 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .explorer-search[open] > summary { color: var(--lavender); }
 .controls { position: absolute; top: 100%; right: 0; width: min(340px, calc(100vw - 40px)); margin-top: 10px; max-height: min(690px, 65svh); overflow: auto; box-shadow: 0 24px 80px #0007; scrollbar-width: thin; }
 .controls h2 { font-size: 24px; }
-.controls form input { margin-top: 8px; font-size: 12px; }
-.controls form button { font-size: 12px; }
-.media-result { width: 100%; text-align: left; padding: 10px; margin-bottom: 6px; display: flex; gap: 12px; align-items: center; border: 1px solid transparent; border-radius: 9px; background: transparent; }
-.media-result img { width: 36px; height: 48px; object-fit: cover; border-radius: 5px; flex-shrink: 0; }
-.media-result strong { display: block; font-size: 12px; font-weight: 400; line-height: 1.5; }
-.media-result span { display: block; font-size: 10px; margin-top: 5px; color: var(--muted); }
-.media-result[aria-pressed="true"] { border-color: #cba6f755; background: #cba6f711; }
+.controls .home-search-box { margin-top: 20px; }
+.controls .home-suggestions { position: static; margin-top: 8px; }
 .graph-panel { position: relative; }
 .graph-heading { min-height: 140px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 36px; position: relative; z-index: 20; }
 .graph-heading > div:first-child { min-width: 0; backdrop-filter: blur(8px); }
@@ -178,7 +173,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .release-badge { top: auto; bottom: 0; background: var(--mauve); padding: 0 6px; }
 .lock-badge { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
 .branch-region { width: 100%; height: 100%; border: 1px solid #b4befe0d; border-radius: 50%; pointer-events: none; }
-.branch-region > span { display: block; text-align: center; padding-top: 8px; color: #7f849c; font-family: var(--display); font-size: 13px; }
 .canvas-toolbar { display: flex; flex-wrap: wrap; gap: 8px; max-width: calc(100% - 48px); margin: 16px 36px; }
 .canvas-toolbar button { font-size: 10px; background: #181825b3; border-color: #45475a80; padding: 8px 13px; }
 .canvas-toolbar button[aria-pressed="true"] { border-color: #b4befe80; color: var(--lavender); }
@@ -201,7 +195,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .overview-mode .destination strong { margin-top: 38px; font-size: 20px; }
 .overview-mode .destination-state { display: none; }
 .branch-region { border: 0; border-top: 1px dashed #b4befe14; border-radius: 0; }
-.branch-region > span { text-align: left; padding: 7px 0 0 14px; color: #7f849c; font-size: 12px; }
 .orbit-relation { font-family: "Inter", sans-serif; font-size: 10px; fill: var(--subtext); paint-order: stroke; stroke: var(--crust); stroke-width: 4px; pointer-events: none; }
 .journey-trail { pointer-events: none; }
 .universe-canvas .react-flow__viewport { will-change: transform; }

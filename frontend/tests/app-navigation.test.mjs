@@ -29,11 +29,11 @@ const sequel = { ...first, id: 'anilist-2', title: 'Sequel', anilist_id: 2, rele
 const universe = { root_id: first.id, media: [first, sequel], relationships: [{ source: first.id, target: sequel.id, type: 'SEQUEL' }], truncated: false }
 
 test('changing progress clears portraits and selected details before the next graph arrives', async () => {
-  globalThis.__navigationQuery = ''
+  globalThis.__navigationQuery = 'media=lantern-harbor'
   const pending = []
   const character = { id: 'mira', name: 'Mira', type: 'character', portrait_url: '/mira.jpg' }
   Object.assign(api, {
-    health: async () => ({}), search: async () => [fixture],
+    media: async () => fixture,
     graph: async (id, unit, signal) => {
       if (unit === 1) return { media_id: id, progress: { unit }, entities: [character], relationships: [], generation: null }
       const response = Promise.withResolvers()
@@ -92,7 +92,7 @@ for (const scenario of ['loading', 'failed', 'saving', 'ready', 'guest']) {
     const universeCalls = []
     let stateSignal
     Object.assign(api, {
-      health: async () => ({}), search: async () => [fixture, first],
+      media: async id => id === first.id ? first : fixture,
       universe: async id => { universeCalls.push(id); return universe },
       mediaState: async (ids, signal) => { if (ids.includes(fixture.id)) return []; stateSignal = signal; return state.promise },
       saveMediaState: async () => save.promise,
@@ -103,7 +103,7 @@ for (const scenario of ['loading', 'failed', 'saving', 'ready', 'guest']) {
       await act(async () => { renderer = create(createElement(App)) })
       const props = name => renderer.root.findByType(name).props
       if (scenario !== 'guest') await act(async () => props('AuthPanel').onIdentity('account-1'))
-      await act(async () => props('MediaControls').onSelect(first))
+      await act(async () => { globalThis.__navigationQuery = `media=${first.id}`; renderer.update(createElement(App)) })
       if (scenario === 'failed') await act(async () => state.reject(new Error('Saved state unavailable')))
       if (scenario === 'saving' || scenario === 'ready') await act(async () => state.resolve([]))
       if (scenario === 'saving') await act(async () => props('UniverseDetails').onComplete(first))
@@ -120,9 +120,8 @@ for (const scenario of ['loading', 'failed', 'saving', 'ready', 'guest']) {
         assert.deepEqual(graphCalls, [{ id: first.id, unit: 0 }])
       }
 
-      await act(async () => props('MediaControls').onSelect(fixture))
+      await act(async () => { globalThis.__navigationQuery = `media=${fixture.id}`; renderer.update(createElement(App)) })
       assert.deepEqual(graphCalls.at(-1), { id: fixture.id, unit: scenario === 'guest' ? 1 : 0 })
-      assert.equal(props('MediaControls').media.id, fixture.id)
       assert.equal(props('ProgressControl').media.id, fixture.id)
       assert.equal(renderer.root.findAllByType('UniverseCanvas').length, 0)
       assert.deepEqual(universeCalls, [first.id])
@@ -132,22 +131,22 @@ for (const scenario of ['loading', 'failed', 'saving', 'ready', 'guest']) {
         state.resolve([])
         save.resolve({ media_id: first.id, progress: null, completed: true, manual_unlocked: false })
       })
-      assert.equal(props('MediaControls').media.id, fixture.id)
       assert.equal(props('ProgressControl').media.id, fixture.id)
       assert.equal(renderer.root.findAllByType('UniverseCanvas').length, 0)
     } finally {
       if (renderer) await act(async () => renderer.unmount())
+      globalThis.__navigationQuery = 'q=anime'
     }
   })
 }
 
 
 test('signed-in demo restores progress automatically before requesting character facts', async () => {
-  globalThis.__navigationQuery = ''
+  globalThis.__navigationQuery = 'media=lantern-harbor'
   const saved = Promise.withResolvers()
   const graphCalls = []
   Object.assign(api, {
-    search: async () => [fixture], mediaState: async () => saved.promise,
+    media: async () => fixture, mediaState: async () => saved.promise,
     graph: async (id, unit) => { graphCalls.push(unit); return { media_id: id, progress: { unit }, entities: [], relationships: [], generation: null } },
   })
   let renderer
@@ -167,13 +166,13 @@ test('signed-in demo restores progress automatically before requesting character
 })
 
 test('episode edits autosave in order, failures can retry, and old account responses are ignored', async () => {
-  globalThis.__navigationQuery = ''
+  globalThis.__navigationQuery = 'media=lantern-harbor'
   const firstSave = Promise.withResolvers()
   const staleSave = Promise.withResolvers()
   const calls = []
   let fail = false
   Object.assign(api, {
-    search: async () => [fixture], mediaState: async () => [],
+    media: async () => fixture, mediaState: async () => [],
     graph: async (id, unit) => ({ media_id: id, progress: { unit }, entities: [], relationships: [], generation: null }),
     saveProgress: async (id, unit) => {
       calls.push(unit)
@@ -204,7 +203,6 @@ test('episode edits autosave in order, failures can retry, and old account respo
     assert.deepEqual(calls, [1, 2, 3, 3])
     await act(async () => props('AuthPanel').onIdentity('account-2'))
     await act(async () => staleSave.resolve({ media_id: fixture.id, progress: { unit: 3 } }))
-    await act(async () => props('MediaControls').onSelect(fixture))
     assert.equal(props('ProgressControl').progress, 0)
     await act(async () => props('AuthPanel').onIdentity(null))
     await act(async () => props('ProgressControl').onProgress(2))
@@ -216,9 +214,9 @@ test('episode edits autosave in order, failures can retry, and old account respo
 })
 
 for (const status of ['generating', 'not_generated']) test(`${status} character status sits in the canvas; guests never request generation`, async () => {
-  globalThis.__navigationQuery = ''
+  globalThis.__navigationQuery = 'media=lantern-harbor'
   Object.assign(api, {
-    search: async () => [fixture],
+    media: async () => fixture,
     graph: async (id, unit) => ({ media_id: id, progress: { unit }, entities: [], relationships: [], generation: { status } }),
     generate: async () => assert.fail('Guests must not request authenticated generation'),
   })
@@ -232,6 +230,58 @@ for (const status of ['generating', 'not_generated']) test(`${status} character 
     assert.ok(ancestor)
     const heading = renderer.root.findByProps({ className: 'graph-heading' })
     assert.equal(heading.findAll(node => node.props.role === 'status').length, 0)
+  } finally {
+    if (renderer) await act(async () => renderer.unmount())
+    globalThis.__navigationQuery = 'q=anime'
+  }
+})
+
+
+test('explorer without a story offers search without loading the development fixture', async () => {
+  globalThis.__navigationQuery = ''
+  Object.assign(api, {
+    health: async () => ({}),
+    search: async () => assert.fail('An empty explorer must not load the development fixture'),
+    media: async () => assert.fail('An empty explorer must not select media'),
+    graph: async () => assert.fail('An empty explorer must not load character facts'),
+  })
+  let renderer
+  try {
+    await act(async () => { renderer = create(createElement(App)) })
+    assert.equal(renderer.root.findByType('MediaControls').props.initialQuery, '')
+    assert.equal(renderer.root.findAllByType('ProgressControl').length, 0)
+    assert.equal(renderer.root.findByType('details').props.open, true)
+    assert.equal(renderer.root.findAllByType('GraphCanvas').length, 0)
+    assert.ok(!JSON.stringify(renderer.toJSON()).includes('Lantern Harbor'))
+  } finally {
+    if (renderer) await act(async () => renderer.unmount())
+    globalThis.__navigationQuery = 'q=anime'
+  }
+})
+
+test('switching stories cancels an old media load and ignores its late response', async () => {
+  globalThis.__navigationQuery = `media=${first.id}`
+  const pending = Promise.withResolvers()
+  let oldSignal
+  const calls = []
+  Object.assign(api, {
+    health: async () => ({}),
+    media: async (id, signal) => {
+      if (id === first.id) { oldSignal = signal; return pending.promise }
+      return sequel
+    },
+    universe: async id => { calls.push(id); return { ...universe, root_id: id } },
+    search: async () => assert.fail('Story selection must not use the old search'),
+    graph: async () => assert.fail('Story selection must not load character facts'),
+  })
+  let renderer
+  try {
+    await act(async () => { renderer = create(createElement(App)) })
+    await act(async () => { globalThis.__navigationQuery = `media=${sequel.id}`; renderer.update(createElement(App)) })
+    assert.equal(oldSignal.aborted, true)
+    await act(async () => pending.resolve(first))
+    assert.deepEqual(calls, [sequel.id])
+    assert.equal(renderer.root.findByType('UniverseCanvas').props.universe.root_id, sequel.id)
   } finally {
     if (renderer) await act(async () => renderer.unmount())
     globalThis.__navigationQuery = 'q=anime'

@@ -30,7 +30,7 @@ export default function AuthPages({ account = false }: { account?: boolean }) {
           base: 'auth-card', header: 'auth-card-header', content: 'auth-card-content',
           footer: 'auth-card-footer', title: 'auth-title',
         }} />
-        : <><h1>Accounts are coming soon.</h1><p>You can explore stories without an account.</p><Link to="/explore">Explore as a guest</Link></>}
+        : <><h1>Accounts are coming soon.</h1><p>You can explore stories without an account.</p><Link to="/">Find a story</Link></>}
     </div>
   </main>
 }

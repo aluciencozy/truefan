@@ -28,7 +28,7 @@ const DestinationNode = memo(function DestinationNode({ data }: NodeProps<Destin
       {focused && !reduced && <motion.span className="arrival-ring" key={media.id + String(data.overview)} initial={{ scale: .8, opacity: .8 }} animate={{ scale: 1.65, opacity: 0 }} transition={{ duration: 1.2 }} />}
       {guide.status === 'completed' && <span className="watched-badge" aria-label="Completed">✓</span>}
       {guide.status === 'locked' && <span className="lock-badge" aria-hidden="true">⌑</span>}
-      {release && <span className="release-badge" title={`Branch ${guide.branchNumber}, release ${guide.number}`}>{guide.branchNumber}.{guide.number}</span>}
+      {release && <span className="release-badge" title={`Release ${guide.number}`}>{guide.number}</span>}
     </motion.div>
     <strong title={media.title}>{media.title}</strong>
     <span className="destination-state">{guide.status === 'locked' ? 'Locked' : guide.status === 'completed' ? 'Completed' : guide.suggested && release ? 'Suggested next' : 'Available'}</span>
@@ -36,8 +36,7 @@ const DestinationNode = memo(function DestinationNode({ data }: NodeProps<Destin
   </div>
 })
 
-type Region = Node<{ label: string }, 'region'>
-function RegionNode({ data }: NodeProps<Region>) { return <div className="branch-region"><span>{data.label}</span></div> }
+function RegionNode() { return <div className="branch-region" aria-hidden="true" /> }
 
 type Journey = { id: string; from: string; serial: number }
 type OrbitEdge = Edge<{ incident: boolean; primary: boolean; label: string; journey: Journey | null }, 'orbit'>
@@ -166,8 +165,8 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
   }, [active, focusedId, neighbors, positions, previous, next, focus])
 
   const nodes = useMemo<Node[]>(() => [
-    ...branchBounds(model, positions).map((b, index) => ({ id: b.id, type: 'region', position: { x: b.x, y: b.y },
-      data: { label: `Branch ${index + 1}` }, style: { width: b.width, height: b.height },
+    ...branchBounds(model, positions).map(b => ({ id: b.id, type: 'region', position: { x: b.x, y: b.y },
+      data: {}, style: { width: b.width, height: b.height },
       selectable: false, focusable: false, zIndex: -1 })),
     ...model.media.filter(m => positions[m.id]).map(media => ({
       id: media.id, type: 'destination', focusable: false, position: positions[media.id], width: MEDIA_WIDTH, height: MEDIA_HEIGHT,

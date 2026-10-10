@@ -47,6 +47,7 @@ test('available panel shows recorded progress and a metadata summary without pro
   assert.match(html, /value="7"/)
   assert.match(html, /Explore its sequel connections/)
   assert.ok(!html.includes('SECRET STORY DETAIL'))
+  assert.ok(!/Branch \d/.test(html))
 })
 
 test('explicit completion without recorded units never fabricates episode progress', () => {
