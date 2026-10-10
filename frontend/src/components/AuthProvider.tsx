@@ -7,6 +7,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   if (!authClient) return children
   return <NeonAuthUIProvider authClient={authClient} defaultTheme="light"
+    social={{ providers: ['google'] }} credentials={false}
     navigate={path => navigate(path)} replace={path => navigate(path, { replace: true })}
     redirectTo="/" Link={({ href, ...props }) => <Link to={href} {...props} />}>
     {children}

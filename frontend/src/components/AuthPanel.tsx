@@ -49,8 +49,7 @@ function ConfiguredAuth({ media, progress, onProgress }: Props) {
       <Link to="/account/settings">Account settings</Link>
       <Link to="/auth/sign-out">Sign out</Link>
     </div> : <div className="flex gap-3 mt-3">
-      <Link to="/auth/sign-in">Sign in</Link>
-      <Link to="/auth/sign-up">Create account</Link>
+      <Link to="/auth/sign-in">Sign in with Google</Link>
     </div>}
     <p role="status">{message}</p>
   </details>

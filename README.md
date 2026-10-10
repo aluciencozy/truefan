@@ -14,7 +14,7 @@ returns only facts at or before the user's exact progress.
 - Vite + React + TypeScript dashboard with Tailwind and React Flow.
 - Backend media search, selected media, progress selector, graph, and entity details.
 - FastAPI health check and hard-coded, backend-filtered graph responses.
-- Neon Auth UI for sign-up, sign-in, sign-out, account settings, sessions, and a protected API identity check.
+- Neon Auth UI for Google-only sign-in, sign-out, account settings, sessions, and a protected API identity check.
 - Persistent per-user media progress through authenticated FastAPI endpoints.
 - Lazy Neon Postgres connection helper; no database or external credentials needed to boot.
 - Typed extraction/Q&A contracts and integration placeholders; neither calls an AI model.
@@ -35,7 +35,7 @@ Saved progress needs the application table initialized as described below.
 3. Pan/zoom the graph and select Mira to read an introductory description.
 4. Finish episode 2 and advance the selector: new connections become visible.
 5. Rewind to episode 1: the new faction and its relationships disappear.
-6. With Neon Auth configured, open Account, create an account or sign in, then
+6. With Neon Auth configured, open Account, sign in with Google, then
    use “Verify API session” to exercise the protected FastAPI endpoint.
 
 Signed-in users can save and retrieve progress across reloads and devices.
@@ -226,9 +226,9 @@ Use the same Neon branch for Auth and Postgres. Never derive an Auth endpoint
 from a database hostname or project ID. The supplied production Auth URL has been
 written to local environment files; it is deliberately not a default in source code.
 `NEON_AUTH_JWKS_URL` is optional; use only a trusted value supplied by Neon.
-`NEON_AUTH_ISSUER` and `NEON_AUTH_AUDIENCE` are no longer used. No Next.js cookie
-secret, Data API URL, frontend database credentials, or application signing secret
-is needed. `HF_TOKEN` is unrelated to authentication.
+Issuer and audience are derived automatically from the Auth URL origin. No
+Next.js cookie secret, Data API URL, frontend database credentials, or application
+signing secret is needed. `HF_TOKEN` is unrelated to authentication.
 
 Initialize the application table once, with the backend environment activated:
 
@@ -245,9 +245,41 @@ The account pages use `createAuthClient` from `@neondatabase/neon-js/auth`, its
 React adapter, and `NeonAuthUIProvider`, `AuthView`, and `AccountView` from
 `@neondatabase/auth-ui`. Cross-origin SDK requests include session credentials.
 This follows the [official managed-auth guidance](https://github.com/neondatabase/agent-skills/blob/main/skills/neon-auth/references/managed-auth.md).
-Configure your frontend origin in Neon Auth trusted domains; localhost may be
-pre-approved. Email verification follows the branch settings. For shared SMTP,
-use verification codes when required; do not assume verification links work.
+The frontend provider uses the supported
+`social={{ providers: ['google'] }}` and `credentials={false}` options:
+Google is the only displayed login method; email/password forms and password
+settings are hidden. The existing official React SDK and AuthView remain in use.
+
+### Google-only Neon configuration and redirects
+
+- Google is already Active in the Neon dashboard. In the same branch's Auth
+  configuration, disable email/password authentication and remove any other
+  enabled login providers if Google-only access must be enforced. Hiding forms
+  in the frontend does not disable authentication endpoints in Neon.
+- In **Neon Console → Auth → Configuration → Domains**, allow the frontend
+  origins. Local development uses **http://localhost:3000**; localhost ports are
+  pre-approved by default, but ensure this branch's Allow localhost option has
+  not been disabled. For Vercel, add the exact **https://your-app.vercel.app**
+  origin and any custom domain, including protocol and without a trailing slash.
+  Add each preview origin you use; avoid trusting all of `*.vercel.app`.
+- The UI's `redirectTo="/"` returns users to the current frontend origin's root
+  after Neon completes login. That origin must be trusted by Neon. The SDK
+  restores the browser session, then `.token()` supplies a JWT to FastAPI.
+- If using your own Google OAuth client, register the exact authorization
+  callback shown by Neon: **`{NEON_AUTH_BASE_URL}/callback/google`**, including
+  the full `/neondb/auth` path. This is Google's redirect back to Neon, distinct
+  from the localhost/Vercel page Neon redirects to afterwards. Store the Google
+  Client ID and Client Secret in Neon, never in `VITE_*` variables. Neon's shared
+  Google credentials are for development/testing; use your own for production.
+- On Vercel, set `VITE_API_URL` to Railway and `VITE_NEON_AUTH_URL` to this
+  branch's Auth URL, then rebuild. On Railway, set `FRONTEND_URL` to the exact
+  Vercel frontend origin and use the same `NEON_AUTH_BASE_URL`. Backend CORS
+  currently accepts one frontend origin; Neon trusting a preview does not
+  automatically permit that preview to call FastAPI.
+
+See the official [OAuth setup](https://neon.com/docs/auth/guides/setup-oauth),
+[trusted domains](https://neon.com/docs/auth/guides/configure-domains), and
+[React Auth UI guide](https://github.com/neondatabase-labs/ai-rules/blob/main/references/neon-auth-ui-react-spa.md).
 
 FastAPI credentials are separate: `authClient.token()` issues a bearer JWT.
 `current_user()` uses the full Auth URL plus `/.well-known/jwks.json` for keys,
@@ -266,8 +298,8 @@ JWT can remain valid until expiry; no immediate bearer-token revocation is promi
 
 ### Verify the real flow
 
-1. Run both apps, then open `/auth/sign-up` and register a test user.
-2. Complete any email verification, sign out, and explicitly sign in at `/auth/sign-in`.
+1. Run both apps, then open `/auth/sign-in`; only the Google login button should appear, without email/password fields.
+2. Click Google, complete sign-in, and confirm you return to the dashboard with an Account session.
 3. Open Account on the dashboard and click **Verify API session**; `/api/me` should return your subject.
 4. Select episode 2 and click **Save progress**. Change to episode 1, then click **Retrieve progress**; it should restore episode 2.
 5. Reload the page: the session should restore. Retrieve progress again to prove persistence.
@@ -435,7 +467,7 @@ extraction as a small proof of concept; do not let scraping consume the hackatho
 
 Recommended next five implementation tasks:
 
-1. Install dependencies, link/deploy Neon Auth, and verify sign-up/session/JWT flow end to end.
+1. Install dependencies, link/deploy Neon Auth, and verify Google sign-in/session/JWT flow end to end.
 2. Choose one real demo series; curate story units and review entity/relationship reveal points.
 3. Expand the graph schema and add automatic saved-progress resume if useful.
 4. Replace fixture search with AniList metadata while keeping graph facts curated.
@@ -470,8 +502,13 @@ needs branch-specific configuration and trusted domains to work in the browser.
 
 ## Auth review validation status
 
-The verifier and progress ownership tests pass using locally signed Ed25519 fixtures
-and mocked database queries. Live Neon registration, JWT issuance, and Postgres
-save/retrieve are still unverified: this agent workspace blocks external DNS and
-browser/server networking. The latest SDK/UI packages also need installation before
-the updated frontend can be built and checked. Do not treat this status as live proof.
+The Google-only UI builds and typechecks with the installed official Neon packages.
+All nine backend verifier, progress ownership, and graph tests pass using local
+Ed25519 fixtures and mocked database queries. Browser inspection confirms the
+sign-in page displays only Google, and clicking it reaches Google's live sign-in
+page through Neon. The configured live JWKS endpoint returns HTTP 200 with an
+Ed25519 public key; FastAPI returns 401 for missing and invalid bearer tokens.
+This isolated browser has no Google login session, so the
+authenticated return, live JWT issuance, protected API success, and Postgres
+save/retrieve remain unverified until a user completes Google sign-in.
+A build, an OAuth redirect, or mocked JWT tests do not prove the complete live flow.
