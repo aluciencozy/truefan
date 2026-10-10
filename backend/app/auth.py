@@ -1,3 +1,4 @@
+import json
 from functools import lru_cache
 from typing import Annotated
 from urllib.parse import urlparse
@@ -51,7 +52,8 @@ def current_user(credentials: Annotated[HTTPAuthorizationCredentials | None, Dep
         if not isinstance(subject, str) or not subject:
             raise jwt.InvalidTokenError("Missing user subject")
         return CurrentUser(id=subject)
-    except jwt.PyJWKClientConnectionError as error:
+    except (jwt.PyJWKClientConnectionError, json.JSONDecodeError) as error:
+        # JSONDecodeError: the JWKS endpoint answered with a non-JSON body (e.g. a proxy error page).
         raise HTTPException(503, "Identity provider temporarily unavailable") from error
     except jwt.PyJWTError as error:
         raise HTTPException(401, "Invalid or expired token", headers={"WWW-Authenticate": "Bearer"}) from error

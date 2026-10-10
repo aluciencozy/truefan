@@ -21,3 +21,17 @@ class ProgressTests(unittest.TestCase):
         self.conn.execute.return_value.fetchone.return_value = None
         self.assertIsNone(get_progress("user-b", "lantern-harbor"))
         self.assertEqual(self.conn.execute.call_args.args[1], ("user-b", "lantern-harbor"))
+
+    def test_database_failures_become_503(self):
+        import psycopg
+        from fastapi import HTTPException
+        progress = UserProgress(media_id="lantern-harbor", progress=RevealPoint(unit=1))
+        for error in [psycopg.errors.UndefinedTable("no table"), psycopg.OperationalError("unreachable")]:
+            self.conn.execute.side_effect = error
+            for call in [lambda: get_progress("u", "lantern-harbor"), lambda: save_progress("u", progress)]:
+                with self.subTest(error=type(error).__name__), self.assertRaises(HTTPException) as raised:
+                    call()
+                self.assertEqual(raised.exception.status_code, 503)
+        with patch.object(settings, "database_url", ""), self.assertRaises(HTTPException) as raised:
+            get_progress("u", "lantern-harbor")
+        self.assertEqual(raised.exception.status_code, 503)
