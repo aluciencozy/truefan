@@ -6,7 +6,7 @@ import re
 import unicodedata
 from urllib.parse import urlparse
 from app.config import settings
-from app.schemas import GraphResponse, Media, MediaReleaseDate, Universe, UniverseEdge
+from app.schemas import GraphResponse, Media, MediaReleaseDate, TrendingCover, Universe, UniverseEdge
 from app.services.http import fetch
 
 FIELDS = 'id type chapters idMal title{romaji english} format episodes startDate{year month day} coverImage{medium}'
@@ -55,6 +55,18 @@ def details(media_id: str) -> dict:
 def search_media(search: str) -> list[Media]:
     data = query('query($q:String){Page(page:1,perPage:10){media(search:$q,type:ANIME,isAdult:false){' + FIELDS + '}}}', {'q': search})
     return [normalize(row) for row in data['Page']['media']]
+
+
+def trending_covers() -> list[TrendingCover]:
+    data = query('''query{Page(page:1,perPage:16){
+        media(type:ANIME,isAdult:false,sort:TRENDING_DESC){id coverImage{medium}}
+    }}''', {})
+    covers = []
+    for row in data['Page']['media']:
+        url = (row.get('coverImage') or {}).get('medium')
+        if isinstance(url, str) and url.startswith('https://s4.anilist.co/'):
+            covers.append(TrendingCover(id=row['id'], cover_url=url))
+    return covers
 
 
 def character_profiles(anilist_id: int) -> list[dict]:
