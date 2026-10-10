@@ -43,7 +43,7 @@ const DestinationNode = memo(function DestinationNode({ data }: NodeProps<Destin
 })
 
 function RegionNode({ data }: NodeProps<Node<{ label: string }, 'region'>>) {
-  return <div className="branch-region universe-group"><span>{data.label}</span></div>
+  return <div className="universe-group"><span>{data.label}</span></div>
 }
 
 type Journey = { id: string; from: string; serial: number }
@@ -249,7 +249,7 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
     </motion.div>}
     <div className="journey-announcement" role="status" aria-live="polite">{mediaById.has(focusedId) ? worldTitle(mediaById.get(focusedId)!, guide[focusedId]) : ''}{overview ? ', Overview Mode' : ', Focus Mode'}</div>
     {layoutState === 'loading' && <div role="status" className="canvas-status">Mapping the universe…</div>}
-    {layoutState === 'fallback' && <div role="status" className="canvas-status">Automatic layout unavailable. Showing branch lanes.</div>}
+    {layoutState === 'fallback' && <div role="status" className="canvas-status">Automatic layout unavailable. Showing grouped worlds.</div>}
     {!model.media.length && <div className="canvas-status">No connected works discovered.</div>}
   </div>
 }
