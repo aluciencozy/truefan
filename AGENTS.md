@@ -14,7 +14,14 @@ curated series is enough for the demo. Prefer small, working hackathon changes.
   `uvicorn app.main:app --reload`; check `python -m unittest discover -s tests`.
 - Neon Postgres stores app data; Neon Auth manages users and sessions.
   Vercel hosts frontend; Railway hosts backend. `neon.ts` enables managed Auth.
-- README has setup, environment variables, API contracts, and planned schema.
+- README has setup, environment variables, API contracts, and implemented schema.
+- AniList discovery, episode providers, HF extraction, and shared graph jobs live in
+  `backend/app/services/`. Apply additive tables with `python -m app.init_db`.
+  Authenticated generation is bounded and cached; graph GETs never trigger inference.
+- Standalone source/extraction probes live in `backend/scripts/`; reports and
+  reviewed candidate artifacts live in `docs/`. Keep raw descriptions and model
+  responses outside the repository. Candidate support episodes are not confirmed
+  spoiler-safe reveal points; never load these artifacts into the public graph.
 
 ## Rules
 
@@ -34,7 +41,9 @@ curated series is enough for the demo. Prefer small, working hackathon changes.
 - `VITE_*` values are public. Keep DATABASE_URL, HF_TOKEN, and Neon API credentials
   server-only. Use local `.env` files and examples; never commit secrets or tokens.
 - Preserve extraction provenance. Model-generated relationships/reveal points
-  need validation and review; do not assume AI output is correct.
+  need source validation and provenance; do not assume AI output is correct.
+  Runtime-generated graphs may be served automatically as experimental/unverified.
+  Support episodes are approximate boundaries, never guaranteed spoiler-safe reveals.
 - Avoid premature abstractions, new frameworks, and production-scale machinery.
   Update README when architecture, contracts, or important commands change.
 

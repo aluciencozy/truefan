@@ -17,15 +17,19 @@ returns only facts at or before the user's exact progress.
 - Neon Auth UI for Google-only sign-in, sign-out, account settings, sessions, and a protected API identity check.
 - Persistent per-user media progress through authenticated FastAPI endpoints.
 - Lazy Neon Postgres connection helper; no database or external credentials needed to boot.
-- Typed extraction/Q&A contracts and integration placeholders; neither calls an AI model.
+- Dynamic AniList search and bounded media universe graph.
+- Automatic experimental character extraction from Kitsu/TVmaze through configurable HF inference.
+- Shared Neon graph caching, bounded background jobs, resumable checkpoints, and per-episode filtering.
+- Legacy extraction/Q&A placeholder routes remain available; the new media-scoped generation route calls HF.
 
 The fixture is **Lantern Harbor**, a fictional three-episode story. Episode 1
 reveals three nodes, episode 2 reveals a faction, and episode 3 reveals an object.
 Moving backwards removes later information immediately, including selected details.
 Progress 0 gives an empty graph. No real-series spoilers are included in the fixture.
 
-This is boilerplate, not a finished product. Search currently returns only this
-fixture. Accounts use real Neon Auth when configured, but production deployments and a real demo series are not implemented.
+The starter fixture remains available alongside dynamic AniList search. Accounts use real Neon Auth when configured. Automatic experimental
+graphs now supplement it; existing production deployments require the updated code
+and additive schema to enable the new flow.
 Saved progress needs the application table initialized as described below.
 
 ## Example experience
@@ -51,7 +55,7 @@ Vite + React browser app (Vercel)
                     ├─ JWT verification for user-owned APIs
                     ├─ Neon Postgres (per-user progress)
                     ├─ AniList GraphQL (planned metadata)
-                    └─ Hugging Face Inference Providers (planned extraction)
+                    └─ Hugging Face Inference Providers (experimental extraction)
 ```
 
 The frontend is a separate SPA; there are no Next.js, SSR, or frontend API routes.
@@ -83,9 +87,9 @@ and PyJWT with cryptography for signed identity verification.
 │   │   ├── config.py         # Server configuration
 │   │   ├── auth.py           # Verified Neon identity dependency
 │   │   ├── database.py       # Lazy Postgres connection
-│   │   ├── schema.sql        # Application user_progress table
+│   │   ├── schema.sql        # Progress, shared graph cache, generation quota tables
 │   │   ├── init_db.py        # Explicit table setup command
-│   │   └── services/         # Progress storage, demo data, filtering, AniList/HF placeholders
+│   │   └── services/         # Progress, filtering, AniList, episode providers, inference, shared graph jobs
 │   ├── tests/               # Auth, ownership, and spoiler-boundary checks
 │   ├── .env.example
 │   ├── Procfile              # Railway start command
@@ -175,7 +179,7 @@ to verify the graph and details update. Stop FastAPI and reload to check the err
 | Variable | Location | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | Backend | Neon Postgres connection string, with TLS parameters from Console |
-| `HF_TOKEN` | Backend | Secret Inference API/Providers token; unused by the starter |
+| `HF_TOKEN` | Backend | Secret Inference Providers token for graph generation and local probes |
 | `ANILIST_API_URL` | Backend | Defaults to `https://graphql.anilist.co` |
 | `FRONTEND_URL` | Backend | Exact allowed browser origin; defaults to `http://localhost:3000` |
 | `VITE_API_URL` | Frontend | Public FastAPI origin; defaults to `http://localhost:8000` |
@@ -387,8 +391,10 @@ specifies the unit label. Progress 0 means nothing completed. Seasons/episode
 numbers will map into this order through a story-unit table. Branched game
 stories will need an explicit path-aware extension instead of guessing a sequence.
 
-`public.user_progress` is implemented in `app/schema.sql`. The broader graph
-schema remains planned:
+`public.user_progress`, `public.generated_graphs`, and `public.graph_generation_requests`
+are implemented in `app/schema.sql`. Generated graphs use episode snapshots in JSONB
+so they can be cached across users while retaining progress-specific descriptions.
+The following normalized-table layout remains an optional future direction:
 
 | Concept | Planned fields / ownership |
 | --- | --- |
@@ -420,33 +426,83 @@ AniList is metadata, not a trustworthy episode-by-episode reveal dataset. Charac
 biographies and cast lists can themselves contain spoilers, so never send them
 straight to a progress-filtered profile. Other media providers can be added later.
 
-## Planned Hugging Face ingestion pipeline
+## Episode-summary source investigation
+
+The standalone Kitsu/TVmaze comparison reuses the original Jikan probe's HTTP
+client, AniList resolver, sampling, and metrics. Run it from `backend/`:
+
+```bash
+.venv/bin/python scripts/episode_provider_feasibility.py --output /tmp/truefan-episode-provider-results.json
+```
+
+It samples five numbered episodes from each of five anime per provider, verifies
+Kitsu external-ID mappings, and uses TVDB IDs to match TVmaze where available.
+It separates missing text from request errors and records numbering and specials.
+Raw responses stay outside the repository; never commit the results file.
+See [the comparison report](docs/episode-provider-feasibility.md) for measured
+coverage, matching limits, and why episode safety still needs review. Kitsu is the
+stronger candidate in this sample; TVmaze can supplement sparse information.
+These provider probes are experiments, not production integrations, and make no
+AI calls or Neon writes. The [earlier Jikan report](docs/jikan-feasibility.md) remains a historical
+record of that investigation.
+
+## Hugging Face extraction experiment
+
+From `backend/`, using the server-only `HF_TOKEN` in `backend/.env`:
+
+```bash
+.venv/bin/python -m scripts.hf_extraction_feasibility --output /tmp/truefan-hf-extraction.json
+.venv/bin/python -m unittest discover -s tests
+```
+
+This bounded experiment resolves UBW and samples the prologue plus episodes 1–5.
+Kitsu is primary; TVmaze supplies a matched prologue when Kitsu's episode text is
+null. Six independent requests per run use Qwen3-4B-Instruct-2507 through Hugging Face's
+nscale provider, with structured JSON and Pydantic validation. Pass
+`--model Qwen/Qwen2.5-72B-Instruct:deepinfra` to reproduce the larger-model
+comparison; that model uses a custom Qwen license rather than Apache 2.0. Running the script
+can consume inference credits. Raw descriptions/responses stay outside the repo.
+Lexical grounding rejects missing names, fabricated evidence, and invalid edges;
+semantic support and spoiler timing require separate review. Candidates are never
+loaded by the production API. See [the extraction report](docs/hf-extraction-feasibility.md)
+and [reviewed candidates](docs/data/ubw-extraction-candidates.json).
+
+## Automated graph generation
 
 ```text
 AniList
     ↓
 media metadata + characters
     ↓
-episode/wiki/manual summaries
+Kitsu episode descriptions / TVmaze fallback / curated summaries
     ↓
 Hugging Face open-source model / Inference Providers
     ↓
-structured entities + relationships + reveal points + provenance
+structured entities + relationship assertions + source support + provenance
     ↓
-manual verification if necessary
+automatic schema/source checks + approximate support boundaries
     ↓
 Neon Postgres
     ↓
 spoiler-aware graph API
 ```
 
-`services/huggingface.py` is deliberately a placeholder. Choose a supported model
-and provider, use server-only `HF_TOKEN`, submit summaries with explicit story-unit
-and source context, and validate output against Pydantic before storing anything.
-Record source references, unit, model/provider, extraction run, and review status.
-Model-inferred relationships or reveal points must not automatically become
-verified facts. Begin with manually curated summaries and human-reviewed output.
-Wikipedia/MediaWiki sources can be considered later; no scraping is implemented.
+`services/huggingface.py` now provides the runtime inference adapter. Runtime graphs
+are automatically served as experimental/unverified; they are not manually moderated
+or imported from offline candidate JSON. Support boundaries are approximate and not
+advertised as guaranteed spoiler-safe. See the implementation guide below.
+
+See [the automated pipeline guide](docs/automated-graph-generation.md) for API
+contracts, job recovery, provider matching, UBW prologue numbering, quotas, storage,
+and limitations. Before deploying the updated backend, run `python -m app.init_db`
+with a direct Neon URL. Existing tables/progress remain intact. Configure server-side
+`HF_MODEL`, `HF_TOKEN`, and `GENERATION_EPISODE_CAP`; defaults and other controls
+are documented in `backend/.env.example`. Changing progress never reruns inference.
+
+The frontend opens a universe from search, then a character graph from a media node.
+New graphs require Google authentication; cached graphs are shared. Save/Retrieve
+progress still uses the existing user-owned endpoints. Initial generation is capped
+and reports partial coverage honestly. No Vercel/Railway hosting settings were changed.
 
 ## Deployment targets
 

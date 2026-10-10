@@ -1,0 +1,2086 @@
+{
+  "test_date": "2026-10-10",
+  "purpose": "Offline review only; never production graph data",
+  "review_method": "Agent review of complete supplied descriptions; no episode viewing or canon verification. No silent corrections.",
+  "support_semantics": "Earliest source occurrence within this six-unit sample, with exact names unchanged; not actual reveal timing or a cross-work alias resolution.",
+  "evidence_semantics": "Offsets are Python Unicode code points in whitespace-normalized plain text. Full source/model responses remain under /tmp.",
+  "all_verified": false,
+  "runs": [
+    {
+      "model": "Qwen/Qwen3-4B-Instruct-2507:nscale",
+      "started_at": "2026-10-10T06:25:49.750980+00:00",
+      "finished_at": "2026-10-10T06:26:39.994390+00:00",
+      "identity": {
+        "anilist": {
+          "id": 19603,
+          "idMal": 22297,
+          "title": {
+            "romaji": "Fate/stay night: Unlimited Blade Works",
+            "english": "Fate/stay night: Unlimited Blade Works"
+          },
+          "startDate": {
+            "year": 2014
+          },
+          "format": "TV",
+          "episodes": 13,
+          "popularity": 267335
+        },
+        "prologue_anilist": null,
+        "prologue_anilist_lookup_status": 404,
+        "prologue_mal_id": "27821",
+        "tvmaze_id": 1946,
+        "bridge": "Kitsu MAL/AniList mapping -> TVDB series -> TVmaze external ID"
+      },
+      "metrics": {
+        "proposed_relationships": 7,
+        "source_supported_typed_claims": 3,
+        "retained_relationships": 3,
+        "prompt_tokens": 1489,
+        "completion_tokens": 2045,
+        "approx_usd": 7.623999999999999e-05,
+        "median_latency_seconds": 2.7655000000000003,
+        "latency_range_seconds": [
+          1.823,
+          3.385
+        ],
+        "inference_total_seconds": 16.155,
+        "pricing_usd_per_million_tokens": {
+          "input": 0.01,
+          "output": 0.03
+        },
+        "pricing_source": "https://router.huggingface.co/v1/models"
+      },
+      "episodes": [
+        {
+          "episode": {
+            "episode_key": "prologue",
+            "broadcast_episode": 0,
+            "story_unit": 1,
+            "kitsu_anime_id": "9718",
+            "kitsu_episode_id": "148847",
+            "provider_episode_number": 1,
+            "title": "Fate/Stay Night: Unlimited Blade Works - Prologue",
+            "source_url": "https://api.tvmaze.com/episodes/2632937",
+            "provider": "tvmaze",
+            "tvmaze_episode_id": 2632937,
+            "kitsu_text_state": "null"
+          },
+          "source_sha256": "04e0b6e7a19c56a3f6c35870232190f2d06325f8adc0a534ad9d0f041e9ca093",
+          "source_characters": 287,
+          "schema_status": "candidate_needs_review",
+          "latency_seconds": 2.688,
+          "usage": {
+            "completion_tokens": 126,
+            "prompt_tokens": 223,
+            "prompt_tokens_details": null,
+            "total_tokens": 349
+          },
+          "candidates": [
+            {
+              "description": "Rin Tohsaka",
+              "kind": "character",
+              "name": "Rin Tohsaka",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 0,
+              "first_supported_story_unit": 1,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://api.tvmaze.com/episodes/2632937",
+                "source_sha256": "04e0b6e7a19c56a3f6c35870232190f2d06325f8adc0a534ad9d0f041e9ca093",
+                "start": 0,
+                "end": 22,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "ccb2370e36a4d8a2dfc5c164b2b0befff049dee08f4d2aa4c60e46d3bd2a6be9"
+              }
+            },
+            {
+              "description": "a legendary warrior",
+              "kind": "faction",
+              "name": "legendary warrior",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "An unnamed warrior is not a named faction"
+              ],
+              "verified": false,
+              "first_supported_episode": 0,
+              "first_supported_story_unit": 1,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://api.tvmaze.com/episodes/2632937",
+                "source_sha256": "04e0b6e7a19c56a3f6c35870232190f2d06325f8adc0a534ad9d0f041e9ca093",
+                "start": 33,
+                "end": 52,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "e0ec130ba8c05457bf6e99893b9d5fa16385a8e21422e47ba609135630c5920c"
+              }
+            },
+            {
+              "description": "others' warrior Servants",
+              "kind": "faction",
+              "name": "others' warrior Servants",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Generic opponent Servants are not a named faction"
+              ],
+              "verified": false,
+              "first_supported_episode": 0,
+              "first_supported_story_unit": 1,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://api.tvmaze.com/episodes/2632937",
+                "source_sha256": "04e0b6e7a19c56a3f6c35870232190f2d06325f8adc0a534ad9d0f041e9ca093",
+                "start": 63,
+                "end": 91,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "2eaa038c666ae11cbba3b708fafdfca065afe8f071edd904b2f910067d2db6fd"
+              }
+            }
+          ]
+        },
+        {
+          "episode": {
+            "episode_key": "episode-1",
+            "broadcast_episode": 1,
+            "story_unit": 2,
+            "kitsu_anime_id": "7882",
+            "kitsu_episode_id": "172701",
+            "provider_episode_number": 1,
+            "title": "Winter Day, Fateful Night",
+            "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+            "provider": "kitsu"
+          },
+          "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+          "source_characters": 494,
+          "schema_status": "candidate_needs_review",
+          "latency_seconds": 3.385,
+          "usage": {
+            "completion_tokens": 561,
+            "prompt_tokens": 283,
+            "prompt_tokens_details": null,
+            "total_tokens": 844
+          },
+          "candidates": [
+            {
+              "description": "Shirou Emiya was saved by Kiritsugu Emiya during the Fuyuki City fire.",
+              "kind": "character",
+              "name": "Shirou Emiya",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 0,
+                "end": 97,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "f84d26347648c91ae59c8b6852375aef0ce0f60947c426444d6f1f686ed86b7e"
+              }
+            },
+            {
+              "description": "Kiritsugu Emiya saved Shirou Emiya from the Fuyuki City fire.",
+              "kind": "character",
+              "name": "Kiritsugu Emiya",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 0,
+                "end": 97,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "f84d26347648c91ae59c8b6852375aef0ce0f60947c426444d6f1f686ed86b7e"
+              }
+            },
+            {
+              "description": "Lancer attacks Shirou Emiya after realizing someone is watching the battle.",
+              "kind": "character",
+              "name": "Lancer",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 164,
+                "end": 297,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "35a847a3d7cf1201521a13872cb665b0d06e8c5a2fe312d22bc65f796aa2cd14"
+              }
+            },
+            {
+              "description": "Rin resuscitates Shirou Emiya after he is attacked by Lancer.",
+              "kind": "character",
+              "name": "Rin",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 298,
+                "end": 376,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "c9190c455356b83466a44e8efeaa8e9233645dad66a8cf8b9ebd87c133926af3"
+              }
+            },
+            {
+              "label": "saved by",
+              "source": "Shirou Emiya",
+              "target": "Kiritsugu Emiya",
+              "type": "rescues",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Rescue direction reversed"
+              ],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 0,
+                "end": 97,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "f84d26347648c91ae59c8b6852375aef0ce0f60947c426444d6f1f686ed86b7e"
+              }
+            },
+            {
+              "label": "attacks",
+              "source": "Lancer",
+              "target": "Shirou Emiya",
+              "type": "attacks",
+              "kind_of_record": "relationship",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 164,
+                "end": 297,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "35a847a3d7cf1201521a13872cb665b0d06e8c5a2fe312d22bc65f796aa2cd14"
+              }
+            },
+            {
+              "label": "resuscitates",
+              "source": "Rin",
+              "target": "Shirou Emiya",
+              "type": "rescues",
+              "kind_of_record": "relationship",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 298,
+                "end": 376,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "c9190c455356b83466a44e8efeaa8e9233645dad66a8cf8b9ebd87c133926af3"
+              }
+            }
+          ]
+        },
+        {
+          "episode": {
+            "episode_key": "episode-2",
+            "broadcast_episode": 2,
+            "story_unit": 3,
+            "kitsu_anime_id": "7882",
+            "kitsu_episode_id": "172702",
+            "provider_episode_number": 2,
+            "title": "When the Curtain Goes Up",
+            "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+            "provider": "kitsu"
+          },
+          "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+          "source_characters": 395,
+          "schema_status": "candidate_needs_review",
+          "latency_seconds": 2.843,
+          "usage": {
+            "completion_tokens": 432,
+            "prompt_tokens": 267,
+            "prompt_tokens_details": null,
+            "total_tokens": 699
+          },
+          "candidates": [
+            {
+              "description": "Shirou goes to the Fuyuki Church with Rin, who had rushed to the Emiya estate after Lancer's attack.",
+              "kind": "character",
+              "name": "Shirou",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": 0,
+                "end": 41,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "0478dbe714ca26397734d1f699058adae8690372d3fe4d168685ae360f3056a8"
+              }
+            },
+            {
+              "description": "Rin had rushed to the Emiya estate after Lancer's attack.",
+              "kind": "character",
+              "name": "Rin",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Failed lexical grounding or endpoint gate"
+              ],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": null,
+                "end": null,
+                "exact_quote_matched": false,
+                "proposed_evidence_sha256": "67be5467e4c49bbac855241263b7b7aa478a61e118c90c9c6107324fd559b1d2"
+              }
+            },
+            {
+              "description": "Shirou is told about the Holy Grail Wars by Kotomine Kirei, its overseer, and is shocked by what he hears",
+              "kind": "character",
+              "name": "Kotomine Kirei",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": 101,
+                "end": 159,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "917d8e43e086e06d5ecd441df7c5f10c4b408b5801e1af96d77c5d82010dcda1"
+              }
+            },
+            {
+              "description": "Shirou decides to fight in it as a Master.",
+              "kind": "character",
+              "name": "Shirou",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Failed lexical grounding or endpoint gate"
+              ],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": null,
+                "end": null,
+                "exact_quote_matched": false,
+                "proposed_evidence_sha256": "9198aff3e4b7ad9223ac7c02a33382cbb65d533d61a935babe9a139b33f620ce"
+              }
+            },
+            {
+              "label": "goes with",
+              "source": "Shirou",
+              "target": "Rin",
+              "type": "commands",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Failed lexical grounding or endpoint gate",
+                "commands does not mean accompanies"
+              ],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": 0,
+                "end": 41,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "0478dbe714ca26397734d1f699058adae8690372d3fe4d168685ae360f3056a8"
+              }
+            },
+            {
+              "label": "told about",
+              "source": "Shirou",
+              "target": "Kotomine Kirei",
+              "type": "truce",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "truce does not mean informs; direction reversed"
+              ],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": 101,
+                "end": 159,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "917d8e43e086e06d5ecd441df7c5f10c4b408b5801e1af96d77c5d82010dcda1"
+              }
+            }
+          ]
+        },
+        {
+          "episode": {
+            "episode_key": "episode-3",
+            "broadcast_episode": 3,
+            "story_unit": 4,
+            "kitsu_anime_id": "7882",
+            "kitsu_episode_id": "172703",
+            "provider_episode_number": 3,
+            "title": "The First Battle",
+            "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+            "provider": "kitsu"
+          },
+          "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+          "source_characters": 314,
+          "schema_status": "candidate_needs_review",
+          "latency_seconds": 1.823,
+          "usage": {
+            "completion_tokens": 278,
+            "prompt_tokens": 233,
+            "prompt_tokens_details": null,
+            "total_tokens": 511
+          },
+          "candidates": [
+            {
+              "description": "Shirou and Illyasviel meet after leaving the church.",
+              "kind": "character",
+              "name": "Shirou",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": 6,
+                "end": 135,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "41f1de7c63eb9d52fc528a4c06f6df1a058c9a7584131e93a61fa274c8142cf1"
+              }
+            },
+            {
+              "description": "Illyasviel introduces herself to Shirou and the others.",
+              "kind": "character",
+              "name": "Illyasviel",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": 84,
+                "end": 134,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "6fc248feee2f8fc31245d94b0ef53d43dfaf475709d4691619a911e378220ea1"
+              }
+            },
+            {
+              "description": "Rin and the others face Berserker in battle.",
+              "kind": "character",
+              "name": "Rin",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": 136,
+                "end": 218,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "90b4c904d27ee54ec7ef0fc03a45995aa7684777a0c1dd14fb695cd15fbe037b"
+              }
+            },
+            {
+              "description": "Berserker battles Rin and the others.",
+              "kind": "character",
+              "name": "Berserker",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": 171,
+                "end": 217,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "b790b977d94cf010570bb2973cacc1eb13a1de377c398ce49959ad167c9a60a6"
+              }
+            }
+          ]
+        },
+        {
+          "episode": {
+            "episode_key": "episode-4",
+            "broadcast_episode": 4,
+            "story_unit": 5,
+            "kitsu_anime_id": "7882",
+            "kitsu_episode_id": "172704",
+            "provider_episode_number": 4,
+            "title": "Finding the Will to Fight",
+            "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+            "provider": "kitsu"
+          },
+          "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+          "source_characters": 364,
+          "schema_status": "candidate_needs_review",
+          "latency_seconds": 2.469,
+          "usage": {
+            "completion_tokens": 370,
+            "prompt_tokens": 253,
+            "prompt_tokens_details": null,
+            "total_tokens": 623
+          },
+          "candidates": [
+            {
+              "description": "Fujimura summons Shirou and Saber to his school.",
+              "kind": "character",
+              "name": "Fujimura",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Possessive school ownership is ambiguous; do not assign it to Fujimura"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 0,
+                "end": 61,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "7da79f74f289e9e2d0ac211046e9043bf4e66c0bafc180852494c0b32b120991"
+              }
+            },
+            {
+              "description": "Shirou tries to explain Saber's inability to dematerialize.",
+              "kind": "character",
+              "name": "Shirou",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 62,
+                "end": 128,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "b4f4dad7b1c47375c659e0576fd203df4184983b04a1a6b289fdcbd798f58abd"
+              }
+            },
+            {
+              "description": "Saber is unable to dematerialize.",
+              "kind": "character",
+              "name": "Saber",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 91,
+                "end": 128,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "5f27e2c315bd10a09a5376177963903c67fbd32fcda74bc30078e307907def6f"
+              }
+            },
+            {
+              "description": "Fujimura and Sakura stay at Shirou's house.",
+              "kind": "character",
+              "name": "Sakura",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 134,
+                "end": 202,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "3bb33e0e094106636aec0c3ff866a6cd24af11e9998e93f9c8c86556c971d00a"
+              }
+            },
+            {
+              "description": "Rin visits the gas leak site.",
+              "kind": "character",
+              "name": "Rin",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 214,
+                "end": 260,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "74ae21e0e6a82bfc09d1781cb8275f8c8c869bfc8ddea1e43348c6a26da25a38"
+              }
+            },
+            {
+              "description": "Caster is determined to have caused the gas leak.",
+              "kind": "character",
+              "name": "Caster",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Removes Rin as the holder of the inference about Caster"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 303,
+                "end": 339,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "af9518d9122c70c625f1b0923c0cd69b3166945e3857b599066946f0e2cb87ea"
+              }
+            }
+          ]
+        },
+        {
+          "episode": {
+            "episode_key": "episode-5",
+            "broadcast_episode": 5,
+            "story_unit": 6,
+            "kitsu_anime_id": "7882",
+            "kitsu_episode_id": "172705",
+            "provider_episode_number": 5,
+            "title": "Dancing After School",
+            "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+            "provider": "kitsu"
+          },
+          "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+          "source_characters": 282,
+          "schema_status": "candidate_needs_review",
+          "latency_seconds": 2.947,
+          "usage": {
+            "completion_tokens": 278,
+            "prompt_tokens": 230,
+            "prompt_tokens_details": null,
+            "total_tokens": 508
+          },
+          "candidates": [
+            {
+              "description": "Shirou goes to school without Saber",
+              "kind": "character",
+              "name": "Shirou",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 0,
+                "end": 35,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "8e4ec26e995c2c461ca7429bd98c1ba916b2087a94919f6bec51848c9af912ee"
+              }
+            },
+            {
+              "description": "Rin attacks Shirou",
+              "kind": "character",
+              "name": "Rin",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 37,
+                "end": 122,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "511e900a0de853fe310bfaf94008c53c7a11951373be8e2ce74615d4cfb8f26e"
+              }
+            },
+            {
+              "description": "Rin corners Shirou",
+              "kind": "character",
+              "name": "Rin",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 124,
+                "end": 139,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "9e272e1991b4807ebd08f1b55730faedc3946351d2808efb481a620ba8c6ae98"
+              }
+            },
+            {
+              "description": "female student screams",
+              "kind": "character",
+              "name": "female student",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Unnamed student, not a named character"
+              ],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 150,
+                "end": 183,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "fd5ae7a3e86fcb2149f754d852c2fba41ea6f313f506a9caa55e5993434b0a0d"
+              }
+            },
+            {
+              "label": "attacks",
+              "source": "Rin",
+              "target": "Shirou",
+              "type": "truce",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "truce does not mean attacks"
+              ],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 37,
+                "end": 122,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "511e900a0de853fe310bfaf94008c53c7a11951373be8e2ce74615d4cfb8f26e"
+              }
+            },
+            {
+              "label": "truce",
+              "source": "Shirou",
+              "target": "Rin",
+              "type": "truce",
+              "kind_of_record": "relationship",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 190,
+                "end": 244,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "d68b72f6860cdf35eb876ed1ce4f34d3406be981149b46308917fbb55e789db4"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "model": "Qwen/Qwen2.5-72B-Instruct:deepinfra",
+      "started_at": "2026-10-10T06:27:11.311105+00:00",
+      "finished_at": "2026-10-10T06:30:39.922299+00:00",
+      "identity": {
+        "anilist": {
+          "id": 19603,
+          "idMal": 22297,
+          "title": {
+            "romaji": "Fate/stay night: Unlimited Blade Works",
+            "english": "Fate/stay night: Unlimited Blade Works"
+          },
+          "startDate": {
+            "year": 2014
+          },
+          "format": "TV",
+          "episodes": 13,
+          "popularity": 267335
+        },
+        "prologue_anilist": null,
+        "prologue_anilist_lookup_status": 404,
+        "prologue_mal_id": "27821",
+        "tvmaze_id": 1946,
+        "bridge": "Kitsu MAL/AniList mapping -> TVDB series -> TVmaze external ID"
+      },
+      "metrics": {
+        "proposed_relationships": 20,
+        "source_supported_typed_claims": 7,
+        "retained_relationships": 5,
+        "prompt_tokens": 1489,
+        "completion_tokens": 2876,
+        "approx_usd": 0.00168644,
+        "median_latency_seconds": 30.8145,
+        "latency_range_seconds": [
+          8.38,
+          52.32
+        ],
+        "inference_total_seconds": 174.741,
+        "pricing_usd_per_million_tokens": {
+          "input": 0.36,
+          "output": 0.4
+        },
+        "pricing_source": "https://router.huggingface.co/v1/models"
+      },
+      "episodes": [
+        {
+          "episode": {
+            "episode_key": "prologue",
+            "broadcast_episode": 0,
+            "story_unit": 1,
+            "kitsu_anime_id": "9718",
+            "kitsu_episode_id": "148847",
+            "provider_episode_number": 1,
+            "title": "Fate/Stay Night: Unlimited Blade Works - Prologue",
+            "source_url": "https://api.tvmaze.com/episodes/2632937",
+            "provider": "tvmaze",
+            "tvmaze_episode_id": 2632937,
+            "kitsu_text_state": "null"
+          },
+          "source_sha256": "04e0b6e7a19c56a3f6c35870232190f2d06325f8adc0a534ad9d0f041e9ca093",
+          "source_characters": 287,
+          "schema_status": "candidate_needs_review",
+          "latency_seconds": 8.38,
+          "usage": {
+            "prompt_tokens": 223,
+            "total_tokens": 394,
+            "completion_tokens": 171,
+            "estimated_cost": 0.00014868000000000002,
+            "prompt_tokens_details": null
+          },
+          "candidates": [
+            {
+              "name": "Rin Tohsaka",
+              "kind": "character",
+              "description": "Young Mage Rin Tohsaka",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 0,
+              "first_supported_story_unit": 1,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://api.tvmaze.com/episodes/2632937",
+                "source_sha256": "04e0b6e7a19c56a3f6c35870232190f2d06325f8adc0a534ad9d0f041e9ca093",
+                "start": 0,
+                "end": 22,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "ccb2370e36a4d8a2dfc5c164b2b0befff049dee08f4d2aa4c60e46d3bd2a6be9"
+              }
+            },
+            {
+              "name": "Servants",
+              "kind": "faction",
+              "description": "warrior Servants",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Servants is a role/class, not a named faction"
+              ],
+              "verified": false,
+              "first_supported_episode": 0,
+              "first_supported_story_unit": 1,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://api.tvmaze.com/episodes/2632937",
+                "source_sha256": "04e0b6e7a19c56a3f6c35870232190f2d06325f8adc0a534ad9d0f041e9ca093",
+                "start": 75,
+                "end": 91,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "7cb8d6a0ba040ab40d05d1ff70ce965a35c8599d86db5e71cb311dc82dcd585d"
+              }
+            },
+            {
+              "source": "Rin Tohsaka",
+              "target": "Servants",
+              "type": "commands",
+              "label": "commands",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "No named faction or evidence of Rin commanding the opposing Servants"
+              ],
+              "verified": false,
+              "first_supported_episode": 0,
+              "first_supported_story_unit": 1,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://api.tvmaze.com/episodes/2632937",
+                "source_sha256": "04e0b6e7a19c56a3f6c35870232190f2d06325f8adc0a534ad9d0f041e9ca093",
+                "start": 23,
+                "end": 91,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "da5e2df1756da5fe932b0950f0f56e417380a292e1007258605416390b529262"
+              }
+            }
+          ]
+        },
+        {
+          "episode": {
+            "episode_key": "episode-1",
+            "broadcast_episode": 1,
+            "story_unit": 2,
+            "kitsu_anime_id": "7882",
+            "kitsu_episode_id": "172701",
+            "provider_episode_number": 1,
+            "title": "Winter Day, Fateful Night",
+            "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+            "provider": "kitsu"
+          },
+          "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+          "source_characters": 494,
+          "schema_status": "candidate_needs_review",
+          "latency_seconds": 34.399,
+          "usage": {
+            "prompt_tokens": 283,
+            "total_tokens": 824,
+            "completion_tokens": 541,
+            "estimated_cost": 0.00031828,
+            "prompt_tokens_details": null
+          },
+          "candidates": [
+            {
+              "name": "Shirou Emiya",
+              "kind": "character",
+              "description": "Shirou Emiya's life was saved by Kiritsugu Emiya during the great Fuyuki City fire ten years ago.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 0,
+                "end": 29,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "c48f0f286f76f8f75703f88df16e8205853c88c12befe24bf1f53240dfe22ce1"
+              }
+            },
+            {
+              "name": "Kiritsugu Emiya",
+              "kind": "character",
+              "description": "Kiritsugu Emiya saved Shirou Emiya's life during the great Fuyuki City fire ten years ago.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 33,
+                "end": 82,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "028c3cef73ac710af18df152d2c38174351507814b17d1c3e7b884dc2057b8e3"
+              }
+            },
+            {
+              "name": "Lancer",
+              "kind": "character",
+              "description": "Lancer, who realized that someone has been watching this battle that should not be seen, tries to kill Shirou on his Master's orders.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 164,
+                "end": 215,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "093992fef46d68261bf0521346aee5136b6aebdc2b1dc022f93ff62ca076b6f9"
+              }
+            },
+            {
+              "name": "Rin",
+              "kind": "character",
+              "description": "Rin resuscitated Shirou.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 298,
+                "end": 328,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "f123ae88bb853ba07ae62bc6c1186b4981c9a28cee8fc3c51fec6f6e6d408f1b"
+              }
+            },
+            {
+              "source": "Shirou Emiya",
+              "target": "Kiritsugu Emiya",
+              "type": "rescues",
+              "label": "saved by",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Rescue direction reversed"
+              ],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 0,
+                "end": 48,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "684f493cf5a39d0b0428b8c273df7b9254bc25527aee8514cdbc672d4410cce9"
+              }
+            },
+            {
+              "source": "Lancer",
+              "target": "Shirou Emiya",
+              "type": "attacks",
+              "label": "tries to kill",
+              "kind_of_record": "relationship",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 164,
+                "end": 273,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "10e58f46daa2a32f894a4cf74fcb3650c8a8ad0f56585d17755b2667f1184d80"
+              }
+            },
+            {
+              "source": "Rin",
+              "target": "Shirou Emiya",
+              "type": "rescues",
+              "label": "resuscitated",
+              "kind_of_record": "relationship",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": 298,
+                "end": 328,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "f123ae88bb853ba07ae62bc6c1186b4981c9a28cee8fc3c51fec6f6e6d408f1b"
+              }
+            },
+            {
+              "source": "Lancer",
+              "target": "Shirou Emiya",
+              "type": "attacks",
+              "label": "attacks again",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Failed lexical grounding or endpoint gate"
+              ],
+              "verified": false,
+              "first_supported_episode": 1,
+              "first_supported_story_unit": 2,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172701?include=media",
+                "source_sha256": "33f2d28cc74bcfa8c33c75e9704d9c07be060b48b43812a0071bc6abc4ce1a71",
+                "start": null,
+                "end": null,
+                "exact_quote_matched": false,
+                "proposed_evidence_sha256": "b56019d66a72a6e5e97fca59e7cbc50e489b725ddfb1c9df6bc3b8e832dfc9c2"
+              }
+            }
+          ]
+        },
+        {
+          "episode": {
+            "episode_key": "episode-2",
+            "broadcast_episode": 2,
+            "story_unit": 3,
+            "kitsu_anime_id": "7882",
+            "kitsu_episode_id": "172702",
+            "provider_episode_number": 2,
+            "title": "When the Curtain Goes Up",
+            "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+            "provider": "kitsu"
+          },
+          "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+          "source_characters": 395,
+          "schema_status": "candidate_needs_review",
+          "latency_seconds": 30.612,
+          "usage": {
+            "prompt_tokens": 267,
+            "total_tokens": 798,
+            "completion_tokens": 531,
+            "estimated_cost": 0.00030852000000000006,
+            "prompt_tokens_details": null
+          },
+          "candidates": [
+            {
+              "name": "Shirou",
+              "kind": "character",
+              "description": "Goes to the Fuyuki Church with Rin.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": 0,
+                "end": 41,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "0478dbe714ca26397734d1f699058adae8690372d3fe4d168685ae360f3056a8"
+              }
+            },
+            {
+              "name": "Rin",
+              "kind": "character",
+              "description": "Rushed to the Emiya estate after Lancer's attack.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": 38,
+                "end": 99,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "4de81829072dd34effae924c3561c3b1210bf4fccdb2354ae89dcd8fcde620eb"
+              }
+            },
+            {
+              "name": "Lancer",
+              "kind": "character",
+              "description": "Attacked the Emiya estate.",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "The text does not identify the target/location of Lancer's attack"
+              ],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": 78,
+                "end": 99,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "d952e952a0fcd63a5866022b2712ee733472b504291cadcc1e001238c83a5a84"
+              }
+            },
+            {
+              "name": "Kotomine Kirei",
+              "kind": "character",
+              "description": "Overseer of the Holy Grail Wars, tells Shirou about the wars.",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Failed lexical grounding or endpoint gate",
+                "Holy Grail Wars is an event, not a faction"
+              ],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": null,
+                "end": null,
+                "exact_quote_matched": false,
+                "proposed_evidence_sha256": "845766570901b84c1d34f924945294a45a88706340ac847b76890997f1c93194"
+              }
+            },
+            {
+              "name": "Holy Grail Wars",
+              "kind": "faction",
+              "description": "Shirou learns about it from Kotomine Kirei.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": 126,
+                "end": 159,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "f7ea3ae17d9241bbfc6d0a3ce9871979a9dbe3129fc73e49ce699cea521a3753"
+              }
+            },
+            {
+              "source": "Shirou",
+              "target": "Rin",
+              "type": "accompanies",
+              "label": "goes with",
+              "kind_of_record": "relationship",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": 0,
+                "end": 41,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "0478dbe714ca26397734d1f699058adae8690372d3fe4d168685ae360f3056a8"
+              }
+            },
+            {
+              "source": "Rin",
+              "target": "Lancer",
+              "type": "attacks",
+              "label": "attacked by",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Source does not say Rin was attacked; direction also reversed"
+              ],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": 78,
+                "end": 99,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "d952e952a0fcd63a5866022b2712ee733472b504291cadcc1e001238c83a5a84"
+              }
+            },
+            {
+              "source": "Kotomine Kirei",
+              "target": "Shirou",
+              "type": "informs",
+              "label": "tells about",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Failed lexical grounding or endpoint gate"
+              ],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": null,
+                "end": null,
+                "exact_quote_matched": false,
+                "proposed_evidence_sha256": "845766570901b84c1d34f924945294a45a88706340ac847b76890997f1c93194"
+              }
+            },
+            {
+              "source": "Holy Grail Wars",
+              "target": "Shirou",
+              "type": "attacks",
+              "label": "caused injury",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "War is an event; injury from a fire is not an attack by a faction"
+              ],
+              "verified": false,
+              "first_supported_episode": 2,
+              "first_supported_story_unit": 3,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172702?include=media",
+                "source_sha256": "3799b9ba4c1e7bdf4c6b6fa8af22dace23b19a3b386c0417409673adcbdf0a65",
+                "start": 237,
+                "end": 331,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "3f9f23be1798008ce1a60c125dd2bbf536f9d844828c330e2b7b6adbdcd20157"
+              }
+            }
+          ]
+        },
+        {
+          "episode": {
+            "episode_key": "episode-3",
+            "broadcast_episode": 3,
+            "story_unit": 4,
+            "kitsu_anime_id": "7882",
+            "kitsu_episode_id": "172703",
+            "provider_episode_number": 3,
+            "title": "The First Battle",
+            "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+            "provider": "kitsu"
+          },
+          "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+          "source_characters": 314,
+          "schema_status": "candidate_needs_review",
+          "latency_seconds": 31.017,
+          "usage": {
+            "prompt_tokens": 233,
+            "total_tokens": 746,
+            "completion_tokens": 513,
+            "estimated_cost": 0.00028908,
+            "prompt_tokens_details": null
+          },
+          "candidates": [
+            {
+              "name": "Shirou",
+              "kind": "character",
+              "description": "A main character who leaves the church and faces a Servant and Illyasviel.",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Main-character status is absent from this source"
+              ],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": 6,
+                "end": 135,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "41f1de7c63eb9d52fc528a4c06f6df1a058c9a7584131e93a61fa274c8142cf1"
+              }
+            },
+            {
+              "name": "Servant",
+              "kind": "character",
+              "description": "Blocks the way of Shirou and the others.",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Unnamed Servant, not a named character"
+              ],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": 46,
+                "end": 97,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "033adde7fb30080a07ab311ea82c994d54ca958cf754c65c0b9f33568037ba4d"
+              }
+            },
+            {
+              "name": "Illyasviel",
+              "kind": "character",
+              "description": "A little girl who introduces herself and blocks the way of Shirou and the others.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": 84,
+                "end": 134,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "6fc248feee2f8fc31245d94b0ef53d43dfaf475709d4691619a911e378220ea1"
+              }
+            },
+            {
+              "name": "Rin",
+              "kind": "character",
+              "description": "Finds herself hard pressed by Berserker's overwhelming might.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": 136,
+                "end": 217,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "e85f7573a2672e4bdf850f294e04eb03bc6d0b811816c40ef2ff806b633f451d"
+              }
+            },
+            {
+              "name": "Berserker",
+              "kind": "character",
+              "description": "Overwhelms Rin and the others with his might.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": 187,
+                "end": 217,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "72353541cd9d69d83d06e0c65225d124bd6e2f843ed1e6b02d1556621b8eae9a"
+              }
+            },
+            {
+              "source": "Shirou",
+              "target": "Servant",
+              "type": "hosts",
+              "label": "blocked by",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "hosts does not mean blocks; unnamed endpoint"
+              ],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": 46,
+                "end": 79,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "42fcf3f8c91983e347f6f6ed5ab1bbbf9231defdd6140a96f69673138952addf"
+              }
+            },
+            {
+              "source": "Shirou",
+              "target": "Illyasviel",
+              "type": "hosts",
+              "label": "blocked by",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Failed lexical grounding or endpoint gate",
+                "hosts does not mean blocks"
+              ],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": null,
+                "end": null,
+                "exact_quote_matched": false,
+                "proposed_evidence_sha256": "9cac529617b24ee0262c211609c508f2acb0a4cddeb915345d458e153274828a"
+              }
+            },
+            {
+              "source": "Rin",
+              "target": "Berserker",
+              "type": "hosts",
+              "label": "overwhelmed by",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "hosts does not mean overpowers; direction reversed"
+              ],
+              "verified": false,
+              "first_supported_episode": 3,
+              "first_supported_story_unit": 4,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172703?include=media",
+                "source_sha256": "87342d2fd6c1440735e0212056f51c643f498aa77f798ea0b5f24897e1345d64",
+                "start": 136,
+                "end": 217,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "e85f7573a2672e4bdf850f294e04eb03bc6d0b811816c40ef2ff806b633f451d"
+              }
+            }
+          ]
+        },
+        {
+          "episode": {
+            "episode_key": "episode-4",
+            "broadcast_episode": 4,
+            "story_unit": 5,
+            "kitsu_anime_id": "7882",
+            "kitsu_episode_id": "172704",
+            "provider_episode_number": 4,
+            "title": "Finding the Will to Fight",
+            "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+            "provider": "kitsu"
+          },
+          "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+          "source_characters": 364,
+          "schema_status": "rejected_output",
+          "latency_seconds": 52.32,
+          "usage": {
+            "prompt_tokens": 253,
+            "total_tokens": 1016,
+            "completion_tokens": 763,
+            "estimated_cost": 0.00039628000000000005,
+            "prompt_tokens_details": null
+          },
+          "candidates": [
+            {
+              "name": "Fujimura",
+              "kind": "character",
+              "description": "Summoned by Fujimura, Shirou and Saber set out to his school.",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 0,
+                "end": 20,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "0f2f7a1f3a2e1ffedf885296f725ffe84090b00545112ca010be1d7907879477"
+              }
+            },
+            {
+              "name": "Shirou",
+              "kind": "character",
+              "description": "Summoned by Fujimura, Shirou and Saber set out to his school.",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 22,
+                "end": 46,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "ce34abf82a2e5dfd3856a3e84eb34257301e6f4196a4de0e983662119e3672f9"
+              }
+            },
+            {
+              "name": "Saber",
+              "kind": "character",
+              "description": "Summoned by Fujimura, Shirou and Saber set out to his school.",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 22,
+                "end": 46,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "ce34abf82a2e5dfd3856a3e84eb34257301e6f4196a4de0e983662119e3672f9"
+              }
+            },
+            {
+              "name": "Sakura",
+              "kind": "character",
+              "description": "Fujimura and Sakura both end up staying at Shirou's house somehow...",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 147,
+                "end": 173,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "bbc99411f3e81912b1135d73b45e106f88abf6a9aec6f0759b762b2590ed59ad"
+              }
+            },
+            {
+              "name": "Rin",
+              "kind": "character",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 214,
+                "end": 235,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "abe564047552df47ebf522c12e8c277bc148b5a7fc587f4c0a40910bfffea5de"
+              },
+              "rejected_description_word_count": 26
+            },
+            {
+              "name": "Caster",
+              "kind": "character",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 303,
+                "end": 339,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "af9518d9122c70c625f1b0923c0cd69b3166945e3857b599066946f0e2cb87ea"
+              },
+              "rejected_description_word_count": 26
+            },
+            {
+              "source": "Fujimura",
+              "target": "Shirou",
+              "type": "commands",
+              "label": "summons",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected",
+                "Being called to school does not establish command authority"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 0,
+                "end": 46,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "02d8e2ebd49ff9c156f4f4ab4aca3b09ac4d10bdc82386ee050103e3fc7cf068"
+              }
+            },
+            {
+              "source": "Fujimura",
+              "target": "Saber",
+              "type": "commands",
+              "label": "summons",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected",
+                "Being called to school does not establish command authority"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 0,
+                "end": 46,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "02d8e2ebd49ff9c156f4f4ab4aca3b09ac4d10bdc82386ee050103e3fc7cf068"
+              }
+            },
+            {
+              "source": "Shirou",
+              "target": "Saber",
+              "type": "attacks",
+              "label": "tries to explain away",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected",
+                "Explaining a presence is not attacking"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 62,
+                "end": 96,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "218fe67403dd6f7a39ff422a79285d459007f8c0b1f7e251ea0d3e6d40a76516"
+              }
+            },
+            {
+              "source": "Fujimura",
+              "target": "Shirou",
+              "type": "attacks",
+              "label": "stays at house",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected",
+                "Staying at a house is not attacking"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 134,
+                "end": 191,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "9c18827664a10eedc2427e0c5cb8e205495b9543f851589e1d31bee5933dfdc1"
+              }
+            },
+            {
+              "source": "Sakura",
+              "target": "Shirou",
+              "type": "attacks",
+              "label": "stays at house",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected",
+                "Staying at a house is not attacking"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 134,
+                "end": 191,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "9c18827664a10eedc2427e0c5cb8e205495b9543f851589e1d31bee5933dfdc1"
+              }
+            },
+            {
+              "source": "Rin",
+              "target": "Caster",
+              "type": "attacks",
+              "label": "determines involvement",
+              "kind_of_record": "relationship",
+              "review_status": "rejected",
+              "review_notes": [
+                "Whole episode schema rejected",
+                "Inferring responsibility is not attacking"
+              ],
+              "verified": false,
+              "first_supported_episode": 4,
+              "first_supported_story_unit": 5,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172704?include=media",
+                "source_sha256": "e2f50a91749d5b4e1092e876a461b32eb31bd882eaab64f71d9d94ddafb0cf49",
+                "start": 303,
+                "end": 339,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "af9518d9122c70c625f1b0923c0cd69b3166945e3857b599066946f0e2cb87ea"
+              }
+            }
+          ]
+        },
+        {
+          "episode": {
+            "episode_key": "episode-5",
+            "broadcast_episode": 5,
+            "story_unit": 6,
+            "kitsu_anime_id": "7882",
+            "kitsu_episode_id": "172705",
+            "provider_episode_number": 5,
+            "title": "Dancing After School",
+            "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+            "provider": "kitsu"
+          },
+          "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+          "source_characters": 282,
+          "schema_status": "candidate_needs_review",
+          "latency_seconds": 18.013,
+          "usage": {
+            "prompt_tokens": 230,
+            "total_tokens": 587,
+            "completion_tokens": 357,
+            "estimated_cost": 0.00022560000000000004,
+            "prompt_tokens_details": null
+          },
+          "candidates": [
+            {
+              "name": "Shirou",
+              "kind": "character",
+              "description": "Goes to school without Saber.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 0,
+                "end": 36,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "bc8e7e25679c8490bf5361ac2128454ee27700205d50b17e7d04703c498f7c39"
+              }
+            },
+            {
+              "name": "Saber",
+              "kind": "character",
+              "description": "Not with Shirou at school.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 0,
+                "end": 36,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "bc8e7e25679c8490bf5361ac2128454ee27700205d50b17e7d04703c498f7c39"
+              }
+            },
+            {
+              "name": "Rin",
+              "kind": "character",
+              "description": "Annoyed at Shirou, attacks him.",
+              "kind_of_record": "entity",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 37,
+                "end": 123,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "72df6c9f7e2d43ebf9ba4744d577f63ad072fac5f5da995847068d3bdec82428"
+              }
+            },
+            {
+              "name": "female student",
+              "kind": "character",
+              "description": "Screams, drawing attention.",
+              "kind_of_record": "entity",
+              "review_status": "rejected",
+              "review_notes": [
+                "Unnamed student, not a named character"
+              ],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 150,
+                "end": 184,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "f5b1216e5bdaee094f0b2347e85f4810aeb7a9ce27e87c1dcaf207880a7b6f43"
+              }
+            },
+            {
+              "source": "Rin",
+              "target": "Shirou",
+              "type": "attacks",
+              "label": "hostile",
+              "kind_of_record": "relationship",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 37,
+                "end": 123,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "72df6c9f7e2d43ebf9ba4744d577f63ad072fac5f5da995847068d3bdec82428"
+              }
+            },
+            {
+              "source": "Rin",
+              "target": "Shirou",
+              "type": "truce",
+              "label": "temporary",
+              "kind_of_record": "relationship",
+              "review_status": "source_supported_candidate",
+              "review_notes": [],
+              "verified": false,
+              "first_supported_episode": 5,
+              "first_supported_story_unit": 6,
+              "confirmed_spoiler_safe_reveal": null,
+              "evidence": {
+                "source_url": "https://kitsu.app/api/edge/episodes/172705?include=media",
+                "source_sha256": "bc96b6fdfba864ef83416a62f2070a277d394c1c25155df38dea08a150868c71",
+                "start": 185,
+                "end": 244,
+                "exact_quote_matched": true,
+                "proposed_evidence_sha256": "17400913776804e71c1e706a1871dcbc029cd0b03aee5f218ccb7eef5702deb8"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
