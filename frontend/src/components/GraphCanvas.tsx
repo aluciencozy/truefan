@@ -9,7 +9,7 @@ export default function GraphCanvas({ graph, onSelect, selectedId }: {
   const nodes = useMemo<StarNode[]>(() => {
     const positions = constellationLayout(graph.entities.map(entity => entity.id), graph.relationships)
     return graph.entities.map(entity => ({ id: entity.id, type: 'star', position: positions.get(entity.id)!,
-      data: { label: entity.name, subtitle: entity.type, kind: entity.type }, ariaLabel: `Explore ${entity.name}` }))
+      data: { label: entity.name, subtitle: entity.type, kind: entity.type, portraitUrl: entity.portrait_url }, ariaLabel: `Explore ${entity.name}` }))
   }, [graph])
   const edges = useMemo(() => graph.relationships.map(edge => ({ id: edge.id, source: edge.source, target: edge.target,
     type: 'straight', className: selectedId && (edge.source === selectedId || edge.target === selectedId) ? 'highlight-edge' : '',

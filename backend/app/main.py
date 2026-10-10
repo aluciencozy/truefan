@@ -116,7 +116,8 @@ def media_graph(media_id: str, progress: int = Query(ge=0)):
     graph = filter_graph(media_id, RevealPoint(unit=progress), entities, edges)
     graph.experimental = True
     graph.generation = generation.status(row)
-    return graph
+    # Enrich only the episode-filtered graph; the full cast and aliases stay server-side.
+    return anilist.character_portraits(graph, media.anilist_id)
 
 
 @app.post("/api/extract", response_model=PlaceholderResponse, status_code=501)
