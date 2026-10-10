@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -15,7 +16,8 @@
     "@xyflow/react": "^12.12.0",
     "@neondatabase/neon-js": "0.7.0-beta",
     "@neondatabase/auth-ui": "0.3.0-beta",
-    "react-router-dom": "^7.0.0"
+    "react-router-dom": "^7.0.0",
+    "elkjs": "^0.12.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",
@@ -24,6 +26,7 @@
     "vite": "^7.0.0",
     "typescript": "~5.9.3",
     "tailwindcss": "^4.1.0",
-    "@tailwindcss/vite": "^4.1.0"
+    "@tailwindcss/vite": "^4.1.0",
+    "react-test-renderer": "^19.3.0"
   }
 }

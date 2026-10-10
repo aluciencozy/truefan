@@ -161,6 +161,7 @@ Checks:
 ```bash
 # In frontend/
 npm run typecheck
+npm test
 npm run build
 npm run preview
 
@@ -346,6 +347,10 @@ these contracts in `src/lib/types.ts`.
 | `GET /health` | `{ "status": "ok", "mode": "demo" }`; does not imply DB/provider readiness |
 | `GET /api/media/search?q=...` | See [search behavior](docs/IMPLEMENTATION.md#search-and-universe-discovery) |
 | `GET /api/media/{id}` | One `Media`; unknown IDs return 404 |
+| `GET /api/media/{id}/universe` | Public cache-first franchise graph; `root_id` remains the exact selected work |
+| `POST /api/media/{id}/universe/expand` | Public bounded frontier expansion; body `{ "expected_revision": N }`; stale revision is 409 |
+| `GET /api/me/media-state?media_id=...` | Bearer token; 1–50 unique IDs; returns `{media_id, progress, completed, manual_unlocked}[]` |
+| `PUT /api/me/media-state/{id}` | Bearer token; supplied `completed`/`manual_unlocked` flags only; preserves saved units |
 | `GET /api/media/{id}/graph?progress=N` | Required non-negative completed unit; returns filtered `GraphResponse`; out-of-range returns 422 |
 | `POST /api/extract` | `ExtractRequest`; returns 501 with a typed `not_implemented` message |
 | `POST /api/ask` | `AskRequest`; returns 501 without generating an answer |
@@ -429,6 +434,94 @@ introductory description. Later aliases, identities, affiliations, biographies,
 and changed relationships must be stored as separately revealable facts or
 versions. Do not replace an early description with a full-story biography.
 
+## Universe exploration and release guidance
+
+Search results keep their exact AniList media ID and your typed query. Selecting
+an anime opens an effectively infinite React Flow canvas. Select a destination
+to smoothly focus it, inspect its connections, and use **Enter anime** (or
+double-click an accessible node) to open the existing episode-filtered character
+graph. **Return home** focuses the original selection; zoom controls, fit-view and
+a desktop minimap navigate the map. Returning from characters keeps the canvas
+and camera mounted. The minimap is hidden on narrow mobile screens.
+
+`universeModel.ts` normalizes stable typed connections while preserving the
+original directed AniList evidence. PREQUEL reverses placement direction;
+reciprocal SEQUEL/PREQUEL evidence shares one connection. Alternatives are
+symmetric cross-links, never fabricated sequels. A deterministic, cycle-safe
+primary sequel forest retains other connections as dashed links. Straight
+continuation chains share an inferred branch; forks and multiple parents split
+branches. Explicit alternatives, spinoffs, side stories and adaptations prevent
+transitive branch merging. Different format families (TV/TV_SHORT/ONA versus
+films, OVAs or specials) also remain separate, so an optional OVA prequel does not
+become a TV-season viewing prerequisite. Adaptation/version branches remain connected nearby.
+These heuristics describe provisional groups, not canonical continuity facts.
+
+`universeLayout.ts` lazily loads ELK.js and places fixed-size nodes inside inferred
+branch regions, then places those regions in radial constellations using a deterministic semantic
+spanning forest (sequel links first, adaptation/version links next, branch links
+then weak associations). Disconnected components are packed separately. This
+scaffold only controls geometry; the rendered connections retain the general graph. Input
+IDs/edges are sorted and layout uses a fixed seed. Release dates, watched state
+and overlays are absent from geometry inputs. Expansion preserves all existing
+media anchors, aligns new members to branch anchors when possible and appends
+colliding cards. This favors spatial memory over a perfect refreshed layout;
+branch regions/cross-links can become less tidy after several expansions.
+Layout failure falls back to deterministic branch lanes without hiding nodes.
+
+**Release guidance** numbers entries *within each branch*, rather than
+interleaving unrelated continuities by global release date. Sorting compares
+known year/month/day, puts missing components after known components at the same
+year/month, then uses stable media ID. Partial dates stay labeled partial and
+undated entries sort last. Nothing invents a date or treats a release sequence as
+story chronology or guaranteed spoiler-free viewing.
+
+All discovered nodes stay visible. **Locked** shows title, cover and actual
+connections, with no episode metadata/story details or character entry.
+**Available** can be entered; **Completed** remains accessible and has a watched
+marker. Incomplete covers are dimmed. Each inferred branch has its own available
+starting point, so alternate/spinoff branches can be explored in parallel.
+Later dated releases in that branch are available after the preceding release
+is confirmed complete. Undated works remain available rather than blocking
+forever; partial-date suggestions are approximate. Existing positive watched
+progress or a manual override grants entry regardless of the suggestion.
+**Unlock anyway** changes availability only, preserving saved units/completions.
+**I finished this anime** explicitly confirms completion, including uncertain
+counts, without fabricating watched episode numbers.
+
+Guest confirmations/overrides last for the current app session. Signed-in users
+load all discovered works' state through deterministic bulk batches of at most
+50 IDs and save flags immediately. Merged cached universes may contain more than
+50 nodes; they all remain visible.
+Episode selection remains a spoiler lens: use **Account → Save progress** to
+persist watched units. The frontend saves at least the previously recorded unit
+and does not erase completion when you rewind. API completion flags are
+authoritative; the frontend never infers completion from an unknown one-unit
+fallback or generation coverage. Account changes clear user state. Entry locks
+are navigation guidance, not new server authorization; public character API
+access and backend reveal filtering remain unchanged.
+
+`Media` adds nullable fuzzy `release_date: {year, month, day}` and
+`total_units_known` (false by default; old snapshots remain compatible).
+`Universe` retains `root_id`, `media`, raw `relationships` and `truncated`, and
+adds nullable `franchise_id` and `cache` (`refreshed_at`, `stale`, `incomplete`,
+`revision`, `can_expand`, `limitations`). A cached franchise can be reused through
+different entry works while preserving the selected root. **Expand universe**
+uses the cached revision, respects configured discovery bounds, and retains the
+map on errors. Saved frontier expansion is not guaranteed complete discovery or
+a full stale-metadata refresh. Names alone never establish membership.
+
+Deploy the companion backend/cache migration before this frontend: apply its
+additive schema with `python -m app.init_db` using the target direct database URL.
+`FRANCHISE_CACHE_TTL_SECONDS` is backend-only (default 86400). Missing persistent
+storage retains bounded live discovery with null cache evidence. Provider
+metadata, membership and dates can be incomplete. Keep collection bounded and
+on demand; AniList public API access is not a license to mirror its catalog.
+Character extraction, Auth/JWT verification and episode reveal rules are unchanged.
+
+Run `npm test` in `frontend/` (Node 24 recommended) for pure normalization,
+release/progression/override, deterministic ELK, expansion-anchor, safe locked
+panel and Auth API checks. Backend tests remain in `backend/tests`.
+
 ## AniList integration
 
 See [search and reusable franchise discovery](docs/IMPLEMENTATION.md#search-and-universe-discovery)
@@ -510,7 +603,7 @@ with a direct Neon URL. Existing tables/progress remain intact. Configure server
 `HF_MODEL`, `HF_TOKEN`, and `GENERATION_EPISODE_CAP`; defaults and other controls
 are documented in `backend/.env.example`. Changing progress never reruns inference.
 
-The frontend opens a universe from search, then a character graph from a media node.
+The frontend opens a universe from search, focuses media on selection, then opens an accessible work through **Enter anime** or double-click.
 New graphs require Google authentication; cached graphs are shared. Save/Retrieve
 progress still uses the existing user-owned endpoints. Initial generation is capped
 and reports partial coverage honestly. No Vercel/Railway hosting settings were changed.
