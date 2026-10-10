@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { connectedNeighbors, directionalNeighbor, focusViewport } from '../src/lib/universeNavigation.ts'
+import { connectedNeighbors, connectionDestination, directionalNeighbor, focusViewport } from '../src/lib/universeNavigation.ts'
 
 const positions = { home: { x: 400, y: 400 }, left: { x: 100, y: 400 }, right: { x: 700, y: 400 }, up: { x: 400, y: 100 }, down: { x: 400, y: 700 }, diagonal: { x: 650, y: 650 } }
 const links = [
@@ -9,6 +9,13 @@ const links = [
   { source: 'home', target: 'down' }, { source: 'home', target: 'home' },
   { source: 'home', target: 'diagonal' }, { source: 'other', target: 'disconnected' },
 ]
+test('hover previews and edge clicks use the same destination in either direction and in overview', () => {
+  const link = { source: 'home', target: 'right' }
+  assert.equal(connectionDestination(link, 'home'), 'right')
+  assert.equal(connectionDestination(link, 'right'), 'home')
+  assert.equal(connectionDestination(link, 'other'), 'right')
+})
+
 test('navigation follows connected neighbors in either direction, deduplicating reciprocal and self links', () => {
   const neighbors = connectedNeighbors({ links }, 'home')
   assert.deepEqual(neighbors, ['left', 'right', 'up', 'down', 'diagonal'])
