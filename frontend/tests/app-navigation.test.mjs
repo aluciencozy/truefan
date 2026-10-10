@@ -13,9 +13,9 @@ const api = {}
 globalThis.__navigationApi = api
 globalThis.__navigationQuery = 'q=anime'
 const sourceUrl = new URL('../src/App.tsx', import.meta.url)
-const source = (await readFile(sourceUrl, 'utf8'))
+const source = ("import { createElement } from 'react'\n" + await readFile(sourceUrl, 'utf8'))
   .replace("import { Link, useSearchParams } from 'react-router-dom'", "const Link = 'a'; const useSearchParams = () => [new URLSearchParams(globalThis.__navigationQuery)]")
-  .replace(/import (\w+) from '\.\/components\/[^']+'/g, (_, name) => `const ${name} = '${name}'`)
+  .replace(/import (\w+) from '\.\/components\/[^']+'/g, (_, name) => name === 'UniverseCanvas' ? `const UniverseCanvas = props => createElement('UniverseCanvas', props, props.details)` : `const ${name} = '${name}'`)
   .replace("import { api } from './lib/api'", 'const api = globalThis.__navigationApi')
 let { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } })
 outputText = outputText.replace(/from (["'])([^"']+)\1/g, (_, quote, name) => {
@@ -76,15 +76,13 @@ for (const scenario of ['loading', 'failed', 'saving', 'ready', 'guest']) {
 
       // A failed saved-state load uses main's guest-style entry at progress zero.
       if (['loading', 'saving'].includes(scenario)) {
-        await act(async () => props('UniverseCanvas').onEnter(first))
         await act(async () => props('UniverseDetails').onEnter(first))
         assert.equal(graphCalls.length, 0)
       } else {
         assert.equal(props('UniverseCanvas').guide[sequel.id].status, 'locked')
-        await act(async () => props('UniverseCanvas').onEnter(sequel))
         await act(async () => props('UniverseDetails').onEnter(sequel))
         assert.equal(graphCalls.length, 0)
-        await act(async () => props('UniverseCanvas').onEnter(first))
+        await act(async () => props('UniverseDetails').onEnter(first))
         assert.deepEqual(graphCalls, [{ id: first.id, unit: 0 }])
       }
 

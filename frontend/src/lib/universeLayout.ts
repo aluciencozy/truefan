@@ -9,7 +9,7 @@ export type Positions = Record<string, Point>
 export interface BranchBounds { id: string; x: number; y: number; width: number; height: number }
 const options = {
   'elk.algorithm': 'layered', 'elk.direction': 'RIGHT', 'elk.randomSeed': '17',
-  'elk.spacing.nodeNode': '70', 'elk.layered.spacing.nodeNodeBetweenLayers': '100',
+  'elk.spacing.nodeNode': '100', 'elk.layered.spacing.nodeNodeBetweenLayers': '140',
   'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
   'elk.padding': '[top=46,left=26,bottom=26,right=26]',
 }
@@ -85,7 +85,8 @@ export async function layoutUniverse(model: UniverseModel, previous: Positions =
   const components = new Map<string, string[]>()
   for (const group of groups) components.set(find(group.id), [...(components.get(find(group.id)) ?? []), group.id])
   const regions = await Promise.all([...components.entries()].map(async ([id, members]) => {
-    const center = [...members].sort((a, b) => adjacency.get(b)!.size - adjacency.get(a)!.size || compareId(a, b))[0]
+    const incoming = (id: string) => model.links.filter(link => link.primary && model.branchByMedia[link.target] === id && model.branchByMedia[link.source] !== id).length
+    const center = [...members].sort((a, b) => incoming(a) - incoming(b) || adjacency.get(b)!.size - adjacency.get(a)!.size || compareId(a, b))[0]
     const seen = new Set([center]), queue = [center]
     const edges: { id: string; sources: string[]; targets: string[] }[] = []
     for (let index = 0; index < queue.length; index++) {
@@ -96,8 +97,8 @@ export async function layoutUniverse(model: UniverseModel, previous: Positions =
       }
     }
     return elk.layout<ElkNode>({ id: `region:${id}`,
-      layoutOptions: { 'elk.algorithm': 'radial', 'elk.randomSeed': '17', 'elk.spacing.nodeNode': '100',
-        'elk.radial.compactor': 'RADIAL', 'elk.padding': '[top=20,left=20,bottom=20,right=20]' },
+      layoutOptions: { ...options, 'elk.spacing.nodeNode': '110',
+        'elk.layered.spacing.nodeNodeBetweenLayers': '120', 'elk.padding': '[top=20,left=20,bottom=20,right=20]' },
       children: [center, ...members.filter(m => m !== center)].map(id => ({ id, width: byBranch.get(id)!.width, height: byBranch.get(id)!.height })),
       edges,
     })

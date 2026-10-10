@@ -21,9 +21,8 @@ const stages = {
 
 export default function App() {
   const reduced = useReducedMotion()
-  const [inspectorOpen, setInspectorOpen] = useState(false)
   const searchDrawer = useRef<HTMLDetailsElement>(null)
-  const focusMedia = useCallback((item: Media) => { setFocusedId(item.id); setInspectorOpen(true) }, [])
+  const focusMedia = useCallback((item: Media) => { setFocusedId(item.id) }, [])
   const [searchParams] = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
   const initialMedia = searchParams.get('media') || ''
@@ -142,7 +141,6 @@ export default function App() {
 
   async function openUniverse(item: Media) {
     universeController.current?.abort()
-    setInspectorOpen(false)
     if (searchDrawer.current) searchDrawer.current.open = false
     if (!item.anilist_id) { setUniverse(null); enter(item); return }
     const controller = new AbortController(); universeController.current = controller
@@ -233,7 +231,6 @@ export default function App() {
               {Array.from({ length: media.total_units }, (_, i) => <option key={i + 1} value={i + 1}>{media.has_prologue ? i === 0 ? 'Prologue' : `Episode ${i}` : `${media.progress_unit} ${i + 1}`}</option>)}
             </select></label>}
             {universe && !inUniverse && <button onClick={() => { setView('universe'); setSelectedId(null); setError('') }}>← Universe</button>}
-            {inUniverse && universe && <button aria-expanded={inspectorOpen} onClick={() => setInspectorOpen(value => !value)}>Selected story {inspectorOpen ? '−' : '+'}</button>}
           </div>
         </div>
         {!inUniverse && generation && <div className="generation-note" role="status">
@@ -244,8 +241,14 @@ export default function App() {
         </div>}
         <div className="graph-stage">
           {universe && model && <div className="universe-layer" hidden={!inUniverse}><UniverseCanvas key={universe.root_id} universe={universe} model={model} guide={guide}
-            focusedId={focusedId} onFocus={focusMedia} onEnter={enter} release={release} onRelease={() => setRelease(value => !value)}
-            onExpand={() => void expandUniverse()} expanding={expanding} /></div>}
+            focusedId={focusedId} active={inUniverse} onFocus={focusMedia} release={release} onRelease={() => setRelease(value => !value)}
+            onExpand={() => void expandUniverse()} expanding={expanding} details={<>
+              {stateLoading && <p className="state-notice" role="status">Retrieving saved viewing state…</p>}
+              <UniverseDetails media={model.media.find(item => item.id === focusedId)} universe={universe} model={model} guide={guide[focusedId]} release={release}
+                state={states[focusedId]} busy={saving || awaitingState} onFocus={focusMedia} onEnter={enter}
+                onUnlock={item => void changeFlags(item, { manual_unlocked: true })} onComplete={item => void changeFlags(item, { completed: true })} message={stateMessage} />
+              {identity && <button className="reload-state" disabled={stateLoading || saving} onClick={() => setStateRevision(value => value + 1)}>Reload saved state</button>}
+            </>} /></div>}
           {inUniverse && !universe && !error && <div className="empty celestial" role="status"><span className="empty-star">✧</span>Discovering connected stories…</div>}
           {error ? <div role="alert" className="error">{error} <button onClick={() => { if (inUniverse && media) void openUniverse(media); else if (!media) void search(); else setRevision(value => value + 1) }}>Retry loading</button></div>
             : !inUniverse ? <motion.div className="character-layer" key={media?.id} initial={{ opacity: 0, scale: reduced ? 1 : .9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: reduced ? 0 : .65 }}>
@@ -257,18 +260,10 @@ export default function App() {
                 {selected && media && visibleGraph && <EntityDetails entity={selected} media={media} graph={visibleGraph} onSelect={setSelectedId} onClose={closeCharacter} />}
               </AnimatePresence>
             </motion.div> : null}
-          {inUniverse && universe && model && <div className="universe-inspector" hidden={!inspectorOpen}>
-            <button className="inspector-close" aria-label="Close story details" onClick={() => setInspectorOpen(false)}>×</button>
-            {stateLoading && <p role="status">Retrieving saved viewing state…</p>}
-            {identity && <button disabled={stateLoading || saving} onClick={() => setStateRevision(value => value + 1)}>Reload saved state</button>}
-            <UniverseDetails media={model.media.find(item => item.id === focusedId)} universe={universe} model={model} guide={guide[focusedId]} release={release}
-              busy={saving || awaitingState} onFocus={focusMedia} onEnter={enter}
-              onUnlock={item => void changeFlags(item, { manual_unlocked: true })} onComplete={item => void changeFlags(item, { completed: true })} message={stateMessage} />
-          </div>}
         </div>
         <footer className="graph-footer">
           <div className="map-key">{inUniverse ? <><span><i className="available-dot" />Available</span><span><i className="locked-dot" />Locked</span><span><i className="completed-dot" />Completed</span></> : <span><i className="available-dot" />Revealed at your progress</span>}</div>
-          <span>{inUniverse ? 'Branches are inferred, not story chronology.' : 'Your story. Your pace.'}</span><span>Scroll to zoom · Drag to explore</span>
+          <span>{inUniverse ? 'Branches are inferred, not story chronology.' : 'Your story. Your pace.'}</span><span>{inUniverse ? 'Arrow keys to travel · Overview to see all worlds' : 'Scroll to zoom · Drag to explore'}</span>
         </footer>
       </section>
     </main>
