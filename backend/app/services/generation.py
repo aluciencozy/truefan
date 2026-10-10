@@ -45,6 +45,8 @@ def enqueue(media_id: str, user: str, operation: str = 'start') -> dict:
         conn.execute('SELECT pg_advisory_xact_lock(731904)')
         with conn.cursor(row_factory=dict_row) as cursor:
             row = cursor.execute('SELECT * FROM public.generated_graphs WHERE media_id=%s FOR UPDATE', (media_id,)).fetchone()
+            if row and row['document'].get('source_curated'):
+                return row  # Replace researched graphs only through the backed-up curation command.
             if row and (row['status'] in ('queued', *ACTIVE) or operation == 'start'):
                 return row
             if row and operation == 'retry' and row['status'] == 'ready':
@@ -168,6 +170,10 @@ def graph_data(document: dict) -> tuple[list[Entity],list[Relationship]]:
             return Provenance(source=ep['source_url'], source_unit=unit, verified=False, model=item['model'],
                               evidence=evidence, episode_number=ep['number'],source_title=ep['title'])
         for char in item['characters']:
+            previous_ids = {names[a.casefold().strip()] for a in char.get('aliases', [])
+                            if a.casefold().strip() in names}
+            if len(previous_ids) == 1:
+                names[char['name'].casefold().strip()] = previous_ids.pop()
             node_id = identity(char['name'])
             for alias in char.get('aliases',[]):
                 names.setdefault(alias.casefold(),node_id)
