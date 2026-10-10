@@ -20,18 +20,23 @@ const media = ['a', 'b'].map((id, index) => ({ id, title: `Work ${id}`, type: 'a
 const universe = { root_id: 'b', media, relationships: [{ source: 'a', target: 'b', type: 'SEQUEL' }], truncated: false }
 const model = buildUniverseModel(universe)
 const callbacks = { onEnter: () => {}, onUnlock: () => {}, onComplete: () => {}, onFocus: () => {} }
-function render(states) {
-  return renderToStaticMarkup(createElement(Details, { media: media[1], universe, model, guide: buildReleaseGuide(model, states).b, state: states.b, release: true, busy: false, message: '', ...callbacks }))
+function render(states, selected = media[1]) {
+  return renderToStaticMarkup(createElement(Details, { media: selected, universe, model, guide: buildReleaseGuide(model, states), state: states[selected.id], release: true, busy: false, message: '', ...callbacks }))
 }
 
-test('Locked detail exposes title and exact relation evidence, with no entry, description, format, date or episode total', () => {
+test('Locked detail masks the title and retains exact relation evidence, with no entry, description, format, date or episode total', () => {
   const html = render({})
-  assert.match(html, /Work b/); assert.match(html, /sequel/); assert.match(html, /Unlock anyway/)
-  for (const unsafe of ['Enter World', 'SECRET STORY DETAIL', 'SECRET FORMAT', '2001-01-01', '12 episodes', 'I finished']) assert.ok(!html.includes(unsafe), unsafe)
+  assert.match(html, /Undiscovered/); assert.match(html, /sequel/); assert.match(html, /Unlock anyway/)
+  for (const unsafe of ['Work b', 'Enter World', 'SECRET STORY DETAIL', 'SECRET FORMAT', '2001-01-01', '12 episodes', 'I finished']) assert.ok(!html.includes(unsafe), unsafe)
+})
+test('available detail masks locked connection titles and the locked universe name in its summary', () => {
+  const html = render({}, media[0])
+  assert.match(html, /Work a/); assert.match(html, /Undiscovered/)
+  assert.ok(!html.includes('Work b'))
 })
 test('manual unlock grants explicit entry but does not fabricate completion', () => {
   const html = render({ b: { media_id: 'b', progress: null, completed: false, manual_unlocked: true } })
-  assert.match(html, /Enter World/); assert.match(html, /Available/); assert.match(html, /I finished this anime/)
+  assert.match(html, /Work b/); assert.match(html, /Enter World/); assert.match(html, /Available/); assert.match(html, /I finished this anime/)
   assert.ok(!html.includes('Unlock anyway')); assert.ok(!html.includes('>Completed<'))
 })
 test('confirmed completed media stays accessible and cannot be accidentally re-marked through this panel', () => {

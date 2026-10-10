@@ -541,8 +541,12 @@ plot synopses, which have no spoiler-safe reveal boundary. Recorded progress is
 shown as saved; explicit completion does not fabricate watched episode numbers.
 **Enter World** opens the existing progress-filtered character graph.
 
-All discovered nodes remain in the map. **Locked** shows title, cover and actual
-connections, with no episode metadata/story details or character entry.
+All discovered nodes remain in the map. **Locked** uses **Undiscovered** in place
+of the title across the map, details, connections, tooltips and screen-reader
+announcements. Covers have a strong blur and muted Catppuccin Mocha overlay,
+including on hover/focus. Actual connections remain visible, with no episode
+metadata/story details or character entry. This is a presentation preference;
+the public universe metadata API still returns titles and cover URLs.
 **Available** can be entered; **Completed** remains accessible and has a watched
 marker. Incomplete covers are dimmed. Each inferred branch has its own available
 starting point, so alternate/spinoff branches can be explored in parallel.

@@ -10,7 +10,7 @@ import AuthPanel from './components/AuthPanel'
 import ProgressControl from './components/ProgressControl'
 import { api } from './lib/api'
 import { buildUniverseModel } from './lib/universeModel'
-import { buildReleaseGuide, confirmProgress, unlockMedia } from './lib/universeProgression'
+import { buildReleaseGuide, confirmProgress, unlockMedia, worldTitle } from './lib/universeProgression'
 import type { MediaStates } from './lib/universeProgression'
 import type { GraphResponse, Media, Universe, UserMediaState } from './lib/types'
 
@@ -207,6 +207,7 @@ export default function App() {
   const generation = visibleGraph?.generation
   const running = generation && ['queued','retrieving','generating'].includes(generation.status)
   const inUniverse = view === 'universe'
+  const headingMedia = inUniverse ? universe?.media.find(item => item.id === universe.root_id) ?? media : media
   const controls = <MediaControls initialQuery={initialQuery} />
 
   function closeCharacter() {
@@ -225,7 +226,7 @@ export default function App() {
     <main className="workspace">
       <section className="graph-panel" aria-label="Graph explorer">
         <div className="graph-heading"><div><span className="view-label">{inUniverse ? 'Your connected universe' : 'Character constellation'}</span>
-          <h1>{inUniverse ? universe?.media.find(item => item.id === universe.root_id)?.title || media?.title : media?.title || 'Every story is a universe.'}</h1>
+          <h1>{headingMedia ? worldTitle(headingMedia, inUniverse ? guide[headingMedia.id] : undefined) : 'Every story is a universe.'}</h1>
           {inUniverse && <p>{model?.media.length ?? 0} stories</p>}</div>
           <div className="graph-actions">
             {universe && !inUniverse && <button onClick={() => { setView('universe'); setSelectedId(null); setError('') }}>← Universe</button>}
@@ -241,7 +242,7 @@ export default function App() {
             focusedId={focusedId} active={inUniverse} onFocus={focusMedia} release={release} onRelease={() => setRelease(value => !value)}
             onExpand={() => void expandUniverse()} expanding={expanding} details={<>
               {stateLoading && <p className="state-notice" role="status">Retrieving saved viewing state…</p>}
-              <UniverseDetails media={model.media.find(item => item.id === focusedId)} universe={universe} model={model} guide={guide[focusedId]} release={release}
+              <UniverseDetails media={model.media.find(item => item.id === focusedId)} universe={universe} model={model} guide={guide} release={release}
                 state={states[focusedId]} busy={saving || awaitingState} onFocus={focusMedia} onEnter={enter}
                 onUnlock={item => void changeFlags(item, { manual_unlocked: true })} onComplete={item => void changeFlags(item, { completed: true })} message={stateMessage} />
             </>} /></div>}

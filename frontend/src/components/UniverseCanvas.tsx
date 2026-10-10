@@ -10,12 +10,14 @@ import { branchBounds, fallbackPositions, layoutUniverse, preservePositions, MED
 import type { Positions } from '../lib/universeLayout'
 import { connectedNeighbors, directionalNeighbor, focusViewport } from '../lib/universeNavigation'
 import type { ReleaseGuide } from '../lib/universeProgression'
+import { worldTitle } from '../lib/universeProgression'
 
 type Destination = Node<{ media: Media; guide: ReleaseGuide; release: boolean; focused: boolean; nearby: boolean; overview: boolean; onFocus: (id: string) => void }, 'destination'>
 const DestinationNode = memo(function DestinationNode({ data }: NodeProps<Destination>) {
   const reduced = useReducedMotion()
   const { media, guide, focused, release } = data
-  return <div role="button" tabIndex={data.nearby || data.overview ? 0 : -1} title={media.title} aria-label={`${media.title}, ${guide.status}`} aria-current={focused ? 'true' : undefined}
+  const title = worldTitle(media, guide)
+  return <div role="button" tabIndex={data.nearby || data.overview ? 0 : -1} title={title} aria-label={`${title}, ${guide.status}`} aria-current={focused ? 'true' : undefined}
     onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); data.onFocus(media.id) } }}
     className={`destination ${guide.status} ${focused ? 'focused' : ''} ${data.nearby || data.overview ? '' : 'remote'}`}>
     <Handle type="target" position={Position.Left} />
@@ -30,7 +32,7 @@ const DestinationNode = memo(function DestinationNode({ data }: NodeProps<Destin
       {guide.status === 'locked' && <span className="lock-badge" aria-hidden="true">⌑</span>}
       {release && <span className="release-badge" title={`Release ${guide.number}`}>{guide.number}</span>}
     </motion.div>
-    <strong title={media.title}>{media.title}</strong>
+    <strong title={title}>{title}</strong>
     <span className="destination-state">{guide.status === 'locked' ? 'Locked' : guide.status === 'completed' ? 'Completed' : guide.suggested && release ? 'Suggested next' : 'Available'}</span>
     <Handle type="source" position={Position.Right} />
   </div>
@@ -172,7 +174,7 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
       id: media.id, type: 'destination', focusable: false, position: positions[media.id], width: MEDIA_WIDTH, height: MEDIA_HEIGHT,
       zIndex: focusedId === media.id ? 3 : 1,
       data: { media, guide: guide[media.id], release, focused: focusedId === media.id, nearby: nearby.has(media.id), overview, onFocus: focus },
-      ariaLabel: `${media.title}, ${guide[media.id].status}. Select to explore this world.`,
+      ariaLabel: `${worldTitle(media, guide[media.id])}, ${guide[media.id].status}. Select to explore this world.`,
     })),
   ], [model, positions, guide, release, focusedId, nearby, overview, focus])
 
@@ -206,9 +208,9 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
       </Panel>
       <Panel position="bottom-center" className="journey-navigation">
         <div className="journey-controls">
-          <button disabled={!previous} onClick={() => previous && focus(previous)} title={previous ? mediaById.get(previous)?.title : 'No previous connection'}>← Previous</button>
+          <button disabled={!previous} onClick={() => previous && focus(previous)} title={previous ? worldTitle(mediaById.get(previous)!, guide[previous]) : 'No previous connection'}>← Previous</button>
           <span>{overview ? 'The whole constellation' : 'Travel the connections'}<small>{overview ? `${model.media.length} connected worlds` : 'Arrow keys or select a nearby world'}</small></span>
-          <button disabled={!next} onClick={() => next && focus(next)} title={next ? mediaById.get(next)?.title : 'No next connection'}>Next →</button>
+          <button disabled={!next} onClick={() => next && focus(next)} title={next ? worldTitle(mediaById.get(next)!, guide[next]) : 'No next connection'}>Next →</button>
         </div>
       </Panel>
     </ReactFlow>
@@ -217,7 +219,7 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
       transition={{ duration: reduced ? 0 : .45, delay: reduced ? 0 : .35 }}>
       {details}
     </motion.div>}
-    <div className="journey-announcement" role="status" aria-live="polite">{mediaById.get(focusedId)?.title}{overview ? ', Overview Mode' : ', Focus Mode'}</div>
+    <div className="journey-announcement" role="status" aria-live="polite">{mediaById.has(focusedId) ? worldTitle(mediaById.get(focusedId)!, guide[focusedId]) : ''}{overview ? ', Overview Mode' : ', Focus Mode'}</div>
     {layoutState === 'loading' && <div role="status" className="canvas-status">Mapping the universe…</div>}
     {layoutState === 'fallback' && <div role="status" className="canvas-status">Automatic layout unavailable. Showing branch lanes.</div>}
     {!model.media.length && <div className="canvas-status">No connected works discovered.</div>}

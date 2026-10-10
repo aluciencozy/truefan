@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { buildUniverseModel } from '../src/lib/universeModel.ts'
-import { buildReleaseGuide, compareRelease, confirmProgress, releaseLabel, unlockMedia } from '../src/lib/universeProgression.ts'
+import { buildReleaseGuide, compareRelease, confirmProgress, releaseLabel, unlockMedia, worldTitle } from '../src/lib/universeProgression.ts'
 import { layoutUniverse, MEDIA_WIDTH, MEDIA_HEIGHT, preservePositions } from '../src/lib/universeLayout.ts'
 
 const work = (id, year = 2000, month = 1, day = 1) => ({
@@ -12,6 +12,15 @@ const work = (id, year = 2000, month = 1, day = 1) => ({
 const edge = (source, target, type) => ({ source, target, type })
 const graph = (media, relationships = []) => ({ root_id: media[0]?.id ?? '', media, relationships, truncated: false })
 const state = (id, completed = false, unit = 0) => ({ media_id: id, completed, progress: { unit }, manual_unlocked: false })
+
+test('locked world names remain undiscovered until completion, saved progress or manual unlock grants entry', () => {
+  const first = work('first'), next = work('SECRET SEQUEL', 2001)
+  const model = buildUniverseModel(graph([first, next], [edge(first.id, next.id, 'SEQUEL')]))
+  assert.equal(worldTitle(next, buildReleaseGuide(model, {})[next.id]), 'Undiscovered')
+  for (const states of [{ first: state('first', true) }, { [next.id]: state(next.id, false, 1) }, unlockMedia({}, next.id), { [next.id]: state(next.id, true) }]) {
+    assert.equal(worldTitle(next, buildReleaseGuide(model, states)[next.id]), next.title)
+  }
+})
 
 test('release sorting retains partial precision, places missing components last, and ties by stable ID', () => {
   const media = [work('unknown', null), work('year', 2001, null, null), work('month', 2001, 3, null), work('full-b', 2001, 3, 8), work('full-a', 2001, 3, 8), work('older', 2000, null, null)]
