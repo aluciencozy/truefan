@@ -199,8 +199,11 @@ The explorer’s **Find another story** uses the same search component, suggesti
 discovery, and direct universe navigation as the homepage. The TrueFan header link
 returns home to search again. The explorer retains media selection,
 progress filtering, and account controls. Home-page image nodes are decorative
-artwork reused from the Figma design, not factual story relationships. Assets
-live in `frontend/public/home/`; the font license is in `frontend/public/fonts/`.
+AniList covers from the top 16 non-adult trending anime, fetched through the backend's
+one-hour provider cache. Only IDs and cover URLs are returned; these nodes do not
+represent factual story relationships. Loading, missing covers, and provider/image
+failures leave neutral circles without blocking search. Static hero SVGs live in
+`frontend/public/home/`; the font license is in `frontend/public/fonts/`.
 Log in and Sign up use the existing Neon Auth routes.
 
 The two fixture graph calls should return 3 and 5 entities respectively. In
@@ -371,6 +374,7 @@ these contracts in `src/lib/types.ts`.
 | --- | --- |
 | `GET /health` | `{ "status": "ok", "mode": "demo" }`; does not imply DB/provider readiness |
 | `GET /api/media/search?q=...` | See [search behavior](docs/IMPLEMENTATION.md#search-and-universe-discovery) |
+| `GET /api/media/trending` | Public; `{ id: number, cover_url: string }[]` for up to 16 non-adult anime in AniList `TRENDING_DESC` order; HTTPS AniList CDN covers only; one-hour provider cache; provider failures return 502; no DB/Auth required |
 | `GET /api/universes/search?q=...&discover=false` | Public; `{ results: [{ franchise_id, title, entry_media_id, cover_url }], auto_open }`; five distinct cached franchises; `discover=true` permits bounded on-demand discovery when no cached match exists |
 | `GET /api/media/{id}` | One `Media`; unknown IDs return 404 |
 | `GET /api/media/{id}/universe` | Public cache-first franchise graph; `root_id` remains the exact selected work |

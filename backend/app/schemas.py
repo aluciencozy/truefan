@@ -25,6 +25,11 @@ class MediaReleaseDate(BaseModel):
         return self
 
 
+class TrendingCover(BaseModel):
+    id: int = Field(gt=0)
+    cover_url: str = Field(pattern=r'^https://s4\.anilist\.co/')
+
+
 class Media(BaseModel):
     id: str
     title: str
