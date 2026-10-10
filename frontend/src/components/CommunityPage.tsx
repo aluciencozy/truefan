@@ -163,7 +163,7 @@ export function CommunityScreen({ viewer, service = communityApi }: { viewer: Co
   const posts = offline ? previewPosts : feed?.posts || []
   const mediaOptions = offline ? examplePosts.map(post => post.media) : feed?.media || (media ? [media] : [])
 
-  return <CommunityShell viewer={viewer}>
+  return <CommunityShell>
     <header className="community-header">
       <div className="community-introduction"><div><h1>Community ✦</h1><p>Talk, share theories, and leave reviews.</p></div>
         <span className="community-presence" title="Visitors active within the last 90 seconds; signed-in users are deduplicated across browsers.">

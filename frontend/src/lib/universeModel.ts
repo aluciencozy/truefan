@@ -5,8 +5,9 @@ export interface UniverseLink {
   primary: boolean; directional: boolean; relations: UniverseRelation[]
 }
 export interface UniverseBranch { id: string; mediaIds: string[] }
+export interface UniverseGroup { id: string; label: string; branchIds: string[]; mediaIds: string[] }
 export interface UniverseModel {
-  media: Media[]; links: UniverseLink[]; branches: UniverseBranch[]; branchByMedia: Record<string, string>
+  media: Media[]; links: UniverseLink[]; branches: UniverseBranch[]; branchByMedia: Record<string, string>; groups: UniverseGroup[]
 }
 export const compareId = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0
 const symmetric = new Set(['ALTERNATIVE', 'ADAPTATION', 'CHARACTER', 'OTHER', 'SAME_UNIVERSE'])
@@ -52,11 +53,6 @@ export function buildUniverseModel(universe: Universe): UniverseModel {
     if (ancestor === link.target) continue
     parents.set(link.target, link.source); link.primary = true
   }
-  const incoming = new Map<string, number>(), outgoing = new Map<string, number>()
-  for (const link of eligible) {
-    outgoing.set(link.source, (outgoing.get(link.source) ?? 0) + 1)
-    incoming.set(link.target, (incoming.get(link.target) ?? 0) + 1)
-  }
   const group = new Map(media.map(m => [m.id, m.id]))
   const find = (id: string): string => {
     let next = id
@@ -65,8 +61,7 @@ export function buildUniverseModel(universe: Universe): UniverseModel {
   }
   const barriers = links.filter(l => separate.has(l.kind) && l.source !== l.target)
   for (const link of eligible) {
-    // Forks/multiple parents start new branches; explicit alternative/spinoff evidence prevents transitive merging.
-    if (!link.primary || outgoing.get(link.source) !== 1 || incoming.get(link.target) !== 1) continue
+    // A fork alone is not evidence of a separate series; explicit alternate/spinoff relations are.
     const a = find(link.source), b = find(link.target)
     if (a === b || barriers.some(l => (find(l.source) === a && find(l.target) === b) || (find(l.source) === b && find(l.target) === a))) continue
     group.set(compareId(a, b) < 0 ? b : a, compareId(a, b) < 0 ? a : b)
@@ -78,5 +73,29 @@ export function buildUniverseModel(universe: Universe): UniverseModel {
     grouped.set(id, [...(grouped.get(id) ?? []), item.id]); branchByMedia[item.id] = id
   }
   const branches = [...grouped].map(([id, mediaIds]) => ({ id, mediaIds })).sort((a, b) => compareId(a.id, b.id))
-  return { media, links, branches, branchByMedia }
+  // Follow explicit parent evidence when the selected entry is itself a spinoff or side story.
+  let anchor = universe.root_id
+  const seen = new Set<string>()
+  while (!seen.has(anchor)) {
+    seen.add(anchor)
+    const members = branches.find(branch => branch.id === branchByMedia[anchor])?.mediaIds ?? [anchor]
+    const parent = links.find(link => link.kind === 'PARENT' && members.includes(link.source) && !members.includes(link.target)
+      || ['SPIN_OFF', 'SIDE_STORY'].includes(link.kind) && members.includes(link.target) && !members.includes(link.source))
+    if (!parent) break
+    anchor = parent.kind === 'PARENT' ? parent.target : parent.source
+  }
+  let mainId = branchByMedia[anchor]
+  // An optional OVA/film entry should still lead to its directly connected TV-season group.
+  if (byId.has(anchor) && formatFamily(byId.get(anchor)!) !== 'series') {
+    const series = continuations.flatMap(link => link.source === anchor ? [link.target] : link.target === anchor ? [link.source] : [])
+      .find(id => formatFamily(byId.get(id)!) === 'series')
+    if (series) mainId = branchByMedia[series]
+  }
+  if (!mainId) mainId = branches[0]?.id
+  const groups: UniverseGroup[] = [
+    { id: 'group:main', label: 'Main series', branchIds: branches.filter(b => b.id === mainId).map(b => b.id), mediaIds: [] },
+    { id: 'group:related', label: 'Spinoffs & related works', branchIds: branches.filter(b => b.id !== mainId).map(b => b.id), mediaIds: [] },
+  ].map(group => ({ ...group, mediaIds: branches.filter(b => group.branchIds.includes(b.id)).flatMap(b => b.mediaIds) }))
+    .filter(group => group.mediaIds.length)
+  return { media, links, branches, branchByMedia, groups }
 }

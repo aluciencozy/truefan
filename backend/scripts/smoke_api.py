@@ -126,13 +126,19 @@ def main() -> int:
     code, _, body = expect_status("health", "GET", "/health", 200)
     check("health body", body == {"status": "ok", "mode": "demo"})
 
-    _, _, body = expect_status("search match", "GET", "/api/media/search?q=lantern", 200)
-    check("search returns Media[]", isinstance(body, list) and len(body) == 1 and has_media_shape(body[0]))
-    _, _, body = expect_status("search case-insensitive", "GET", "/api/media/search?q=LANTERN%20harbor", 200)
-    check("search case-insensitive finds media", bool(body))
-    _, _, body = expect_status("search no match", "GET", "/api/media/search?q=zzzz", 200)
-    check("search no match is []", body == [])
-    expect_status("search q=200 chars", "GET", "/api/media/search?q=" + "a" * 200, 200)
+    # Search is demo fixture + live AniList (+ cached DB fallback): results beyond the demo item vary,
+    # and 502 means the provider is unreachable, which is a SKIP rather than a failure.
+    code, _, body = call("GET", "/api/media/search?q=lantern")
+    if code == 502:
+        print("SKIP  search (AniList unreachable -> 502)")
+    else:
+        check("search match [GET /api/media/search] == 200", code == 200, f"got {code}")
+        check("search returns Media[] with demo item first",
+              isinstance(body, list) and bool(body) and has_media_shape(body[0]) and body[0].get("id") == MEDIA)
+        code, _, body = call("GET", "/api/media/search?q=LANTERN%20harbor")
+        check("search case-insensitive [GET /api/media/search] == 200", code == 200, f"got {code}")
+        check("search case-insensitive finds demo media",
+              isinstance(body, list) and any(item.get("id") == MEDIA for item in body))
     expect_status("search q=201 chars", "GET", "/api/media/search?q=" + "a" * 201, 422)
 
     _, _, body = expect_status("media details", "GET", f"/api/media/{MEDIA}", 200)

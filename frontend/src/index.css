@@ -30,10 +30,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .primary { background: var(--mauve); color: var(--crust); border-color: var(--mauve); }
 .primary:hover { background: var(--lavender); border-color: var(--lavender); }
 .panel { padding: 24px; background: var(--mantle); border: 1px solid var(--border); border-radius: 16px; }
-.auth-shell { min-height: 100svh; padding: 32px clamp(20px, 5vw, 64px) 64px; font-family: "Inter", system-ui, sans-serif; }
-.auth-header { display: flex; align-items: center; gap: 20px; }
-.auth-back { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 50%; color: var(--subtext); }
-.auth-back:hover { background: var(--surface); color: var(--mauve); }
+.auth-shell { min-height: 100svh; padding: 1px clamp(20px, 5vw, 64px) 64px; font-family: "Inter", system-ui, sans-serif; }
 .auth-page { width: min(100%, 480px); margin: clamp(40px, 9vh, 96px) auto 0; }
 .auth-introduction { margin-bottom: 32px; }
 .auth-introduction h1, .auth-title { font-family: var(--display); font-size: 44px; font-weight: 500; line-height: 1.1; }
@@ -59,18 +56,13 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 }
 /* Home retains the reference artwork placement and centered search. */
 .home-page { min-height: 100svh; display: flex; flex-direction: column; font-family: var(--display); background: var(--crust); }
-.home-header, .home-footer { min-height: 88px; padding: 20px 48px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.home-brand { display: inline-flex; align-items: center; gap: 12px; font-family: var(--display); font-size: 20px; color: var(--text); text-decoration: none; white-space: nowrap; }
-.home-account { display: flex; align-items: center; gap: 24px; font-size: 14px; }
-.home-account a { color: var(--subtext); text-decoration: none; }
-.home-account a:hover { color: var(--text); }
-.home-account .home-signup { padding: 11px 18px; border-radius: 999px; background: var(--mauve); color: var(--base); }
-.home-account .home-signup:hover { background: var(--lavender); }
+.home-footer { min-height: 88px; padding: 20px 48px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .home-hero { flex: 1; min-height: 600px; display: grid; place-items: center; padding: 0 24px 40px; overflow: hidden; background: var(--crust); }
 .home-graph { position: absolute; z-index: -1; top: 50%; left: 50%; width: 1440px; height: 724px; transform: translate(-50%, -50%); pointer-events: none; }
 .home-glow { position: absolute; left: 170px; top: 12px; opacity: .55; }
 .home-connections { display: block; opacity: .85; }
-.home-node { position: absolute; transform: translate(-50%, -50%); height: auto; border-radius: 50%; box-shadow: 0 5px 12px #11111ba6, 0 0 18px 2px #cba6f773; }
+.home-node { position: absolute; transform: translate(-50%, -50%); aspect-ratio: 1; overflow: hidden; background: var(--surface); border-radius: 50%; box-shadow: 0 5px 12px #11111ba6, 0 0 18px 2px #cba6f773; }
+.home-node img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .home-search { width: min(680px, 100%); min-height: 250px; display: flex; flex-direction: column; align-items: center; gap: 28px; }
 .home-introduction { min-height: 96px; width: 100%; text-align: center; }
 .home-introduction h1 { margin: 0; font-size: 48px; font-weight: 600; line-height: 1.2; }
@@ -95,9 +87,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .app-shell.celestial { min-height: 100svh; background: var(--crust); overflow: clip; }
 .app-shell .celestial { background: transparent; }
 .app-shell .celestial::before { display: none; }
-.app-header { height: 80px; padding: 0 36px; display: flex; align-items: center; justify-content: space-between; gap: 24px; position: relative; z-index: 30; }
-.explorer-title { font-family: var(--display); font-size: 17px; color: var(--subtext); }
-.header-meta { display: flex; align-items: center; gap: 18px; position: relative; }
 .account-panel { position: relative; font-size: 12px; }
 .account-trigger { width: 38px; height: 38px; padding: 0; display: grid; place-items: center; background: #18182560; border-color: #45475a70; backdrop-filter: blur(12px); }
 .account-trigger[aria-expanded="true"] { color: var(--lavender); border-color: var(--lavender); }
@@ -197,6 +186,8 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .overview-mode .destination strong { margin-top: 38px; font-size: 20px; }
 .overview-mode .destination-state { display: none; }
 .branch-region { border: 0; border-top: 1px dashed #b4befe14; border-radius: 0; }
+.universe-group { border: 1px solid #b4befe24; border-radius: 24px; background: #18182533; }
+.universe-group > span { display: block; padding: 18px 24px; color: #bac2de; font-size: 18px; font-weight: 600; }
 .orbit-relation { font-family: "Inter", sans-serif; font-size: 10px; fill: var(--subtext); paint-order: stroke; stroke: var(--crust); stroke-width: 4px; pointer-events: none; }
 .journey-trail { pointer-events: none; }
 .universe-canvas .react-flow__viewport { will-change: transform; }
@@ -284,7 +275,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .detail-provenance dt { color: var(--muted); }
 .detail-provenance dd { overflow-wrap: anywhere; }
 /* Small glass surfaces keep text readable where worlds pass behind the UI. */
-.app-shell :is(.home-brand, .explorer-title, .app-community-link, .graph-heading > div:first-child, .progress-control > label, .graph-footer > *, .destination > strong, .destination-state, .star-node > strong, .star-node > small) {
+.app-shell :is(.graph-heading > div:first-child, .progress-control > label, .graph-footer > *, .destination > strong, .destination-state, .star-node > strong, .star-node > small) {
   background: #11111b40; border-radius: 6px; backdrop-filter: blur(6px);
 }
 .app-shell :is(.account-trigger, .account-dropdown, .explorer-search > summary, .graph-actions > button, .progress-stepper, .controls, .canvas-toolbar button, .overview-control button, .journey-controls, .universe-inspector, .character-layer > .details, .canvas-status, .canvas-legend, .react-flow__controls, .constellation-signin) {
@@ -299,17 +290,13 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
   .character-layer > .details { padding: 20px 24px; }
 }
 @media (max-width: 700px) {
-  .home-header, .home-footer { padding: 20px 24px; }
-  .home-header { min-height: 80px; }
-  .home-account { gap: 16px; }
+  .home-footer { padding: 20px 24px; }
   .home-hero { min-height: 480px; padding: 0 20px 24px; }
   .home-graph { transform: translate(-50%, -50%) scale(.8); }
   .home-introduction p { font-size: 14px; }
   .home-search-form { gap: 10px; padding-left: 14px; }
   .home-search-form input { font-size: 14px; }
   .home-footer { flex-wrap: wrap; gap: 8px; font-size: 11px; }
-  .app-header { height: 72px; padding: 0 20px; }
-  .explorer-title { display: none; }
   .graph-heading { padding: 20px; min-height: 160px; gap: 20px; }
   .graph-heading h1 { font-size: 28px; }
   .graph-actions { width: 100%; gap: 10px; }

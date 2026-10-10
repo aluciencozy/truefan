@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import PageNavigation from './PageNavigation'
+import AppNavbar from './AppNavbar'
 import GlitterStars from './GlitterStars'
 import { communityAssets as assets } from '../lib/communityAssets'
 
@@ -15,10 +15,10 @@ export function LittleUniverse() {
   </div>
 }
 
-export default function CommunityShell({ viewer, children }: { viewer: CommunityViewer | null; children: ReactNode }) {
+export default function CommunityShell({ children }: { children: ReactNode }) {
   return <div className="community-page">
     <GlitterStars />
-    <PageNavigation viewer={viewer} />
+    <AppNavbar />
     <main className="community-content">{children}</main>
   </div>
 }

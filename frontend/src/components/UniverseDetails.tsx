@@ -13,6 +13,7 @@ export default function UniverseDetails({ media, universe, model, guide, release
   const currentGuide = media && guide[media.id]
   if (!media || !currentGuide) return <aside className="details panel"><h2>In focus</h2><p>Select a destination to explore.</p></aside>
   const locked = currentGuide.status === 'locked'
+  const group = model.groups.find(group => group.mediaIds.includes(media.id))
   const relations = model.links.flatMap(link => link.relations).filter(r => r.source === media.id || r.target === media.id)
   const previous = model.media.find(item => item.id === currentGuide.previousId)
   const root = model.media.find(item => item.id === universe.root_id)
@@ -27,6 +28,7 @@ export default function UniverseDetails({ media, universe, model, guide, release
   return <aside className="details panel universe-details" aria-label="Selected anime">
     <div className="world-panel-heading"><span className="world-focus-label">✦ In focus</span><span className={`watch-state ${currentGuide.status}`}>{locked ? 'Locked' : currentGuide.status === 'completed' ? 'Completed' : 'Available'}</span></div>
     <h2>{worldTitle(media, currentGuide)}</h2>
+    <p className="world-focus-label">{group?.label}</p>
     {locked ? <><p>Continue from the previous entry, or choose your own starting point.</p>
       {previous && <button className="relation-jump" onClick={() => onFocus(previous)}>Previous: {worldTitle(previous, guide[previous.id])}</button>}
       <button className="primary" disabled={busy} onClick={() => onUnlock(media)}>Unlock anyway</button></> : <>

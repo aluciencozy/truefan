@@ -6,7 +6,7 @@ import UniverseCanvas from './components/UniverseCanvas'
 import UniverseDetails from './components/UniverseDetails'
 import EntityDetails from './components/EntityDetails'
 import MediaControls from './components/MediaControls'
-import AuthPanel from './components/AuthPanel'
+import AppNavbar from './components/AppNavbar'
 import ProgressControl from './components/ProgressControl'
 import { api } from './lib/api'
 import { libraryApi } from './lib/library'
@@ -238,18 +238,13 @@ export default function App() {
   }
 
   return <div className="app-shell celestial">
-    <header className="app-header">
-      <Link className="home-brand" to="/" aria-label="TrueFan home"><img src="/home/brand.svg" width="30" height="30" alt="" />TrueFan</Link>
-      <span className="explorer-title">✧ Constellation explorer</span>
-      <div className="header-meta"><Link className="app-community-link" to="/community">Community ✦</Link><AuthPanel onIdentity={onIdentity} /></div>
-    </header>
+    <AppNavbar onIdentity={onIdentity} />
     <main className="workspace">
       <section className="graph-panel" aria-label="Graph explorer">
         <div className="graph-heading"><div><span className="view-label">{inUniverse ? 'Your connected universe' : 'Character constellation'}</span>
           <h1>{headingMedia ? worldTitle(headingMedia, inUniverse ? guide[headingMedia.id] : undefined) : 'Every story is a universe.'}</h1>
           {inUniverse && <p>{model?.media.length ?? 0} stories</p>}</div>
           <div className="graph-actions">
-            <Link to="/library">Saved universes ↗</Link>
             {media && (identity ? <button disabled={librarySaving || (inUniverse && !universe)} onClick={() => void saveUniverse()}>{librarySaving ? 'Saving…' : '＋ Save universe'}</button> : <Link to="/auth/sign-in">Sign in to save</Link>)}
             {universe && !inUniverse && <button onClick={() => { setView('universe'); setSelectedId(null); setError('') }}>← Universe</button>}
             {media && !inUniverse && <ProgressControl media={media} progress={progress} onProgress={changeProgress} disabled={awaitingState} />}

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { buildUniverseModel } from '../src/lib/universeModel.ts'
 import { buildReleaseGuide, compareRelease, confirmProgress, releaseLabel, unlockMedia, worldTitle } from '../src/lib/universeProgression.ts'
-import { layoutUniverse, MEDIA_WIDTH, MEDIA_HEIGHT, preservePositions } from '../src/lib/universeLayout.ts'
+import { groupBounds, fallbackPositions, layoutUniverse, MEDIA_WIDTH, MEDIA_HEIGHT, preservePositions } from '../src/lib/universeLayout.ts'
 
 const work = (id, year = 2000, month = 1, day = 1) => ({
   id, title: id, type: 'anime', progress_unit: 'episode', total_units: 12, total_units_known: true,
@@ -50,10 +50,11 @@ test('alternative routes split even with a common prequel; spinoffs, side storie
     edge('route-a', 'route-b', 'ALTERNATIVE'), edge('zero', 'spin', 'SPIN_OFF'), edge('zero', 'side', 'SIDE_STORY'), edge('source', 'route-a', 'ADAPTATION'),
   ]))
   assert.equal(m.branchByMedia['route-a'], m.branchByMedia['route-a2'])
-  for (const id of ['route-b', 'spin', 'side', 'source', 'zero']) assert.notEqual(m.branchByMedia[id], m.branchByMedia['route-a'])
+  assert.equal(m.branchByMedia.zero, m.branchByMedia['route-a'])
+  for (const id of ['route-b', 'spin', 'side', 'source']) assert.notEqual(m.branchByMedia[id], m.branchByMedia['route-a'])
   const guide = buildReleaseGuide(m, {})
-  assert.equal(guide['route-a'].status, 'available'); assert.equal(guide['route-b'].status, 'available')
-  assert.equal(guide.spin.status, 'available')
+  assert.equal(Object.values(guide).filter(g => g.status === 'available').length, 1)
+  assert.equal(guide['route-b'].status, 'locked'); assert.equal(guide.spin.status, 'locked')
 })
 
 test('cycles and multi-parent relations retain cross-links with a cycle-safe primary forest', () => {
@@ -65,17 +66,20 @@ test('cycles and multi-parent relations retain cross-links with a cycle-safe pri
     const seen = new Set(); let cursor = id
     while (parent.has(cursor)) { assert.ok(!seen.has(cursor)); seen.add(cursor); cursor = parent.get(cursor) }
   }
-  assert.notEqual(m.branchByMedia.d, m.branchByMedia.c)
+  assert.equal(m.branchByMedia.d, m.branchByMedia.c)
 })
 
 test('guidance is branch-local release order, independent of story connection direction', () => {
   const m = buildUniverseModel(graph([work('prequel', 2010), work('sequel', 2000), work('spin', 2005), work('spin2', 2006)], [edge('prequel', 'sequel', 'SEQUEL'), edge('prequel', 'spin', 'SPIN_OFF'), edge('spin', 'spin2', 'SEQUEL')]))
   let guide = buildReleaseGuide(m, {})
   assert.equal(guide.sequel.number, 1); assert.equal(guide.prequel.status, 'locked')
-  assert.equal(guide.spin.status, 'available'); assert.equal(guide.spin2.status, 'locked')
+  assert.equal(guide.spin.status, 'locked'); assert.equal(guide.spin.previousId, 'prequel'); assert.equal(guide.spin2.status, 'locked')
   assert.equal(guide.spin.branchNumber, guide.spin2.branchNumber)
   guide = buildReleaseGuide(m, { sequel: state('sequel', true) })
   assert.equal(guide.prequel.status, 'available'); assert.equal(guide.spin2.status, 'locked')
+  assert.equal(guide.spin.status, 'locked')
+  guide = buildReleaseGuide(m, { prequel: state('prequel', true) })
+  assert.equal(guide.spin.status, 'available'); assert.equal(guide.spin2.status, 'locked')
 })
 
 test('override preserves confirmed history; rewinding never reduces units or completion', () => {
@@ -92,7 +96,7 @@ test('override preserves confirmed history; rewinding never reduces units or com
   assert.equal(buildReleaseGuide(m, { b: state('b', false, 3) }).b.status, 'available') // preserve an existing start
 })
 
-test('unknown totals and prologue do not fabricate completion; unknown release dates cannot block forever', () => {
+test('unknown totals do not fabricate completion; unknown dates do not bypass prerequisites', () => {
   const prologue = { ...work('p'), has_prologue: true, total_units: 13 }
   assert.equal(confirmProgress({}, prologue, 1).p.completed, false)
   assert.equal(confirmProgress({}, prologue, 13).p.completed, true)
@@ -100,7 +104,8 @@ test('unknown totals and prologue do not fabricate completion; unknown release d
   assert.equal(confirmProgress({}, unknown, 1).u.completed, false)
   assert.equal(confirmProgress({}, { ...unknown, total_units_known: undefined }, 1).u.completed, false)
   const m = buildUniverseModel(graph([work('p'), unknown], [edge('p', 'u', 'SEQUEL')]))
-  assert.equal(buildReleaseGuide(m, {}).u.status, 'available')
+  assert.equal(buildReleaseGuide(m, {}).u.status, 'locked')
+  assert.equal(buildReleaseGuide(m, { p: state('p', true) }).u.status, 'available')
   assert.equal(buildReleaseGuide(m, {}).u.approximateDate, true)
 })
 
@@ -134,7 +139,9 @@ test('expansion keeps existing anchors; watched/overlay state is absent from geo
   assert.deepEqual(positions.a, anchors.a); assert.deepEqual(positions.b, anchors.b)
   assert.ok(positions.c)
   const colliding = preservePositions(expanded, { a: anchors.a, b: anchors.b, c: anchors.a }, anchors)
-  assert.ok(Math.abs(colliding.c.x-anchors.a.x) >= MEDIA_WIDTH)
+  assert.ok(Math.abs(colliding.c.x-anchors.a.x) >= MEDIA_WIDTH || Math.abs(colliding.c.y-anchors.a.y) >= MEDIA_HEIGHT)
+  const [main, related] = groupBounds(expanded, positions)
+  assert.ok(main.y + main.height < related.y)
 })
 
 test('an OVA prequel stays separate from TV release progression without rewriting its relation', () => {
@@ -144,6 +151,9 @@ test('an OVA prequel stays separate from TV release progression without rewritin
   assert.equal(m.branchByMedia.tv, m.branchByMedia.season)
   const guide = buildReleaseGuide(m, { tv: state('tv', true) })
   assert.equal(guide.season.status, 'available'); assert.equal(guide.ova.status, 'available')
+  assert.deepEqual(m.groups[0].mediaIds, ['season', 'tv'])
+  assert.equal(buildReleaseGuide(m, {}).tv.status, 'available')
+  assert.equal(buildReleaseGuide(m, {}).ova.status, 'locked')
   assert.equal(m.links.find(l => l.source === 'ova').relations[0].type, 'PREQUEL')
 })
 
@@ -154,4 +164,63 @@ test('optional format continuations do not split the coherent TV-season release 
   assert.notEqual(m.branchByMedia.main, m.branchByMedia.extra)
   assert.equal(buildReleaseGuide(m, {}).sequel.status, 'locked')
   assert.equal(buildReleaseGuide(m, { main: state('main', true) }).sequel.status, 'available')
+})
+
+test('sequel forks and multiple parents stay together without explicit alternative evidence', () => {
+  const m = buildUniverseModel(graph(['a', 'b', 'c', 'd'].map(id => work(id)), [
+    edge('a', 'b', 'SEQUEL'), edge('a', 'c', 'SEQUEL'), edge('b', 'd', 'SEQUEL'), edge('c', 'd', 'SEQUEL'),
+  ]))
+  assert.equal(m.branches.length, 1)
+  assert.deepEqual(m.groups.map(g => g.label), ['Main series'])
+})
+
+test('one main-series start is available; related groups unlock at their connected main entry', () => {
+  const media = [work('s1', 2000), work('s2', 2001), work('spin', 2002), work('spin2', 2003), work('unknown', null), work('unconnected', 2004)]
+  const m = buildUniverseModel(graph(media, [edge('s1', 's2', 'SEQUEL'), edge('s2', 'spin', 'SPIN_OFF'), edge('spin', 'spin2', 'SEQUEL'), edge('s1', 'unknown', 'SIDE_STORY')]))
+  assert.deepEqual(m.groups.map(g => [g.label, g.mediaIds]), [
+    ['Main series', ['s1', 's2']], ['Spinoffs & related works', ['spin', 'spin2', 'unconnected', 'unknown']],
+  ])
+  const fresh = buildReleaseGuide(m, {})
+  assert.deepEqual(Object.keys(fresh).filter(id => fresh[id].status === 'available'), ['s1'])
+  assert.equal(fresh.spin.previousId, 's2'); assert.equal(fresh.unconnected.previousId, 's1')
+  const watched = buildReleaseGuide(m, { s1: state('s1', true) })
+  assert.equal(watched.s2.status, 'available'); assert.equal(watched.spin.status, 'locked')
+  assert.equal(watched.unknown.status, 'available'); assert.equal(watched.unconnected.status, 'available')
+  assert.equal(buildReleaseGuide(m, { s2: state('s2', true) }).spin.status, 'available')
+  assert.equal(buildReleaseGuide(m, { spin: state('spin', false, 1) }).spin.status, 'available')
+  assert.equal(buildReleaseGuide(m, unlockMedia({}, 'spin2')).spin2.status, 'available')
+})
+
+test('opening a spinoff follows parent evidence back to the main series', () => {
+  for (const relation of [edge('main', 'spin', 'SPIN_OFF'), edge('main', 'spin', 'SIDE_STORY'), edge('spin', 'main', 'PARENT')]) {
+    for (const root_id of ['spin', 'spin2']) {
+      const m = buildUniverseModel({ ...graph([work('main'), work('spin', 2001), work('spin2', 2002)], [relation, edge('spin', 'spin2', 'SEQUEL')]), root_id })
+      assert.deepEqual(m.groups[0].mediaIds, ['main'])
+      assert.equal(buildReleaseGuide(m, {}).spin.status, 'locked')
+      assert.equal(buildReleaseGuide(m, {}).spin2.status, 'locked')
+    }
+  }
+})
+
+test('main and related works have labeled, nonoverlapping areas in automatic and fallback layouts', async () => {
+  const m = buildUniverseModel(graph([work('main'), work('s2', 2001), work('spin', 2002), work('spin2', 2003), work('side', 2004)], [
+    edge('main', 's2', 'SEQUEL'), edge('s2', 'spin', 'SPIN_OFF'), edge('spin', 'spin2', 'SEQUEL'), edge('main', 'side', 'SIDE_STORY'),
+  ]))
+  for (const positions of [await layoutUniverse(m), fallbackPositions(m)]) {
+    const [main, related] = groupBounds(m, positions)
+    assert.equal(main.label, 'Main series'); assert.equal(related.label, 'Spinoffs & related works')
+    assert.ok(main.y + main.height < related.y)
+  }
+})
+
+test('expansion preserves both groups while adding main seasons and new related branches', async () => {
+  const initial = buildUniverseModel(graph([work('main'), work('spin', 2002)], [edge('main', 'spin', 'SPIN_OFF')]))
+  const anchors = await layoutUniverse(initial)
+  const expanded = buildUniverseModel(graph([work('main'), work('s2', 2001), work('spin', 2002), work('side', 2003)], [
+    edge('main', 's2', 'SEQUEL'), edge('main', 'spin', 'SPIN_OFF'), edge('s2', 'side', 'SIDE_STORY'),
+  ]))
+  const positions = await layoutUniverse(expanded, anchors)
+  assert.deepEqual(positions.main, anchors.main); assert.deepEqual(positions.spin, anchors.spin)
+  const [main, related] = groupBounds(expanded, positions)
+  assert.ok(main.y + main.height < related.y)
 })

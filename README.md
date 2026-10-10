@@ -199,8 +199,11 @@ The explorer’s **Find another story** uses the same search component, suggesti
 discovery, and direct universe navigation as the homepage. The TrueFan header link
 returns home to search again. The explorer retains media selection,
 progress filtering, and account controls. Home-page image nodes are decorative
-artwork reused from the Figma design, not factual story relationships. Assets
-live in `frontend/public/home/`; the font license is in `frontend/public/fonts/`.
+AniList covers from the top 16 non-adult trending anime, fetched through the backend's
+one-hour provider cache. Only IDs and cover URLs are returned; these nodes do not
+represent factual story relationships. Loading, missing covers, and provider/image
+failures leave neutral circles without blocking search. Static hero SVGs live in
+`frontend/public/home/`; the font license is in `frontend/public/fonts/`.
 Log in and Sign up use the existing Neon Auth routes.
 
 The two fixture graph calls should return 3 and 5 entities respectively. In
@@ -371,6 +374,7 @@ these contracts in `src/lib/types.ts`.
 | --- | --- |
 | `GET /health` | `{ "status": "ok", "mode": "demo" }`; does not imply DB/provider readiness |
 | `GET /api/media/search?q=...` | See [search behavior](docs/IMPLEMENTATION.md#search-and-universe-discovery) |
+| `GET /api/media/trending` | Public; `{ id: number, cover_url: string }[]` for up to 16 non-adult anime in AniList `TRENDING_DESC` order; HTTPS AniList CDN covers only; one-hour provider cache; provider failures return 502; no DB/Auth required |
 | `GET /api/universes/search?q=...&discover=false` | Public; `{ results: [{ franchise_id, title, entry_media_id, cover_url }], auto_open }`; five distinct cached franchises; `discover=true` permits bounded on-demand discovery when no cached match exists |
 | `GET /api/media/{id}` | One `Media`; unknown IDs return 404 |
 | `GET /api/media/{id}/universe` | Public cache-first franchise graph; `root_id` remains the exact selected work |
@@ -495,25 +499,30 @@ while panning or zooming.
 original directed AniList evidence. PREQUEL reverses placement direction;
 reciprocal SEQUEL/PREQUEL evidence shares one connection. Alternatives are
 symmetric cross-links, never fabricated sequels. A deterministic, cycle-safe
-primary sequel forest retains other connections as dashed links. Straight
-continuation chains share an inferred branch; forks and multiple parents split
-branches. Explicit alternatives, spinoffs, side stories and adaptations prevent
-transitive branch merging. Different format families (TV/TV_SHORT/ONA versus
-films, OVAs or specials) also remain separate, so an optional OVA prequel does not
-become a TV-season viewing prerequisite. Adaptation/version branches remain connected nearby.
-These heuristics describe provisional groups, not canonical continuity facts.
+primary sequel forest retains other connections as dashed links. Connected
+sequels of the same format family share an inferred branch, including
+forks and multiple parents. Explicit alternatives, spinoffs, side stories and
+adaptations prevent transitive branch merging. Different format families
+(TV/TV_SHORT/ONA versus films, OVAs or specials) remain separate, so an optional
+OVA prequel does not become a TV-season viewing prerequisite.
+
+The map has two labeled areas: **Main series** and **Spinoffs & related works**.
+The main series is the selected entry's continuation branch; explicit parent,
+spinoff or side-story evidence leads back to its parent branch. An optional
+film/OVA entry uses a directly sequel/prequel-connected TV branch when one is
+available. All remaining branches share the related-works area while retaining
+independent release sequences. These are metadata heuristics, not canonical
+continuity facts; missing or conflicting provider relationships can misgroup works.
 
 `universeLayout.ts` lazily loads ELK.js and places fixed-size nodes inside inferred
-branch lanes, then arranges those lanes as left-to-right branching paths using a
-deterministic semantic spanning forest (sequel links first, adaptation/version links next, branch links
-then weak associations). Disconnected components are packed separately. This
-scaffold only controls geometry; the rendered connections retain the general graph. Input
-IDs/edges are sorted and layout uses a fixed seed. Release dates, watched state
-and overlays are absent from geometry inputs. Expansion preserves all existing
-media anchors, aligns new members to branch anchors when possible and appends
-colliding cards. This favors spatial memory over a perfect refreshed layout;
-branch regions/cross-links can become less tidy after several expansions.
-Layout failure falls back to deterministic branch lanes without hiding nodes.
+branches, with the main-series area above the related-works area. Branches in the
+related area are packed together. Cross-links remain visible but no longer decide
+the placement of the two areas. IDs/edges are sorted and layout uses a fixed seed.
+Release dates, watched state and overlays are absent from geometry inputs.
+Expansion preserves existing media anchors, aligns new members to branch anchors
+when possible and appends colliding cards. This favors spatial memory over a
+perfect refreshed layout; group regions/cross-links can become less tidy after
+several expansions. Layout failure falls back to grouped branch lanes.
 
 **Release guidance** numbers entries *within each branch*, rather than
 interleaving unrelated continuities by global release date. Sorting compares
@@ -548,12 +557,15 @@ including on hover/focus. Actual connections remain visible, with no episode
 metadata/story details or character entry. This is a presentation preference;
 the public universe metadata API still returns titles and cover URLs.
 **Available** can be entered; **Completed** remains accessible and has a watched
-marker. Incomplete covers are dimmed. Each inferred branch has its own available
-starting point, so alternate/spinoff branches can be explored in parallel.
-Later dated releases in that branch are available after the preceding release
-is confirmed complete. Undated works remain available rather than blocking
-forever; partial-date suggestions are approximate. Existing positive watched
-progress or a manual override grants entry regardless of the suggestion.
+marker. Incomplete covers are dimmed. Only the earliest release in the
+main-series branch is available
+for a fresh viewer. Later entries require completion of the preceding release in
+their own branch. The first entry in a related branch requires a connected
+main-series entry to be completed, preferring explicit spinoff/side-story/parent
+relations; without a direct main-series link, it requires the main-series starting
+entry. Unknown release dates sort last and do not bypass these prerequisites;
+partial-date suggestions are approximate. Existing positive watched progress,
+confirmed completion or a manual override preserves access regardless of guidance.
 **Unlock anyway** changes availability only, preserving saved units/completions.
 **I finished this anime** explicitly confirms completion, including uncertain
 counts, without fabricating watched episode numbers.
@@ -773,19 +785,23 @@ A build, an OAuth redirect, or mocked JWT tests do not prove the complete live f
 `/community` implements the Figma design in typed React components. Shared colors,
 local Pixelify Sans/Inter fonts, starry backgrounds, and control styles live in
 `frontend/src/index.css`, `frontend/src/components/CommunityPage.css`, and the shared
-`PageNavigation` / `GlitterStars` components; original Figma SVG assets live in
+`AppNavbar` / `GlitterStars` components; original Figma SVG assets live in
 `frontend/public/community`. The shared palette
 is used throughout the app; Community and Library typography/form tokens are
 scoped to their pages to preserve the homepage and constellation explorer styles. The palette
 matches the **TRUE FAN Community 1** frame (`123:30`): charcoal `#1e1e2e`, panels
 `#181825`, borders `#45475a`, pale text `#cdd6f4`, and lavender `#cba6f7`.
-Community and Saved universes share a top navigation linking Explore, Community,
-and Saved universes (`/library`), plus a background of bright, gently twinkling dots and a few larger star accents.
-The stars remain static when reduced motion is requested. The
-full-width feed uses smaller typography, media and tag dropdowns (Any tag shows all
-categories), search, and latest/popular sorting. Create post opens a form dialog;
-conversations open a readable dialog with a scrolling post/reply section and a fixed
-reply form, native keyboard focus trapping, Escape dismissal, and focus return. Community supports
+A shared navbar across the homepage, explorer, saved universes, community, and account
+pages centers Explore, Saved Universes (`/library`), and Community, with account controls
+on the right. Its transparent header and blurred controls blend with each page. The active
+link animates gently, respects reduced motion, and moves to a centered second row on
+smaller screens. Community and Saved universes retain their gently twinkling dots and
+larger star accents; stars remain static when reduced motion is requested.
+The full-width Community feed uses smaller typography, media and tag dropdowns
+(Any tag shows all categories), search, and latest/popular sorting. Create post opens a
+form dialog; conversations open a readable dialog with scrolling posts/replies and a
+fixed reply form, native keyboard focus trapping, Escape dismissal, and focus return.
+Community supports
 post links, optional review ratings, likes, and comments. There are no episode controls
 on this page. Saved universes has its own owner-scoped library API, documented below.
 

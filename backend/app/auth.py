@@ -42,7 +42,16 @@ def current_user(credentials: Annotated[HTTPAuthorizationCredentials | None, Dep
         raise HTTPException(401, "Sign in required", headers={"WWW-Authenticate": "Bearer"})
     origin, jwks_url = verification_config()
     try:
-        key = jwks_client(jwks_url).get_signing_key_from_jwt(credentials.credentials)
+        client = jwks_client(jwks_url)
+        # Checked before the kid lookup: an endpoint with no usable keys is a provider/config
+        # fault (503), whereas an unknown or missing kid below is a bad token (401).
+        try:
+            client.get_signing_keys()
+        except jwt.PyJWKClientConnectionError:
+            raise
+        except (jwt.PyJWKClientError, jwt.PyJWKSetError, jwt.PyJWKError, ValueError, KeyError, TypeError) as error:
+            raise HTTPException(503, "Identity provider has no usable signing keys") from error
+        key = client.get_signing_key_from_jwt(credentials.credentials)
         claims = jwt.decode(
             credentials.credentials, key.key, algorithms=["EdDSA"],
             issuer=origin, audience=origin,
@@ -52,6 +61,8 @@ def current_user(credentials: Annotated[HTTPAuthorizationCredentials | None, Dep
         if not isinstance(subject, str) or not subject:
             raise jwt.InvalidTokenError("Missing user subject")
         return CurrentUser(id=subject)
+    except HTTPException:
+        raise
     except (jwt.PyJWKClientConnectionError, json.JSONDecodeError) as error:
         # JSONDecodeError: the JWKS endpoint answered with a non-JSON body (e.g. a proxy error page).
         raise HTTPException(503, "Identity provider temporarily unavailable") from error
