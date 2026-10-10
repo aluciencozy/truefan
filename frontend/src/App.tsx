@@ -10,6 +10,7 @@ import AppNavbar from './components/AppNavbar'
 import ProgressControl from './components/ProgressControl'
 import { api } from './lib/api'
 import { libraryApi } from './lib/library'
+import { usePageReady } from './lib/pageTransition'
 import { buildUniverseModel } from './lib/universeModel'
 import { buildReleaseGuide, confirmProgress, unlockMedia, worldTitle } from './lib/universeProgression'
 import type { MediaStates } from './lib/universeProgression'
@@ -228,6 +229,7 @@ export default function App() {
   const generation = visibleGraph?.generation
   const running = generation && ['queued','retrieving','generating'].includes(generation.status)
   const inUniverse = view === 'universe'
+  usePageReady(!initialMedia || Boolean(error) || (!awaitingState && media?.id === initialMedia && Boolean(inUniverse ? universe : visibleGraph)))
   const headingMedia = inUniverse ? universe?.media.find(item => item.id === universe.root_id) ?? media : media
   const controls = <MediaControls initialQuery={initialQuery} />
 
