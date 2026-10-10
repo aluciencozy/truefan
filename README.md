@@ -17,7 +17,8 @@ returns only facts at or before the user's exact progress.
 - Neon Auth UI for Google-only sign-in, sign-out, account settings, sessions, and a protected API identity check.
 - Persistent per-user media progress through authenticated FastAPI endpoints.
 - Lazy Neon Postgres connection helper; no database or external credentials needed to boot.
-- Typed extraction/Q&A contracts and integration placeholders; neither calls an AI model.
+- Offline Hugging Face paragraph extraction experiment with validated, unreviewed JSON candidates.
+- Spoiler-filtered Q&A context draft; public extraction/Q&A endpoints remain placeholders.
 
 The fixture is **Lantern Harbor**, a fictional three-episode story. Episode 1
 reveals three nodes, episode 2 reveals a faction, and episode 3 reveals an object.
@@ -51,7 +52,7 @@ Vite + React browser app (Vercel)
                     ├─ JWT verification for user-owned APIs
                     ├─ Neon Postgres (per-user progress)
                     ├─ AniList GraphQL (planned metadata)
-                    └─ Hugging Face Inference Providers (planned extraction)
+                    └─ Hugging Face Inference Providers (offline experiment)
 ```
 
 The frontend is a separate SPA; there are no Next.js, SSR, or frontend API routes.
@@ -85,8 +86,10 @@ and PyJWT with cryptography for signed identity verification.
 │   │   ├── database.py       # Lazy Postgres connection
 │   │   ├── schema.sql        # Application user_progress table
 │   │   ├── init_db.py        # Explicit table setup command
-│   │   └── services/         # Progress storage, demo data, filtering, AniList/HF placeholders
-│   ├── tests/               # Auth, ownership, and spoiler-boundary checks
+│   │   └── services/         # Progress storage, demo data, filtering, AniList placeholder, HF extraction, Q&A context
+│   ├── test/                # Auth, ownership, graph, extraction, and context checks
+│   ├── data/                # Episode-local Lantern Harbor summaries
+│   ├── docs/                # Brain experiment and ingestion blueprint
 │   ├── .env.example
 │   ├── Procfile              # Railway start command
 │   └── requirements.txt
@@ -159,7 +162,7 @@ npm run build
 npm run preview
 
 # In backend/, with .venv activated
-python -m unittest discover -s tests
+python -m unittest discover -s test
 curl http://localhost:8000/health
 curl 'http://localhost:8000/api/media/lantern-harbor/graph?progress=1'
 curl 'http://localhost:8000/api/media/lantern-harbor/graph?progress=3'
@@ -175,7 +178,9 @@ to verify the graph and details update. Stop FastAPI and reload to check the err
 | Variable | Location | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | Backend | Neon Postgres connection string, with TLS parameters from Console |
-| `HF_TOKEN` | Backend | Secret Inference API/Providers token; unused by the starter |
+| `HF_TOKEN` | Backend | Secret Inference Providers token for the offline extraction experiment |
+| `HF_MODEL_ID` | Backend | Chat model ID; choose a model currently served by a provider |
+| `HF_PROVIDER` | Backend | Provider name or `auto` (default) |
 | `ANILIST_API_URL` | Backend | Defaults to `https://graphql.anilist.co` |
 | `FRONTEND_URL` | Backend | Exact allowed browser origin; defaults to `http://localhost:3000` |
 | `VITE_API_URL` | Frontend | Public FastAPI origin; defaults to `http://localhost:8000` |
@@ -420,33 +425,38 @@ AniList is metadata, not a trustworthy episode-by-episode reveal dataset. Charac
 biographies and cast lists can themselves contain spoilers, so never send them
 straight to a progress-filtered profile. Other media providers can be added later.
 
-## Planned Hugging Face ingestion pipeline
+## Backend Track 1: AI feasibility and pipeline
 
-```text
-AniList
-    ↓
-media metadata + characters
-    ↓
-episode/wiki/manual summaries
-    ↓
-Hugging Face open-source model / Inference Providers
-    ↓
-structured entities + relationships + reveal points + provenance
-    ↓
-manual verification if necessary
-    ↓
-Neon Postgres
-    ↓
-spoiler-aware graph API
+The early experiment sends one Lantern Harbor paragraph to a Hugging Face model,
+checks JSON entities/relationships and exact evidence, and saves unreviewed
+candidates with reveal points and provenance. The Q&A context draft concatenates
+only summaries up to the selected progress using the existing backend reveal rule.
+
+From `backend/`, with Python 3.11+ and requirements installed:
+
+```bash
+python -m app.brain_experiment --provider featherless-ai --prompt-version baseline --runs 1 --output artifacts/baseline.json
+python -m app.brain_experiment --provider featherless-ai --prompt-version grounded_v2 --runs 3 --output artifacts/master_candidates.json
+python -m unittest discover -s test
 ```
 
-`services/huggingface.py` is deliberately a placeholder. Choose a supported model
-and provider, use server-only `HF_TOKEN`, submit summaries with explicit story-unit
-and source context, and validate output against Pydantic before storing anything.
-Record source references, unit, model/provider, extraction run, and review status.
-Model-inferred relationships or reveal points must not automatically become
-verified facts. Begin with manually curated summaries and human-reviewed output.
-Wikipedia/MediaWiki sources can be considered later; no scraping is implemented.
+Configure server-only `HF_TOKEN`, `HF_MODEL_ID`, and optionally `HF_PROVIDER` in
+`backend/.env`. The CLI reads the first paragraph from
+`backend/data/lantern_harbor_summaries.json`; `--input` accepts another file with
+an array of `ExtractRequest` records. Use a new `--output` filename for each
+experiment. No model candidates are automatically added to the demo or database.
+Public `/api/extract` and `/api/ask` contracts remain unchanged (501).
+
+The [Brain pipeline draft](backend/docs/brain_pipeline.md) documents the prompts,
+manual quality checks, context budget, and full blueprint:
+
+```text
+Episode wiki/manual summary -> HF model -> validate JSON/evidence/endpoints
+  -> master candidate JSON -> human review -> future graph/Neon import
+```
+
+Wiki scraping and live Q&A are planned stages. A successful JSON parse is not
+proof that a fact or its reveal point is correct.
 
 ## Deployment targets
 
@@ -476,7 +486,7 @@ Recommended next five implementation tasks:
 2. Choose one real demo series; curate story units and review entity/relationship reveal points.
 3. Expand the graph schema and add automatic saved-progress resume if useful.
 4. Replace fixture search with AniList metadata while keeping graph facts curated.
-5. Run one provenance-preserving Hugging Face extraction experiment, then deploy the demo to Vercel/Railway.
+5. Expand the Hugging Face paragraph experiment to more reviewed summaries, then deploy the demo to Vercel/Railway.
 
 Future features include spoiler-safe versioned profiles, refusal-aware Q&A using
 only allowed facts, multi-series support, chapter/movie/game progress, saved
