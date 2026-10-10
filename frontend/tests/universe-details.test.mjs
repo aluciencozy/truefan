@@ -21,21 +21,36 @@ const universe = { root_id: 'b', media, relationships: [{ source: 'a', target: '
 const model = buildUniverseModel(universe)
 const callbacks = { onEnter: () => {}, onUnlock: () => {}, onComplete: () => {}, onFocus: () => {} }
 function render(states) {
-  return renderToStaticMarkup(createElement(Details, { media: media[1], universe, model, guide: buildReleaseGuide(model, states).b, release: true, busy: false, message: '', ...callbacks }))
+  return renderToStaticMarkup(createElement(Details, { media: media[1], universe, model, guide: buildReleaseGuide(model, states).b, state: states.b, release: true, busy: false, message: '', ...callbacks }))
 }
 
 test('Locked detail exposes title and exact relation evidence, with no entry, description, format, date or episode total', () => {
   const html = render({})
   assert.match(html, /Work b/); assert.match(html, /sequel/); assert.match(html, /Unlock anyway/)
-  for (const unsafe of ['Enter anime', 'SECRET STORY DETAIL', 'SECRET FORMAT', '2001-01-01', '12 episodes', 'I finished']) assert.ok(!html.includes(unsafe), unsafe)
+  for (const unsafe of ['Enter World', 'SECRET STORY DETAIL', 'SECRET FORMAT', '2001-01-01', '12 episodes', 'I finished']) assert.ok(!html.includes(unsafe), unsafe)
 })
 test('manual unlock grants explicit entry but does not fabricate completion', () => {
   const html = render({ b: { media_id: 'b', progress: null, completed: false, manual_unlocked: true } })
-  assert.match(html, /Enter anime/); assert.match(html, /Available/); assert.match(html, /I finished this anime/)
+  assert.match(html, /Enter World/); assert.match(html, /Available/); assert.match(html, /I finished this anime/)
   assert.ok(!html.includes('Unlock anyway')); assert.ok(!html.includes('>Completed<'))
 })
 test('confirmed completed media stays accessible and cannot be accidentally re-marked through this panel', () => {
   const html = render({ b: { media_id: 'b', progress: { unit: 3 }, completed: true, manual_unlocked: false } })
-  assert.match(html, /Enter anime/); assert.match(html, />Completed</)
+  assert.match(html, /Enter World/); assert.match(html, />Completed</)
   assert.ok(!html.includes('I finished this anime'))
+  assert.match(html, /value="3"/)
+})
+
+test('available panel shows recorded progress and a metadata summary without provider plot text', () => {
+  const html = render({ b: { media_id: 'b', progress: { unit: 7 }, completed: false, manual_unlocked: false } })
+  assert.match(html, /7 episodes watched/)
+  assert.match(html, /value="7"/)
+  assert.match(html, /Explore its sequel connections/)
+  assert.ok(!html.includes('SECRET STORY DETAIL'))
+})
+
+test('explicit completion without recorded units never fabricates episode progress', () => {
+  const html = render({ b: { media_id: 'b', progress: null, completed: true, manual_unlocked: false } })
+  assert.match(html, />Completed</)
+  assert.match(html, /value="0"/)
 })
