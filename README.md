@@ -18,6 +18,8 @@ returns only facts at or before the user's exact progress.
 - Persistent per-user media progress through authenticated FastAPI endpoints.
 - Lazy Neon Postgres connection helper; no database or external credentials needed to boot.
 - Dynamic AniList search and reusable Neon franchise caches with bounded discovery and explicit expansion.
+  Search and universe maps currently show only anime, including TV, movies, specials, ONA, and OVA;
+  related manga and novels are excluded from new discovery and cached map responses.
   See [franchise discovery and API details](docs/IMPLEMENTATION.md#search-and-universe-discovery);
   unlock presentation remains a dependency on `fm/truefan-universe-explorer`.
 - Automatic experimental character extraction from Kitsu/TVmaze through configurable HF inference.

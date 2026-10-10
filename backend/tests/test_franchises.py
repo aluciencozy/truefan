@@ -31,6 +31,27 @@ class CacheTests(unittest.TestCase):
     def setUp(self):
         self.enterContext(patch.object(settings, 'database_url', 'configured'))
 
+    def test_cached_api_omits_non_anime_nodes_edges_and_expansion_hint(self):
+        saved = snapshot(frontier=['anilist-3', 'anilist-4'])
+        for number, format in ((3, 'MANGA'), (4, 'NOVEL')):
+            media = anilist.normalize(dict(entry(number), type='MANGA', format=format))
+            saved.graph.media.append(media)
+            saved.graph.relationships.extend([
+                UniverseEdge(source='anilist-1', target=media.id, type='SOURCE'),
+                UniverseEdge(source=media.id, target='anilist-2', type='ADAPTATION')])
+        with patch('app.services.franchises.load', return_value=saved), \
+             patch('app.services.anilist.details') as provider:
+            code, data = asyncio.run(request('/api/media/anilist-1/universe'))
+            unsupported, _ = asyncio.run(request('/api/media/anilist-3/universe'))
+        self.assertEqual(code, 200)
+        self.assertEqual(unsupported, 404)
+        self.assertEqual({m['id'] for m in data['media']}, {'anilist-1', 'anilist-2'})
+        self.assertEqual(data['relationships'], [saved.graph.relationships[0].model_dump()])
+        self.assertFalse(data['cache']['can_expand'])
+        self.assertFalse(data['truncated'])
+        self.assertEqual(len(saved.graph.media), 4)
+        provider.assert_not_called()
+
     def test_cache_hit_across_roots_makes_zero_provider_calls_and_bypasses_get_media(self):
         with patch('app.services.franchises.load', return_value=snapshot()), \
              patch('app.services.anilist.details') as details, patch('app.main.get_media') as get_media:
