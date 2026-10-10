@@ -5,7 +5,6 @@ import { useReducedMotion } from 'motion/react'
 import { canvasLimits } from '../lib/canvasLimits'
 import { CanvasPointerContext, useCanvasParallax } from '../lib/useCanvasParallax'
 import CharacterPortrait from './CharacterPortrait'
-import CursorStars from './CursorStars'
 import PointerEdge from './PointerEdge'
 
 export type StarNode = Node<{ label: string; subtitle: string; kind?: string; portraitUrl?: string | null; active?: boolean; onActivate?: (id: string) => void }, 'star'>
@@ -74,6 +73,5 @@ export default function Constellation({ nodes, edges, selectedId, onSelect, labe
       <Camera nodes={nodes} selectedId={selectedId} />
       <Controls showInteractive={false} orientation="horizontal" position="bottom-left" fitViewOptions={{ padding: .3, maxZoom: 1.1 }} />
     </ReactFlow></ReactFlowProvider></CanvasPointerContext.Provider>
-    <CursorStars />
   </div>
 }

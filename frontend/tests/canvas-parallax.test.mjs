@@ -21,19 +21,9 @@ const { useCanvasParallax } = await import('data:text/javascript;base64,' + Buff
 
 test('mouse effects stay bounded, reset on leave/drag/controls, and disable for touch or reduced motion', async () => {
   const listeners = new Map(), values = new Map()
-  const sparks = []
-  const stars = Array.from({ length: 10 }, () => ({
-    style: {}, animations: [],
-    getAnimations() { return this.animations },
-    animate(keyframes, options) {
-      sparks.push({ keyframes, options })
-      this.animations = [{ cancel: () => { this.animations = [] } }]
-    },
-  }))
   const container = { current: {
     style: { setProperty: (name, value) => values.set(name, value) },
     getBoundingClientRect: () => ({ left: 100, top: 50, width: 1000, height: 600 }),
-    querySelectorAll: () => stars,
     addEventListener: (name, listener) => listeners.set(name, listener),
     removeEventListener: name => listeners.delete(name),
   } }
@@ -47,18 +37,10 @@ test('mouse effects stay bounded, reset on leave/drag/controls, and disable for 
     await act(async () => { renderer = create(createElement(Canvas, { active: true })) })
     move({}); assert.deepEqual(offset(), ['12px', '9px'])
     assert.deepEqual(pointer.get(), { x: 1100, y: 650 })
-    assert.equal(sparks.length, 1)
-    move({ timeStamp: 120 }); assert.equal(sparks.length, 1)
-    for (let i = 1; i <= 25; i++) move({ timeStamp: 100 + i * 90 })
-    assert.equal(sparks.length, 26)
-    assert.ok(stars.every(star => star.animations.length <= 1))
-    assert.ok(sparks.every(spark => spark.options.duration >= 750 && spark.options.duration <= 1200))
-    assert.ok(sparks.every(spark => spark.keyframes[0].opacity === 0 && spark.keyframes.at(-1).opacity === 0))
     move({ clientX: 9000, clientY: -9000 }); assert.deepEqual(offset(), ['12px', '-9px'])
     move({ clientX: 600, clientY: 350 }); assert.deepEqual(offset(), ['0px', '0px'])
     move({}); listeners.get('pointerleave')(); assert.deepEqual(offset(), ['0px', '0px'])
     assert.equal(pointer.get(), null)
-    assert.ok(stars.every(star => star.animations.length === 0))
     move({}); listeners.get('pointerdown')(); assert.deepEqual(offset(), ['0px', '0px'])
     move({ buttons: 1 }); assert.deepEqual(offset(), ['0px', '0px'])
     move({ pointerType: 'touch' }); assert.deepEqual(offset(), ['0px', '0px'])
