@@ -37,6 +37,7 @@ test('cached Neon session still requests a JWT before calling a private API', as
     // Exercise the real API source with the installed SDK and isolated HTTP fixtures.
     const source = (await readFile(new URL('../src/lib/api.ts', import.meta.url), 'utf8'))
       .replace("import { authClient } from './auth'", 'const authClient = globalThis.__authApiTestClient')
+      .replace('import.meta.env.PROD', 'false')
       .replace('import.meta.env.VITE_API_URL', "'http://api.example.test'")
     const { outputText } = ts.transpileModule(source, {
       compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },

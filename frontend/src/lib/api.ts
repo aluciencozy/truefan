@@ -1,7 +1,7 @@
 import { authClient } from './auth'
    import type { CurrentUser, FlowGraphResponse, GenerationStatus, GraphExtractRequest, GraphResponse, HealthResponse, Media, TrendingCover, Universe, UniverseSearchResponse, UserMediaState, UserProgress } from './types'
 
-const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+const baseUrl = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
 export async function request<T>(path: string, signal?: AbortSignal, authenticated = false, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers)
