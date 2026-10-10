@@ -1,4 +1,7 @@
 from typing import Annotated
+from contextlib import asynccontextmanager
+import threading
+import psycopg
 from fastapi import Depends, FastAPI, HTTPException, Query
 from app.auth import current_user
 from app.schemas import CurrentUser, UserProgress
@@ -9,17 +12,53 @@ from app.schemas import (AskRequest, ExtractRequest, GraphResponse, HealthRespon
                          Media, PlaceholderResponse, RevealPoint)
 from app.services.demo import ENTITIES, MEDIA, RELATIONSHIPS
 from app.services.graph import filter_graph
+from app.services import anilist, generation
+from app.schemas import Universe, GenerationStatus
 
-app = FastAPI(title="Spoiler-Aware Media Knowledge Graph", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    stop = threading.Event()
+    threads = []
+    if settings.database_url and settings.hf_token:
+        for _ in range(settings.generation_max_concurrent):
+            thread = threading.Thread(target=generation.worker, args=(stop,), daemon=True)
+            thread.start(); threads.append(thread)
+    yield
+    stop.set()
+
+app = FastAPI(lifespan=lifespan, title="Spoiler-Aware Media Knowledge Graph", version="0.1.0")
 app.add_middleware(CORSMiddleware,
                    allow_origins=[settings.frontend_url.rstrip("/")],
                    allow_methods=["GET", "POST", "PUT"], allow_headers=["Content-Type", "Authorization"])
 
 
+def get_media(media_id: str) -> Media:
+    if media_id == MEDIA.id:
+        return MEDIA
+    if settings.database_url:
+        try:
+            from app.database import connection
+            with connection() as conn:
+                row = conn.execute('SELECT media FROM public.generated_graphs WHERE media_id=%s', (media_id,)).fetchone()
+            if row: return Media.model_validate(row[0])
+        except (RuntimeError, psycopg.Error):
+            pass
+    try:
+        return anilist.normalize(anilist.details(media_id))
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(404, 'Media unavailable or not found') from None
+
+# Existing placeholder endpoints keep their demo-only contract.
 def get_demo(media_id: str) -> Media:
     if media_id != MEDIA.id:
-        raise HTTPException(status_code=404, detail="Media not found")
+        raise HTTPException(404, 'Media not found')
     return MEDIA
+
+def cached_generation(media_id: str) -> dict | None:
+    try:
+        return generation.get(media_id)
+    except (RuntimeError, psycopg.Error):
+        raise HTTPException(503, 'Graph cache unavailable; configure DATABASE_URL and run python -m app.init_db') from None
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -29,20 +68,32 @@ def health():
 
 @app.get("/api/media/search", response_model=list[Media])
 def search_media(q: str = Query(default="", max_length=200)):
-    return [MEDIA] if q.casefold() in MEDIA.title.casefold() else []
+    if not q.strip(): return [MEDIA]
+    demo = [MEDIA] if q.casefold() in MEDIA.title.casefold() else []
+    try: return demo + anilist.search_media(q)
+    except (ValueError, KeyError, TypeError):
+        if demo: return demo
+        raise HTTPException(502, 'AniList search unavailable; try again shortly') from None
 
 
 @app.get("/api/media/{media_id}", response_model=Media)
 def media_details(media_id: str):
-    return get_demo(media_id)
+    return get_media(media_id)
 
 
 @app.get("/api/media/{media_id}/graph", response_model=GraphResponse)
 def media_graph(media_id: str, progress: int = Query(ge=0)):
-    media = get_demo(media_id)
+    media = get_media(media_id)
     if progress > media.total_units:
         raise HTTPException(status_code=422, detail="Progress exceeds this media’s total units")
-    return filter_graph(media_id, RevealPoint(unit=progress), ENTITIES, RELATIONSHIPS)
+    if media_id == MEDIA.id:
+        return filter_graph(media_id, RevealPoint(unit=progress), ENTITIES, RELATIONSHIPS)
+    row = cached_generation(media_id)
+    entities, edges = generation.graph_data(row['document']) if row else ([], [])
+    graph = filter_graph(media_id, RevealPoint(unit=progress), entities, edges)
+    graph.experimental = True
+    graph.generation = generation.status(row)
+    return graph
 
 
 @app.post("/api/extract", response_model=PlaceholderResponse, status_code=501)
@@ -64,14 +115,42 @@ def me(user: Annotated[CurrentUser, Depends(current_user)]):
 
 @app.get("/api/me/progress/{media_id}", response_model=UserProgress | None)
 def read_progress(media_id: str, user: Annotated[CurrentUser, Depends(current_user)]):
-    get_demo(media_id)
+    get_media(media_id)
     return progress_service.get_progress(user.id, media_id)
 
 
 @app.put("/api/me/progress/{media_id}", response_model=UserProgress)
 def write_progress(media_id: str, progress: RevealPoint,
                    user: Annotated[CurrentUser, Depends(current_user)]):
-    media = get_demo(media_id)
+    media = get_media(media_id)
     if progress.unit > media.total_units:
         raise HTTPException(422, "Progress exceeds this media’s total units")
     return progress_service.save_progress(user.id, UserProgress(media_id=media_id, progress=progress))
+
+
+@app.get('/api/media/{media_id}/universe', response_model=Universe)
+def media_universe(media_id: str):
+    get_media(media_id)
+    if media_id == MEDIA.id:
+        return Universe(root_id=media_id, media=[MEDIA], relationships=[])
+    try: return anilist.universe(media_id)
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(502, 'Universe metadata temporarily unavailable') from None
+
+
+@app.get('/api/media/{media_id}/generation', response_model=GenerationStatus)
+def generation_status(media_id: str):
+    get_media(media_id)
+    return generation.status(cached_generation(media_id))
+
+
+@app.post('/api/media/{media_id}/generation', response_model=GenerationStatus, status_code=202)
+def generate_graph(media_id: str, request: generation.GenerationRequest,
+                   user: Annotated[CurrentUser, Depends(current_user)]):
+    if media_id == MEDIA.id: raise HTTPException(409, 'The demo graph does not require generation')
+    get_media(media_id)
+    try: return generation.status(generation.enqueue(media_id,user.id,request.operation))
+    except (RuntimeError, psycopg.Error):
+        raise HTTPException(503, 'Graph storage unavailable; run python -m app.init_db') from None
+    except ValueError:
+        raise HTTPException(502, 'Media provider unavailable') from None

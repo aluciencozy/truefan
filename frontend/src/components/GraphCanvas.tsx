@@ -15,7 +15,7 @@ export default function GraphCanvas({ graph, onSelect }: {
     style: { background: colors[entity.type], border: '1px solid #7891a0', borderRadius: 10, padding: 16, color: '#173e53' },
   }))
   const edges: Edge[] = graph.relationships.map((edge) => ({
-    id: edge.id, source: edge.source, target: edge.target, label: edge.type,
+    id: edge.id, source: edge.source, target: edge.target, label: edge.label || edge.type,
     style: { stroke: '#648299', strokeWidth: 2 },
   }))
   return <div className="graph-canvas" aria-label="Story knowledge graph">
