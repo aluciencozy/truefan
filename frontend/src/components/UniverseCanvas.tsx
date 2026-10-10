@@ -12,7 +12,6 @@ import { connectedNeighbors, connectionDestination, directionalNeighbor, focusVi
 import type { ReleaseGuide } from '../lib/universeProgression'
 import { worldTitle } from '../lib/universeProgression'
 import { CanvasPointerContext, useCanvasParallax } from '../lib/useCanvasParallax'
-import CursorStars from './CursorStars'
 import PointerEdge from './PointerEdge'
 
 type Destination = Node<{ media: Media; guide: ReleaseGuide; release: boolean; focused: boolean; nearby: boolean; overview: boolean; preview: boolean; onFocus: (id: string) => void; onPreview: (id: string | null) => void }, 'destination'>
@@ -234,7 +233,6 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
         </div>
       </Panel>
     </ReactFlow></CanvasPointerContext.Provider>
-    <CursorStars />
     {!overview && layoutState !== 'loading' && <motion.div key={focusedId} className={`universe-inspector ${detailsMinimized ? 'details-minimized' : ''}`}
       initial={{ opacity: 0, x: reduced ? 0 : 18 }} animate={{ opacity: 1, x: 0 }}
       transition={{ duration: reduced ? 0 : .45, delay: reduced ? 0 : .35 }}>

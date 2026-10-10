@@ -7,10 +7,11 @@ import AuthPages from './components/AuthPages'
 import HomePage from './components/HomePage'
 import CommunityPage from './components/CommunityPage'
 import LibraryPage from './components/LibraryPage'
+import CursorStars from './components/CursorStars'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode><BrowserRouter><AuthProvider><Routes>
+  <StrictMode><BrowserRouter><AuthProvider><CursorStars /><Routes>
     <Route path="/" element={<HomePage />} />
     <Route path="/explore" element={<App />} />
     <Route path="/community" element={<CommunityPage />} />
