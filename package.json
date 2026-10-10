@@ -1,0 +1,14 @@
+{
+  "name": "spoiler-aware-media-knowledge-graph",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "neon": "neon"
+  },
+  "devDependencies": {
+    "neon": "^4.19.0",
+    "@neon/config": "^1.5.1"
+  }
+}
