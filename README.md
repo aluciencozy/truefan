@@ -459,6 +459,20 @@ record of that investigation.
 
 ## Hugging Face extraction experiment
 
+For a simple one-request check using a made-up story, set `HF_TOKEN` and
+`HF_MODEL` in `backend/.env`, install `backend/requirements.txt`, and run from
+`backend/`:
+
+```bash
+.venv/bin/python scripts/hf_extraction_smoke.py
+```
+
+This optional smoke test checks JSON structure, entity names, relationship
+endpoints, and exact evidence quotes. It prints the model response and exits
+with a nonzero status on failure. It makes no database writes, does not verify
+semantic correctness or spoiler safety, and can consume inference credits.
+Keep captured model responses outside the repository.
+
 From `backend/`, using the server-only `HF_TOKEN` in `backend/.env`:
 
 ```bash
@@ -587,3 +601,60 @@ requesting a token; the workaround passes a local regression check using the
 installed SDK and HTTP fixtures. Protected API success and Postgres save/retrieve
 still require a live check after the fix.
 A build, an OAuth redirect, or mocked JWT tests do not prove the complete live flow.
+
+## Community (Figma: Truefan)
+
+`/community` implements the Figma design in typed React components. Shared colors,
+local Pixelify Sans/Inter fonts, starry backgrounds, and control styles live in
+`frontend/src/index.css`; original Figma SVG assets live in `frontend/public/community`. The shared palette
+matches Truefan’s Community frame (`123:30`): charcoal `#1e1e2e`, panels
+`#181825`, borders `#45475a`, pale text `#cdd6f4`, and lavender `#cba6f7`.
+The sidebar links Explore, My Library (`/library`), and Community. Community has
+Discussions, Theories, and Reviews, search/media filters, latest/popular sorting,
+post links, optional review ratings, likes, and comments. There are no episode controls
+on this page. My Library reads the signed-in user's existing saved progress.
+
+Community data is stored in Neon Postgres. With backend dependencies and
+`DATABASE_URL` configured, initialize its additive tables once:
+
+```sh
+cd backend
+python -m app.init_community
+```
+
+The initializer does not populate the live feed. Optionally use
+`python -m app.init_community --seed-demo` for three clearly marked example posts;
+these have zero likes/comments. If storage is unavailable, the UI shows a labelled
+design preview and disables publishing/reactions rather than inventing activity.
+Deploy the updated backend and frontend to make these changes available online;
+initialize the tables on the same Neon branch used by that deployment.
+
+Community API contracts (also available in `/openapi.json`):
+
+| Endpoint | Access / behavior |
+| --- | --- |
+| `GET /api/community/posts` | Public; `category`, `media`, `q`, `sort`, `include_spoilers`, `offset`; 20 posts per page and `has_more`. |
+| `POST /api/community/posts` | Verified Neon bearer JWT; category, media, title, body, `contains_spoilers`, optional rating 1–5 for reviews. |
+| `GET /api/community/posts/{id}` | Public; respects `include_spoilers`, including copied post links. |
+| `PUT /api/community/posts/{id}/like` | Verified JWT; `{ "liked": true }` or false; one like per user/post. |
+| `GET /api/community/posts/{id}/comments` | Public; filters parent and comment spoiler flags; latest 100 comments. |
+| `POST /api/community/posts/{id}/comments` | Verified JWT; body and `contains_spoilers`; inherits a spoiler parent's flag. |
+| `POST /api/community/presence` | Public heartbeat with browser `visitor_id` UUID and category `page`; optional verified JWT. |
+| `GET /api/community/library` | Verified JWT; only the caller's saved media. |
+
+The visitor badge counts activity within the last 90 seconds, refreshing every
+25 seconds while the page is visible. Anonymous visitors are counted by browser,
+and authenticated visitors are deduplicated by verified user ID across browsers.
+It is an estimate of recent presence, not a fabricated fixed “128” or an exact count
+of humans. Counts span the Community tabs. Public posts use stable pseudonyms;
+ownership comes exclusively from the verified JWT, never request-supplied user IDs.
+
+Spoiler posts and comments are excluded in backend queries by default, including
+search/media options and comment counts. Authors supply spoiler flags; this does
+not automatically detect spoilers or apply graph reveal points to community text.
+
+Validation: frontend build/typecheck, existing SDK token regression, and community
+API tests. Real Postgres regression tests use isolated temporary tables and verify
+like deduplication, presence expiry/deduplication, filtering, and comments. Run them
+with `TRUEFAN_COMMUNITY_DB_TESTS=1 python -m unittest discover -s tests -p test_community.py`.
+These tests do not certify a live Google sign-in and publishing session.

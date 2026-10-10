@@ -3,7 +3,7 @@ import type { CurrentUser, GenerationStatus, Universe, GraphResponse, HealthResp
 
 const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
-async function request<T>(path: string, signal?: AbortSignal, authenticated = false, options: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, signal?: AbortSignal, authenticated = false, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers)
   if (authenticated) {
     if (!authClient) throw new Error('Configure Neon Auth before accessing your account.')

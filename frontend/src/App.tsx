@@ -114,7 +114,7 @@ export default function App() {
     <header className="app-header"><div><Link className="brand" to="/">TrueFan / Home</Link>
       <h1>Explore the universe.<br />Follow the story.</h1>
       <p>Media connections and experimental AI character knowledge.</p></div>
-      <div className="header-meta"><span role="status" className="connection">{health}</span><AuthPanel media={media} progress={progress} onProgress={unit => { setProgress(unit); setSelectedId(null); setGraph(null) }} /></div>
+      <div className="header-meta"><Link className="app-community-link" to="/community">Community ✦</Link><span role="status" className="connection">{health}</span><AuthPanel media={media} progress={progress} onProgress={unit => { setProgress(unit); setSelectedId(null); setGraph(null) }} /></div>
     </header>
     <main className="workspace">
       <MediaControls query={query} onQuery={setQuery} onSearch={() => void search()} results={results}
