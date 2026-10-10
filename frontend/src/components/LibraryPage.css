@@ -1,3 +1,4 @@
+.library-page{background:var(--base)}
 .saved-library{min-height:100vh;background:#1e1e2e;color:#cdd6f4;padding:28px 32px 32px;font-family:'Pixelify Sans',monospace;font-weight:400}
 .saved-library button,.saved-library input,.saved-library select,.library-dialog button{font-family:inherit}
 .saved-library a{color:inherit;text-decoration:none}

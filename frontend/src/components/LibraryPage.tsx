@@ -21,7 +21,7 @@ function ConnectedLibrary() {
   const session = authClient!.useSession()
   return <LibraryScreen key={session.data?.user.id ?? 'guest'} pending={session.isPending} viewer={session.data?.user ? {id: session.data.user.id, name: session.data.user.name || 'Fan'} : null} />
 }
-export default function LibraryPage() { return <><AppNavbar />{authClient ? <ConnectedLibrary /> : <LibraryScreen viewer={null} />}</> }
+export default function LibraryPage() { return <div className="library-page"><AppNavbar />{authClient ? <ConnectedLibrary /> : <LibraryScreen viewer={null} />}</div> }
 
 function Dialog({ title, onClose, busy, children }: { title: string; onClose: () => void; busy: boolean; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null)
