@@ -437,12 +437,23 @@ versions. Do not replace an early description with a full-story biography.
 ## Universe exploration and release guidance
 
 Search results keep their exact AniList media ID and your typed query. Selecting
-an anime opens an effectively infinite React Flow canvas. Select a destination
+an anime opens a spacious React Flow canvas at a readable zoom near the selected
+work. Pan and zoom to explore; **Fit View** shows the complete discovered graph.
+Pan bounds and minimum zoom are derived from its layout. Select a destination
 to smoothly focus it, inspect its connections, and use **Enter anime** (or
 double-click an accessible node) to open the existing episode-filtered character
-graph. **Return home** focuses the original selection; zoom controls, fit-view and
-a desktop minimap navigate the map. Returning from characters keeps the canvas
-and camera mounted. The minimap is hidden on narrow mobile screens.
+graph. **Return home** focuses the original selection. Returning from characters
+keeps the universe canvas and camera mounted. The map uses the homepage's dark
+Catppuccin Mocha palette and locally hosted Pixelify Sans typography, with cover
+art, thin connections, and distinct locked/available/completed states.
+
+Selecting a character focuses its node and opens a Motion detail panel on the
+right half of the desktop canvas (a bottom panel on mobile). Closing restores
+the previous camera. Details show only the filtered graph's descriptions,
+relationships, and provenance. Character artwork is not supplied by the API,
+so characters use monograms. Changing progress immediately removes old graphs
+and details. Motion respects reduced-motion settings; layouts do not recalculate
+while panning or zooming.
 
 `universeModel.ts` normalizes stable typed connections while preserving the
 original directed AniList evidence. PREQUEL reverses placement direction;
