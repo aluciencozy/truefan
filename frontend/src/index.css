@@ -162,7 +162,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .watched-badge, .release-badge, .lock-badge { position: absolute; border-radius: 20px; display: grid; place-items: center; font-size: 11px; min-width: 23px; height: 23px; right: -3px; top: 0; background: #a6e3a1; color: #181825; }
 .release-badge { top: auto; bottom: 0; background: var(--mauve); padding: 0 6px; }
 .lock-badge { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
-.branch-region { width: 100%; height: 100%; border: 1px solid #b4befe0d; border-radius: 50%; pointer-events: none; }
 .canvas-toolbar { display: flex; flex-wrap: wrap; gap: 8px; max-width: calc(100% - 48px); margin: 16px 36px; }
 .canvas-toolbar button { font-size: 10px; background: #181825b3; border-color: #45475a80; padding: 8px 13px; }
 .canvas-toolbar button[aria-pressed="true"] { border-color: #b4befe80; color: var(--lavender); }
@@ -185,9 +184,8 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .arrival-ring { position: absolute; inset: -8px; border-radius: 50%; border: 1px solid var(--mauve); pointer-events: none; }
 .overview-mode .destination strong { margin-top: 38px; font-size: 20px; }
 .overview-mode .destination-state { display: none; }
-.branch-region { border: 0; border-top: 1px dashed #b4befe14; border-radius: 0; }
-.universe-group { border: 1px solid #b4befe24; border-radius: 24px; background: #18182533; }
-.universe-group > span { display: block; padding: 18px 24px; color: #bac2de; font-size: 18px; font-weight: 600; }
+.universe-group { pointer-events: none; }
+.universe-group > span { display: block; padding: 18px 24px; color: #6c7086; font-size: 18px; font-weight: 600; }
 .orbit-relation { font-family: "Inter", sans-serif; font-size: 10px; fill: var(--subtext); paint-order: stroke; stroke: var(--crust); stroke-width: 4px; pointer-events: none; }
 .journey-trail { pointer-events: none; }
 .orbit-edge .react-flow__edge-path { transition: stroke .18s, stroke-width .18s, opacity .18s, filter .18s; }
