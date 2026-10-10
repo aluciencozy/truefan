@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function AuthPanel(props: Props) {
-  if (!authClient) return <p className="account-note">Guest demo. Configure Neon Auth to enable accounts.</p>
+  if (!authClient) return <p className="account-note">Guest session. Configure Neon Auth to enable accounts.</p>
   return <ConfiguredAuth {...props} />
 }
 

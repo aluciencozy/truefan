@@ -29,19 +29,26 @@ reveals three nodes, episode 2 reveals a faction, and episode 3 reveals an objec
 Moving backwards removes later information immediately, including selected details.
 Progress 0 gives an empty graph. No real-series spoilers are included in the fixture.
 
-The starter fixture remains available alongside dynamic AniList search. Accounts use real Neon Auth when configured. Automatic experimental
-graphs now supplement it; existing production deployments require the updated code
+The development fixture remains available through its API and explicit
+`/explore?media=lantern-harbor` route; the search UI presents real stories.
+Accounts use real Neon Auth when configured. Automatic experimental graphs
+now supplement it; existing production deployments require the updated code
 and additive schema to enable the new flow.
 Saved progress needs the application table initialized as described below.
 
 ## Example experience
 
-1. Search for Lantern Harbor and select it.
-2. Select the last episode you **finished**, initially episode 1.
-3. Pan/zoom the graph and select Mira to read an introductory description.
-4. Finish episode 2 and advance the selector: new connections become visible.
-5. Rewind to episode 1: the new faction and its relationships disappear.
-6. With Neon Auth configured, open Account, sign in with Google, then
+1. Search for an anime title on the homepage and choose its universe.
+2. Open an available world, set your progress, and explore its revealed characters.
+
+For the deterministic development fixture, open `/explore?media=lantern-harbor`
+and follow these checks:
+
+1. Select the last episode you **finished**, initially episode 1.
+2. Pan/zoom the graph and select Mira to read an introductory description.
+3. Finish episode 2 and advance the selector: new connections become visible.
+4. Rewind to episode 1: the new faction and its relationships disappear.
+5. With Neon Auth configured, open Account, sign in with Google, then
    use “Verify API session” to exercise the protected FastAPI endpoint.
 
 Signed-in users can save and retrieve progress across reloads and devices.
@@ -185,14 +192,19 @@ open automatically; ambiguous results stay in the homepage dropdown. Unresolved
 equally relevant candidates at the discovery limit require a more specific query.
 Labels shorten stored slash/season names for display; names never establish membership.
 Franchise search requires the existing Neon cache; provider/storage errors stay inline.
-Submitting an empty search opens the guest demo.
-The TrueFan header link returns home to search again. The explorer retains media selection,
+Empty searches stay on the current page. Opening `/explore` without a selected
+story shows the shared search; it does not automatically load the development fixture.
+The constellation displays story totals without numbered branch labels.
+The explorer’s **Find another story** uses the same search component, suggestions,
+discovery, and direct universe navigation as the homepage. The TrueFan header link
+returns home to search again. The explorer retains media selection,
 progress filtering, and account controls. Home-page image nodes are decorative
 artwork reused from the Figma design, not factual story relationships. Assets
 live in `frontend/public/home/`; the font license is in `frontend/public/fonts/`.
 Log in and Sign up use the existing Neon Auth routes.
 
-The two graph calls should return 3 and 5 entities respectively. In `/explore`,
+The two fixture graph calls should return 3 and 5 entities respectively. In
+`/explore?media=lantern-harbor`,
 “Backend connected” proves the `/health` call succeeded. The visible graph comes
 from FastAPI, not a separate frontend fixture. Change episodes and click a node
 to verify the graph and details update. Stop FastAPI and reload to check the error UI.

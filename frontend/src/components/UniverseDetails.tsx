@@ -34,7 +34,7 @@ export default function UniverseDetails({ media, universe, model, guide, release
       <div className="world-progress"><div><span>Your progress</span><strong>{guide.status === 'completed' ? 'Completed' : progressText}</strong></div>
         {media.total_units_known && <progress aria-label={`${media.title} viewing progress`} max={media.total_units} value={Math.min(unit, media.total_units)} />}
       </div>
-      {release && <p>Branch {guide.branchNumber}, release {guide.number}{guide.approximateDate ? ' · approximate date' : ''}</p>}
+      {release && <p>Release {guide.number}{guide.approximateDate ? ' · approximate date' : ''}</p>}
       <button className="primary enter-world" disabled={busy} onClick={() => onEnter(media)}>Enter World <span aria-hidden="true">↗</span></button>
       {guide.status !== 'completed' && <button className="complete-world" disabled={busy} onClick={() => onComplete(media)}>I finished this anime</button>}
     </>}

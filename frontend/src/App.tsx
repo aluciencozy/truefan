@@ -27,8 +27,6 @@ export default function App() {
   const initialQuery = searchParams.get('q') || ''
   const initialMedia = searchParams.get('media') || ''
   const [health, setHealth] = useState('Connecting to backend…')
-  const [query, setQuery] = useState(initialQuery)
-  const [results, setResults] = useState<Media[]>([])
   const [media, setMedia] = useState<Media | null>(null)
   const [progress, setProgress] = useState(1)
   const [graph, setGraph] = useState<GraphResponse | null>(null)
@@ -49,10 +47,9 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [generationError, setGenerationError] = useState('')
-  const [searching, setSearching] = useState(true)
   const [revision, setRevision] = useState(0)
+  const [loadRevision, setLoadRevision] = useState(0)
   const attempted = useRef(new Set<string>())
-  const searchController = useRef<AbortController | null>(null)
   const universeController = useRef<AbortController | null>(null)
   const model = useMemo(() => universe ? buildUniverseModel(universe) : null, [universe])
   const stateKey = identity && model ? `${identity}:${model.media.map(m => m.id).join(',')}` : ''
@@ -91,18 +88,14 @@ export default function App() {
     api.health(controller.signal).then(() => setHealth('Backend connected')).catch(() => {
       if (!controller.signal.aborted) setHealth('Backend unavailable')
     })
-    setQuery(initialQuery); setSearching(true); setResults([]); setError(''); setGenerationError('')
+    setError(''); setGenerationError('')
     setMedia(null); setProgress(1); setGraph(null); setSelectedId(null); setUniverse(null); setView('characters')
     const load = initialMedia ? api.media(initialMedia, controller.signal).then(item => {
-      if (!controller.signal.aborted) { setResults([item]); void openUniverse(item) }
-    }) : api.search(initialQuery, controller.signal).then(items => {
-      if (controller.signal.aborted) return
-      setResults(items); if (!initialQuery) setMedia(items[0] ?? null)
-    })
+      if (!controller.signal.aborted) void openUniverse(item)
+    }) : Promise.resolve()
     load.catch(error => { if (!controller.signal.aborted) setError(error.message) })
-      .finally(() => { if (!controller.signal.aborted) setSearching(false) })
-    return () => { controller.abort(); searchController.current?.abort(); universeController.current?.abort() }
-  }, [initialQuery, initialMedia])
+    return () => { controller.abort(); universeController.current?.abort() }
+  }, [initialQuery, initialMedia, loadRevision])
 
   useEffect(() => {
     if (!media || view !== 'characters') return
@@ -123,15 +116,6 @@ export default function App() {
     void load()
     return () => { controller.abort(); clearTimeout(timer) }
   }, [media, progress, view, revision])
-
-  async function search() {
-    searchController.current?.abort()
-    const controller = new AbortController(); searchController.current = controller
-    setSearching(true); setError('')
-    try { const items = await api.search(query, controller.signal); if (!controller.signal.aborted) setResults(items) }
-    catch (error) { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Search failed.') }
-    finally { if (!controller.signal.aborted) setSearching(false) }
-  }
 
   function enter(item: Media) {
     if (item.anilist_id && (awaitingState || saving || (universe && guide[item.id]?.status === 'locked'))) return
@@ -198,8 +182,8 @@ export default function App() {
   const generation = visibleGraph?.generation
   const running = generation && ['queued','retrieving','generating'].includes(generation.status)
   const inUniverse = view === 'universe'
-  const controls = <MediaControls query={query} onQuery={setQuery} onSearch={() => void search()} results={results}
-    media={media} onSelect={item => void openUniverse(item)} progress={progress} onProgress={changeProgress} searching={searching} showProgress={!inUniverse} />
+  const controls = <MediaControls initialQuery={initialQuery} media={media}
+    progress={progress} onProgress={changeProgress} showProgress={!inUniverse} />
 
   function closeCharacter() {
     setSelectedId(null)
@@ -224,7 +208,7 @@ export default function App() {
       <section className="graph-panel" aria-label="Graph explorer">
         <div className="graph-heading"><div><span className="view-label">{inUniverse ? 'Your connected universe' : 'Character constellation'}</span>
           <h1>{inUniverse ? universe?.media.find(item => item.id === universe.root_id)?.title || media?.title : media?.title || 'Every story is a universe.'}</h1>
-          <p>{inUniverse ? `${model?.media.length ?? 0} stories / ${model?.branches.length ?? 0} branches` : media ? progress === 0 ? 'Not started' : media.has_prologue ? progress === 1 ? 'Through the prologue' : `Through episode ${progress - 1}` : `Through ${media.progress_unit} ${progress}` : 'Choose a story to find your first constellation.'}</p></div>
+          <p>{inUniverse ? `${model?.media.length ?? 0} stories` : media ? progress === 0 ? 'Not started' : media.has_prologue ? progress === 1 ? 'Through the prologue' : `Through episode ${progress - 1}` : `Through ${media.progress_unit} ${progress}` : 'Choose a story to find your first constellation.'}</p></div>
           <div className="graph-actions">
             {media && !inUniverse && <label className="inline-progress" htmlFor="canvas-progress">Your progress<select id="canvas-progress" value={progress} onChange={event => changeProgress(Number(event.target.value))}>
               <option value={0}>Not started</option>
@@ -250,11 +234,11 @@ export default function App() {
               {identity && <button className="reload-state" disabled={stateLoading || saving} onClick={() => setStateRevision(value => value + 1)}>Reload saved state</button>}
             </>} /></div>}
           {inUniverse && !universe && !error && <div className="empty celestial" role="status"><span className="empty-star">✧</span>Discovering connected stories…</div>}
-          {error ? <div role="alert" className="error">{error} <button onClick={() => { if (inUniverse && media) void openUniverse(media); else if (!media) void search(); else setRevision(value => value + 1) }}>Retry loading</button></div>
+          {error ? <div role="alert" className="error">{error} <button onClick={() => { if (inUniverse && media) void openUniverse(media); else if (!media) setLoadRevision(value => value + 1); else setRevision(value => value + 1) }}>Retry loading</button></div>
             : !inUniverse ? <motion.div className="character-layer" key={media?.id} initial={{ opacity: 0, scale: reduced ? 1 : .9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: reduced ? 0 : .65 }}>
               {visibleGraph ? visibleGraph.entities.length ? <GraphCanvas key={`${media?.id}-${progress}`} graph={visibleGraph} onSelect={setSelectedId} selectedId={selectedId} />
                 : <div className="empty celestial"><span className="empty-star">✧</span>{running ? 'Building your constellation…' : 'Your connections begin here.'}<p>{generation ? 'Choose how far you have watched to reveal available characters.' : 'Advance your progress to reveal your first connections.'}</p></div>
-              : <div className="empty celestial" role="status"><span className="empty-star">✧</span>{media ? 'Finding your constellation…' : 'A whole universe is waiting.'}<p>{media ? 'Loading the knowledge revealed at your progress.' : 'Search for an anime, or explore the Lantern Harbor demo.'}</p></div>}
+              : <div className="empty celestial" role="status"><span className="empty-star">✧</span>{media ? 'Finding your constellation…' : 'A whole universe is waiting.'}<p>{media ? 'Loading the knowledge revealed at your progress.' : 'Search for a story to explore its universe.'}</p></div>}
               {/* Unmount immediately on progress changes, including any exiting details, to avoid stale spoilers. */}
               <AnimatePresence key={`details-${media?.id}-${progress}`}>
                 {selected && media && visibleGraph && <EntityDetails entity={selected} media={media} graph={visibleGraph} onSelect={setSelectedId} onClose={closeCharacter} />}
