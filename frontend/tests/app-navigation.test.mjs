@@ -109,7 +109,8 @@ for (const parameter of ['media', 'universe']) test(`direct ${parameter} route o
     assert.deepEqual(calls, [['media', sequel.id], ['universe', sequel.id]])
     assert.equal(renderer.root.findByType('UniverseCanvas').props.universe.root_id, sequel.id)
     assert.deepEqual(renderer.root.findByType('h1').children, ['Undiscovered'])
-    assert.equal(renderer.root.findByType('details').props.open, false)
+    assert.equal(renderer.root.findByType('dialog').props.open, undefined)
+    assert.equal(renderer.root.findByProps({ className: 'explorer-search' }).props['aria-label'], 'Find another story')
   } finally {
     if (renderer) await act(async () => renderer.unmount())
     globalThis.__navigationQuery = 'q=anime'
@@ -277,12 +278,30 @@ test('explorer without a story offers search without loading the development fix
     media: async () => assert.fail('An empty explorer must not select media'),
     graph: async () => assert.fail('An empty explorer must not load character facts'),
   })
+  let focused = false
+  const dialog = {
+    open: false,
+    showModal() { this.open = true },
+    close() { this.open = false },
+    querySelector: () => ({ focus() { focused = true } }),
+  }
   let renderer
   try {
-    await act(async () => { renderer = create(createElement(App)) })
+    await act(async () => { renderer = create(createElement(App), { createNodeMock: element => element.type === 'dialog' ? dialog : null }) })
     assert.equal(renderer.root.findByType('MediaControls').props.initialQuery, '')
     assert.equal(renderer.root.findAllByType('ProgressControl').length, 0)
-    assert.equal(renderer.root.findByType('details').props.open, true)
+    assert.equal(dialog.open, false)
+    await act(async () => renderer.root.findByProps({ className: 'explorer-search' }).props.onClick())
+    assert.equal(dialog.open, true)
+    assert.equal(focused, true)
+    const backdropClick = renderer.root.findByType('dialog').props.onClick
+    await act(async () => backdropClick({ target: {}, currentTarget: dialog }))
+    assert.equal(dialog.open, true)
+    await act(async () => backdropClick({ target: dialog, currentTarget: dialog }))
+    assert.equal(dialog.open, false)
+    await act(async () => renderer.root.findByProps({ className: 'explorer-search' }).props.onClick())
+    await act(async () => renderer.root.findByProps({ 'aria-label': 'Close story search' }).props.onClick())
+    assert.equal(dialog.open, false)
     assert.equal(renderer.root.findAllByType('GraphCanvas').length, 0)
     assert.ok(!JSON.stringify(renderer.toJSON()).includes('Lantern Harbor'))
   } finally {

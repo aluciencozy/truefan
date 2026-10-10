@@ -95,14 +95,11 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .account-dropdown a:hover { background: #b4befe15; color: var(--lavender); }
 .account-dropdown p { padding: 6px 12px; }
 .workspace { position: relative; }
-.explorer-search { position: relative; z-index: 15; font-size: 11px; }
-.explorer-search > summary { display: flex; align-items: center; justify-content: center; gap: 10px; height: 40px; border: 1px solid #45475a90; border-radius: 999px; padding: 0 15px; background: #18182570; backdrop-filter: blur(12px); list-style: none; white-space: nowrap; }
-.explorer-search > summary::-webkit-details-marker { display: none; }
-.explorer-search[open] > summary { color: var(--lavender); }
-.controls { position: absolute; top: 100%; right: 0; width: min(340px, calc(100vw - 40px)); margin-top: 10px; max-height: min(690px, 65svh); overflow: auto; box-shadow: 0 24px 80px #0007; scrollbar-width: thin; }
-.controls h2 { font-size: 24px; }
-.controls .home-search-box { margin-top: 20px; }
-.controls .home-suggestions { position: static; margin-top: 8px; }
+.explorer-search { display: flex; align-items: center; justify-content: center; gap: 10px; height: 40px; padding: 0 15px; font-size: 11px; white-space: nowrap; }
+.story-search-dialog { position: fixed; inset: 50% auto auto 50%; transform: translate(-50%, -50%); width: min(680px, calc(100vw - 40px)); max-width: none; margin: 0; padding: 0; border: 0; background: transparent; color: var(--text); overflow: visible; }
+.story-search-dialog::backdrop { background: #11111bcc; backdrop-filter: blur(6px); }
+.story-search-close { position: absolute; right: 0; top: -8px; width: 36px; height: 36px; padding: 0; border: 0; background: transparent; font-size: 28px; }
+.controls h2 { margin: 0 44px 24px; font-size: 32px; text-align: center; }
 .graph-panel { position: relative; }
 .graph-heading { min-height: 140px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 36px; position: relative; z-index: 20; }
 .graph-heading > div:first-child { min-width: 0; }
@@ -292,10 +289,10 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .app-shell :is(.graph-heading > div:first-child, .progress-control > label, .graph-footer > *, .destination > strong, .destination-state, .star-node > strong, .star-node > small) {
   background: #11111b40; border-radius: 6px; backdrop-filter: blur(6px);
 }
-.app-shell :is(.account-trigger, .account-dropdown, .explorer-search > summary, .graph-actions > button, .progress-stepper, .controls, .canvas-toolbar button, .overview-control button, .journey-controls, .universe-inspector, .character-layer > .details, .canvas-status, .canvas-legend, .react-flow__controls, .constellation-signin) {
+.app-shell :is(.account-trigger, .account-dropdown, .graph-actions > button, .progress-stepper, .canvas-toolbar button, .overview-control button, .journey-controls, .universe-inspector, .character-layer > .details, .canvas-status, .canvas-legend, .react-flow__controls, .constellation-signin) {
   backdrop-filter: blur(6px);
 }
-.app-shell .controls, .app-shell .universe-inspector, .app-shell .character-layer > .details { background: #181825e6; }
+.app-shell .universe-inspector, .app-shell .character-layer > .details { background: #181825e6; }
 @media (max-width: 1000px) {
   .graph-heading { flex-wrap: wrap; }
   .graph-actions { flex-wrap: wrap; }
@@ -315,8 +312,8 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
   .graph-heading h1 { font-size: 28px; }
   .graph-actions { width: 100%; gap: 10px; }
   .explorer-search { margin-left: auto; }
-  .explorer-search > summary { width: 40px; padding: 0; }
-  .explorer-search > summary span { display: none; }
+  .graph-actions > .explorer-search { width: 40px; padding: 0; }
+  .explorer-search span { display: none; }
   .graph-actions > button { padding: 0 12px; }
   .graph-stage { height: 65svh; min-height: 500px; }
   .graph-footer { padding: 16px 20px; font-size: 9px; flex-wrap: wrap; gap: 12px; }
