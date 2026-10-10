@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     generation_admin_subject: str = ""
     universe_node_cap: int = Field(default=25, ge=1, le=50)
     universe_depth: int = Field(default=1, ge=0, le=2)
+    franchise_cache_ttl_seconds: int = Field(default=86400, gt=0)
     anilist_api_url: str = "https://graphql.anilist.co"
     frontend_url: str = "http://localhost:3000"
     neon_auth_jwks_url: str = ""
