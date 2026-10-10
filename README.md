@@ -685,6 +685,14 @@ and [reviewed candidates](docs/data/ubw-extraction-candidates.json).
 
 ## Automated graph generation
 
+For the researched replacements of existing caches, see
+[source-curated graphs](docs/source-curated-graphs.md). These retain source provenance
+and experimental/unverified status, and automatic generation cannot overwrite them.
+From `backend/`, `python -m scripts.replace_generated_graphs` dry-runs the exact scope;
+`--apply --backup /private/path/graphs-before.json` applies it atomically with a private
+backup outside the repository. It preserves user progress and generation history.
+Cached reads consume no inference quota, so existing generation limits can stay as-is.
+
 ```text
 AniList
     ↓
