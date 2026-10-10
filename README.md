@@ -175,7 +175,8 @@ to verify the graph and details update. Stop FastAPI and reload to check the err
 | Variable | Location | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | Backend | Neon Postgres connection string, with TLS parameters from Console |
-| `HF_TOKEN` | Backend | Secret Inference API/Providers token; unused by the starter |
+| `HF_TOKEN` | Backend | Secret Inference Providers token used by `POST /api/media/{id}/extract` |
+| `HF_MODEL`, `HF_API_URL` | Backend | Optional overrides (defaults: `meta-llama/Llama-3.1-8B-Instruct`, the HF router chat-completions URL) |
 | `ANILIST_API_URL` | Backend | Defaults to `https://graphql.anilist.co` |
 | `FRONTEND_URL` | Backend | Exact allowed browser origin; defaults to `http://localhost:3000` |
 | `VITE_API_URL` | Frontend | Public FastAPI origin; defaults to `http://localhost:8000` |
@@ -331,6 +332,7 @@ these contracts in `src/lib/types.ts`.
 | `GET /api/media/search?q=...` | Case-insensitive title search; returns `Media[]` for the fixture |
 | `GET /api/media/{id}` | One `Media`; unknown IDs return 404 |
 | `GET /api/media/{id}/graph?progress=N` | Required non-negative completed unit; returns filtered `GraphResponse`; out-of-range returns 422 |
+| `POST /api/media/{id}/extract` | `GraphExtractRequest` (`summary`, `source`, `reveal_point`, viewer `progress`); calls Hugging Face with server-only `HF_TOKEN` and returns React Flow `{nodes, edges}` (`FlowGraphResponse`, `origin: "ai"`, unverified). On any provider failure (timeout, 429, bad output, no token) it returns the curated graph from Neon (`origin: "database"`) or the in-code seed (`"builtin"`). Both paths are filtered by `progress`; unknown media 404, progress beyond total 422 |
 | `POST /api/extract` | `ExtractRequest`; returns 501 with a typed `not_implemented` message |
 | `POST /api/ask` | `AskRequest`; returns 501 without generating an answer |
 | `GET /api/me` | Bearer token required; returns `{ "id": "verified-user-subject" }` |
@@ -519,3 +521,13 @@ requesting a token; the workaround passes a local regression check using the
 installed SDK and HTTP fixtures. Protected API success and Postgres save/retrieve
 still require a live check after the fix.
 A build, an OAuth redirect, or mocked JWT tests do not prove the complete live flow.
+
+## Seeding the demo catalog
+
+`schema.sql` also defines `media`, `entities` and `relationships` (`unlock_episode` = the
+API's `revealed_at.unit`). From `backend/`, run `python scripts/seed_demo_data.py` to create
+the tables and upsert Lantern Harbor and *Attack on Titan* season 1 (25 entities across
+episodes 1/5/10/15/20/25). It is idempotent. Seed reveal episodes are hand-written and
+unreviewed (`verified = false`); they err late, never early. Without the seed, or when
+Neon is unreachable, the extract endpoint falls back to the same data compiled into
+`app/services/seed_catalog.py`.

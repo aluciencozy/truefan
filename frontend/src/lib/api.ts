@@ -1,5 +1,5 @@
 import { authClient } from './auth'
-import type { CurrentUser, GraphResponse, HealthResponse, Media, UserProgress } from './types'
+import type { CurrentUser, FlowGraphResponse, GraphExtractRequest, GraphResponse, HealthResponse, Media, UserProgress } from './types'
 
 const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
@@ -26,6 +26,10 @@ export const api = {
   media: (id: string, signal?: AbortSignal) => request<Media>(`/api/media/${encodeURIComponent(id)}`, signal),
   graph: (id: string, progress: number, signal?: AbortSignal) =>
     request<GraphResponse>(`/api/media/${encodeURIComponent(id)}/graph?progress=${progress}`, signal),
+  extractGraph: (id: string, body: GraphExtractRequest, signal?: AbortSignal) =>
+    request<FlowGraphResponse>(`/api/media/${encodeURIComponent(id)}/extract`, signal, false, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }),
   progress: (id: string) => request<UserProgress | null>(`/api/me/progress/${encodeURIComponent(id)}`, undefined, true),
   saveProgress: (id: string, unit: number) => request<UserProgress>(`/api/me/progress/${encodeURIComponent(id)}`, undefined, true, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unit }),
