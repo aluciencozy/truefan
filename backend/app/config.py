@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     )
     database_url: str = ""
     hf_token: str = ""
+    hf_model_id: str = "Qwen/Qwen2.5-7B-Instruct"
+    hf_provider: str = "auto"
     anilist_api_url: str = "https://graphql.anilist.co"
     frontend_url: str = "http://localhost:3000"
     neon_auth_jwks_url: str = ""

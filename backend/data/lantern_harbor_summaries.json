@@ -1,0 +1,5 @@
+[
+  {"media_id":"lantern-harbor","summary":"Mira is a young cartographer who visits Lantern Harbor, a coastal town known for its lighthouse. Sol is Mira's friend and a local boat builder.","source":"manual:lantern-harbor/episode-1","reveal_point":{"unit":1}},
+  {"media_id":"lantern-harbor","summary":"The Lightkeepers are the crew that maintains Lantern Harbor's lights. Sol is a member of the Lightkeepers.","source":"manual:lantern-harbor/episode-2","reveal_point":{"unit":2}},
+  {"media_id":"lantern-harbor","summary":"Mira finds the Glass compass, an object in the lighthouse workshop.","source":"manual:lantern-harbor/episode-3","reveal_point":{"unit":3}}
+]
