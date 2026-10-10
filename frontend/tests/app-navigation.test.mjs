@@ -11,9 +11,10 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const require = createRequire(import.meta.url)
 const api = {}
 globalThis.__navigationApi = api
+globalThis.__navigationQuery = 'q=anime'
 const sourceUrl = new URL('../src/App.tsx', import.meta.url)
 const source = (await readFile(sourceUrl, 'utf8'))
-  .replace("import { Link, useSearchParams } from 'react-router-dom'", "const Link = 'a'; const useSearchParams = () => [new URLSearchParams('q=anime')]")
+  .replace("import { Link, useSearchParams } from 'react-router-dom'", "const Link = 'a'; const useSearchParams = () => [new URLSearchParams(globalThis.__navigationQuery)]")
   .replace(/import (\w+) from '\.\/components\/[^']+'/g, (_, name) => `const ${name} = '${name}'`)
   .replace("import { api } from './lib/api'", 'const api = globalThis.__navigationApi')
 let { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } })
@@ -26,6 +27,28 @@ const fixture = { id: 'lantern-harbor', title: 'Lantern Harbor', type: 'anime', 
 const first = { ...fixture, id: 'anilist-1', title: 'First', anilist_id: 1, release_date: { year: 2000, month: 1, day: 1 } }
 const sequel = { ...first, id: 'anilist-2', title: 'Sequel', anilist_id: 2, release_date: { year: 2001, month: 1, day: 1 } }
 const universe = { root_id: first.id, media: [first, sequel], relationships: [{ source: first.id, target: sequel.id, type: 'SEQUEL' }], truncated: false }
+
+test('direct media route opens its universe without a second search or character generation', async () => {
+  globalThis.__navigationQuery = `media=${sequel.id}`
+  const calls = []
+  Object.assign(api, {
+    health: async () => ({}),
+    media: async id => { calls.push(['media', id]); return sequel },
+    universe: async id => { calls.push(['universe', id]); return { ...universe, root_id: id } },
+    search: async () => { assert.fail('Direct navigation must not search again') },
+    graph: async () => { assert.fail('Opening a universe must not load character facts') },
+  })
+  let renderer
+  try {
+    await act(async () => { renderer = create(createElement(App)) })
+    assert.deepEqual(calls, [['media', sequel.id], ['universe', sequel.id]])
+    assert.equal(renderer.root.findByType('UniverseCanvas').props.universe.root_id, sequel.id)
+    assert.equal(renderer.root.findByType('details').props.open, false)
+  } finally {
+    if (renderer) await act(async () => renderer.unmount())
+    globalThis.__navigationQuery = 'q=anime'
+  }
+})
 
 for (const scenario of ['loading', 'failed', 'saving', 'ready', 'guest']) {
   test(`search enters Lantern Harbor while previous universe state is ${scenario}`, async () => {

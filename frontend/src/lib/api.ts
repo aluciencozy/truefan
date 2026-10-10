@@ -1,5 +1,5 @@
 import { authClient } from './auth'
-import type { CurrentUser, GenerationStatus, Universe, GraphResponse, HealthResponse, Media, UserMediaState, UserProgress } from './types'
+import type { CurrentUser, GenerationStatus, Universe, UniverseSearchResponse, GraphResponse, HealthResponse, Media, UserMediaState, UserProgress } from './types'
 
 const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
@@ -26,6 +26,8 @@ export async function request<T>(path: string, signal?: AbortSignal, authenticat
 export const api = {
   health: (signal?: AbortSignal) => request<HealthResponse>('/health', signal),
   search: (q: string, signal?: AbortSignal) => request<Media[]>(`/api/media/search?q=${encodeURIComponent(q)}`, signal),
+  searchUniverses: (q: string, discover = false, signal?: AbortSignal) =>
+    request<UniverseSearchResponse>(`/api/universes/search?q=${encodeURIComponent(q)}&discover=${discover}`, signal),
   media: (id: string, signal?: AbortSignal) => request<Media>(`/api/media/${encodeURIComponent(id)}`, signal),
   graph: (id: string, progress: number, signal?: AbortSignal) =>
     request<GraphResponse>(`/api/media/${encodeURIComponent(id)}/graph?progress=${progress}`, signal),

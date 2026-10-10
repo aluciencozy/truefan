@@ -12,9 +12,9 @@ from app.schemas import (AskRequest, ExtractRequest, GraphResponse, HealthRespon
                          Media, PlaceholderResponse, RevealPoint)
 from app.services.demo import ENTITIES, MEDIA, RELATIONSHIPS
 from app.services.graph import filter_graph
-from app.services import anilist, generation, franchises
+from app.services import anilist, generation, franchises, universe_search
 from app.schemas import (Universe, GenerationStatus, UniverseExpandRequest,
-                         UserMediaState, UserMediaStateUpdate)
+                         UserMediaState, UserMediaStateUpdate, UniverseSearchResponse)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -87,6 +87,16 @@ def search_media(q: str = Query(default="", max_length=200)):
             local = []
         if demo or local: return demo + local
         raise HTTPException(502, 'AniList search unavailable; try again shortly') from None
+
+
+@app.get('/api/universes/search', response_model=UniverseSearchResponse)
+def search_universes(q: str = Query(default='', max_length=200), discover: bool = False) -> UniverseSearchResponse:
+    try:
+        return universe_search.search(q, discover)
+    except (RuntimeError, psycopg.Error):
+        raise HTTPException(503, 'Universe search unavailable; check the franchise cache and try again') from None
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(502, 'Universe discovery unavailable; try again shortly') from None
 
 
 @app.get("/api/media/{media_id}", response_model=Media)

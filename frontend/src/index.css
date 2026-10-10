@@ -65,7 +65,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .home-account a { color: var(--subtext); text-decoration: none; }
 .home-account a:hover { color: var(--text); }
 .home-account .home-signup { padding: 11px 18px; border-radius: 999px; background: var(--mauve); color: var(--base); }
-.home-account .home-signup:hover, .home-search-form button:hover { background: var(--lavender); }
+.home-account .home-signup:hover { background: var(--lavender); }
 .home-hero { flex: 1; min-height: 600px; display: grid; place-items: center; padding: 0 24px 40px; overflow: hidden; background: var(--crust); }
 .home-graph { position: absolute; z-index: -1; top: 50%; left: 50%; width: 1440px; height: 724px; transform: translate(-50%, -50%); pointer-events: none; }
 .home-glow { position: absolute; left: 170px; top: 12px; opacity: .55; }
@@ -81,7 +81,14 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .home-search-form input { flex: 1; min-width: 0; margin: 0; padding: 10px 0; border: 0; border-radius: 0; background: transparent; font-size: 16px; }
 .home-search-form input:focus-visible { outline: none; }
 .home-search-form input::placeholder { color: var(--muted); opacity: 1; }
-.home-search-form button { flex-shrink: 0; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 19px; border: 0; border-radius: 999px; background: var(--mauve); color: var(--base); font-size: 16px; }
+.home-search-box { position: relative; width: 100%; }
+.home-suggestions { position: absolute; top: calc(100% + 8px); width: 100%; max-height: min(320px, 35svh); overflow: auto; z-index: 20; padding: 8px; border: 1px solid var(--border); border-radius: 14px; background: var(--mantle); box-shadow: 0 16px 40px #0006; }
+.home-suggestions p { margin: 5px 10px 9px; font-size: 12px; line-height: 1.4; }
+.home-suggestions button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; }
+.home-suggestions button:hover, .home-suggestions button:focus-visible { background: var(--surface); }
+.home-suggestions button > img:first-child:not(:last-child) { object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+.home-suggestions span { flex: 1; min-width: 0; font-size: 15px; }
+.home-suggestions small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
 .home-search .home-guidance { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); text-align: center; }
 .home-footer { color: var(--muted); font-size: 13px; }
 /* The map is the workspace. Search and details float above it. */
@@ -241,8 +248,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
   .home-introduction p { font-size: 14px; }
   .home-search-form { gap: 10px; padding-left: 14px; }
   .home-search-form input { font-size: 14px; }
-  .home-search-form button { padding: 0 14px; font-size: 14px; }
-  .home-search-form button img { display: none; }
   .home-footer { flex-wrap: wrap; gap: 8px; font-size: 11px; }
   .app-header { height: 72px; padding: 0 20px; }
   .explorer-title, .account-note { display: none; }

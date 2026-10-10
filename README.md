@@ -173,8 +173,20 @@ curl 'http://localhost:8000/api/media/lantern-harbor/graph?progress=3'
 ```
 
 The home route (`/`) is the TrueFan search hero, using Catppuccin Mocha and
-self-hosted JetBrains Mono. Submitting a title opens `/explore?q=...`; submitting
-an empty search opens the guest demo. The explorer retains media selection,
+self-hosted JetBrains Mono. Homepage suggestions are distinct cached franchises
+(for example, “Fate Universe”), grouped by surviving franchise ID and strong
+AniList relationship membership. Member titles such as “Fate/Zero” find the same
+universe while preserving the matching work as its entry point. Suggestions and Enter open it directly
+at `/explore?media=anilist-...`, preserving the selected work as its entry point.
+Typing is debounced and searches Neon only. Enter or **Discover this universe**
+resolves an uncached title using AniList search and the existing bounded discovery
+pipeline, with at most three discoveries per explicit search. Unambiguous results
+open automatically; ambiguous results stay in the homepage dropdown. Unresolved
+equally relevant candidates at the discovery limit require a more specific query.
+Labels shorten stored slash/season names for display; names never establish membership.
+Franchise search requires the existing Neon cache; provider/storage errors stay inline.
+Submitting an empty search opens the guest demo.
+The TrueFan header link returns home to search again. The explorer retains media selection,
 progress filtering, and account controls. Home-page image nodes are decorative
 artwork reused from the Figma design, not factual story relationships. Assets
 live in `frontend/public/home/`; the font license is in `frontend/public/fonts/`.
@@ -348,6 +360,7 @@ these contracts in `src/lib/types.ts`.
 | --- | --- |
 | `GET /health` | `{ "status": "ok", "mode": "demo" }`; does not imply DB/provider readiness |
 | `GET /api/media/search?q=...` | See [search behavior](docs/IMPLEMENTATION.md#search-and-universe-discovery) |
+| `GET /api/universes/search?q=...&discover=false` | Public; `{ results: [{ franchise_id, title, entry_media_id, cover_url }], auto_open }`; five distinct cached franchises; `discover=true` permits bounded on-demand discovery when no cached match exists |
 | `GET /api/media/{id}` | One `Media`; unknown IDs return 404 |
 | `GET /api/media/{id}/universe` | Public cache-first franchise graph; `root_id` remains the exact selected work |
 | `POST /api/media/{id}/universe/expand` | Public bounded frontier expansion; body `{ "expected_revision": N }`; stale revision is 409 |

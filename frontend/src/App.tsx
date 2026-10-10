@@ -26,6 +26,7 @@ export default function App() {
   const focusMedia = useCallback((item: Media) => { setFocusedId(item.id); setInspectorOpen(true) }, [])
   const [searchParams] = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
+  const initialMedia = searchParams.get('media') || ''
   const [health, setHealth] = useState('Connecting to backend…')
   const [query, setQuery] = useState(initialQuery)
   const [results, setResults] = useState<Media[]>([])
@@ -93,13 +94,16 @@ export default function App() {
     })
     setQuery(initialQuery); setSearching(true); setResults([]); setError(''); setGenerationError('')
     setMedia(null); setProgress(1); setGraph(null); setSelectedId(null); setUniverse(null); setView('characters')
-    api.search(initialQuery, controller.signal).then(items => {
+    const load = initialMedia ? api.media(initialMedia, controller.signal).then(item => {
+      if (!controller.signal.aborted) { setResults([item]); void openUniverse(item) }
+    }) : api.search(initialQuery, controller.signal).then(items => {
       if (controller.signal.aborted) return
       setResults(items); if (!initialQuery) setMedia(items[0] ?? null)
-    }).catch(error => { if (!controller.signal.aborted) setError(error.message) })
+    })
+    load.catch(error => { if (!controller.signal.aborted) setError(error.message) })
       .finally(() => { if (!controller.signal.aborted) setSearching(false) })
     return () => { controller.abort(); searchController.current?.abort(); universeController.current?.abort() }
-  }, [initialQuery])
+  }, [initialQuery, initialMedia])
 
   useEffect(() => {
     if (!media || view !== 'characters') return
@@ -215,7 +219,7 @@ export default function App() {
         onProgress={unit => { setProgress(unit); setSelectedId(null); setGraph(null) }} /></div>
     </header>
     <main className="workspace">
-      <details ref={searchDrawer} className="explorer-search" open={!media}>
+      <details ref={searchDrawer} className="explorer-search" open={!media && !initialMedia}>
         <summary><img src="/home/search.svg" width="18" height="18" alt="" />{media ? 'Find another story' : 'Find your story'}</summary>
         {controls}
       </details>
