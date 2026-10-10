@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authClient } from '../lib/auth'
 
@@ -29,6 +30,7 @@ function AccountLinks() {
 export default function HomePage() {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
+  const reduced = useReducedMotion()
 
   return <div className="home-page">
     <header className="home-header">
@@ -37,7 +39,7 @@ export default function HomePage() {
       </Link>
       <nav className="home-account" aria-label="Account"><Link to="/community">Community</Link>{authClient ? <AccountLinks /> : <GuestLinks />}</nav>
     </header>
-    <main className="home-hero">
+    <main className="home-hero celestial">
       <div className="home-graph" aria-hidden="true">
         <img className="home-glow" src="/home/glow.svg" width="1100" height="680" alt="" />
         <img className="home-connections" src="/home/connections.svg" width="1440" height="724" alt="" />
@@ -45,7 +47,7 @@ export default function HomePage() {
           src={`/home/${image}.png`} width={size} height={size} alt=""
           style={{ opacity, left: `${x / 1440 * 100}%`, top: `${y / 724 * 100}%`, width: `${size / 1440 * 100}%` }} />)}
       </div>
-      <section className="home-search" aria-labelledby="home-title">
+      <motion.section className="home-search" aria-labelledby="home-title" initial={{ opacity: 0, y: reduced ? 0 : 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : .7 }}>
         <div className="home-introduction">
           <h1 id="home-title">TrueFan</h1>
           <p>Your story. Your pace. Your connections.</p>
@@ -61,7 +63,7 @@ export default function HomePage() {
           <button type="submit">Explore<img src="/home/arrow-right.svg" width="17" height="17" alt="" /></button>
         </form>
         <p className="home-guidance">Find a story. Set your progress. Explore its connections.</p>
-      </section>
+      </motion.section>
     </main>
     <footer className="home-footer"><span>Explore at your own pace.</span><span>Made for the stories you love.</span></footer>
   </div>

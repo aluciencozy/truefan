@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { authClient } from '../lib/auth'
 import { api } from '../lib/api'
-import type { Media } from '../lib/types'
+import type { Media, UserMediaState } from '../lib/types'
 
 interface Props {
   media: Media | null
   progress: number
   onProgress: (unit: number) => void
+  onIdentity: (id: string | null) => void
+  onState: (state: UserMediaState) => void
 }
 
 export default function AuthPanel(props: Props) {
@@ -15,29 +17,37 @@ export default function AuthPanel(props: Props) {
   return <ConfiguredAuth {...props} />
 }
 
-function ConfiguredAuth({ media, progress, onProgress }: Props) {
+function ConfiguredAuth({ media, progress, onProgress, onIdentity, onState }: Props) {
   const client = authClient!
   const session = client.useSession()
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const identity = session.data?.user.id ?? null
+  const currentContext = useRef({ identity, mediaId: media?.id })
+  currentContext.current = { identity, mediaId: media?.id }
+  useEffect(() => { if (!session.isPending) onIdentity(identity) }, [identity, session.isPending, onIdentity])
 
   async function accountAction(action: 'check' | 'save' | 'load') {
+    const context = currentContext.current
+    const current = () => context.identity === currentContext.current.identity && context.mediaId === currentContext.current.mediaId
     setBusy(true); setMessage('')
     try {
       if (action === 'save' && media) {
-        await api.saveProgress(media.id, progress)
-        setMessage(`Saved ${media.progress_unit} ${progress}.`)
+        const saved = await api.saveProgress(media.id, progress)
+        const [state] = await api.mediaState([media.id]); if (!current()) return; onState(state)
+        setMessage(`Saved ${media.progress_unit} ${saved.progress.unit}.`)
       } else if (action === 'load' && media) {
         const saved = await api.progress(media.id)
         if (saved) {
+          const [state] = await api.mediaState([media.id]); if (!current()) return; onState(state)
           onProgress(saved.progress.unit)
           setMessage(`Retrieved ${media.progress_unit} ${saved.progress.unit}.`)
         } else setMessage('No saved progress for this story yet.')
       } else {
         const user = await api.me()
-        setMessage(`Backend verified your identity: ${user.id}`)
+        if (current()) setMessage(`Backend verified your identity: ${user.id}`)
       }
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Account request failed.') }
+    } catch (error) { if (current()) setMessage(error instanceof Error ? error.message : 'Account request failed.') }
     finally { setBusy(false) }
   }
 

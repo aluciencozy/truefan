@@ -1,5 +1,5 @@
 import { authClient } from './auth'
-import type { CurrentUser, GenerationStatus, Universe, GraphResponse, HealthResponse, Media, UserProgress } from './types'
+import type { CurrentUser, GenerationStatus, Universe, GraphResponse, HealthResponse, Media, UserMediaState, UserProgress } from './types'
 
 const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
@@ -30,13 +30,32 @@ export const api = {
   graph: (id: string, progress: number, signal?: AbortSignal) =>
     request<GraphResponse>(`/api/media/${encodeURIComponent(id)}/graph?progress=${progress}`, signal),
   universe: (id: string, signal?: AbortSignal) => request<Universe>(`/api/media/${encodeURIComponent(id)}/universe`, signal),
+  expandUniverse: (id: string, revision: number, signal?: AbortSignal) =>
+    request<Universe>(`/api/media/${encodeURIComponent(id)}/universe/expand`, signal, false, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expected_revision: revision }),
+    }),
+  mediaState: async (ids: string[], signal?: AbortSignal): Promise<UserMediaState[]> => {
+    const unique = [...new Set(ids)].sort()
+    const batches: string[][] = []
+    for (let start = 0; start < unique.length; start += 50) batches.push(unique.slice(start, start + 50))
+    const results = await Promise.all(batches.map(batch => request<UserMediaState[]>(
+      `/api/me/media-state?${new URLSearchParams(batch.map(id => ['media_id', id]))}`, signal, true)))
+    return results.flat()
+  },
+  saveMediaState: (id: string, flags: { completed?: boolean; manual_unlocked?: boolean }, signal?: AbortSignal) =>
+    request<UserMediaState>(`/api/me/media-state/${encodeURIComponent(id)}`, signal, true, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(flags),
+    }),
   generate: (id: string, operation: 'start' | 'retry' | 'extend' = 'start', signal?: AbortSignal) =>
     request<GenerationStatus>(`/api/media/${encodeURIComponent(id)}/generation`, signal, true, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ operation }),
     }),
   progress: (id: string) => request<UserProgress | null>(`/api/me/progress/${encodeURIComponent(id)}`, undefined, true),
-  saveProgress: (id: string, unit: number) => request<UserProgress>(`/api/me/progress/${encodeURIComponent(id)}`, undefined, true, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unit }),
-  }),
+  saveProgress: async (id: string, unit: number): Promise<UserProgress> => {
+    const [saved] = await api.mediaState([id])
+    return request<UserProgress>(`/api/me/progress/${encodeURIComponent(id)}`, undefined, true, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unit: Math.max(unit, saved.progress?.unit ?? 0) }),
+    })
+  },
   me: () => request<CurrentUser>('/api/me', undefined, true),
 }
