@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import AppNavbar from './AppNavbar'
+import GlitterStars from './GlitterStars'
 import { communityAssets as assets } from '../lib/communityAssets'
 
-export interface CommunityViewer { name: string }
+export interface CommunityViewer { id?: string; name: string }
 export function CommunityIcon({ name, className = '' }: { name: keyof typeof assets; className?: string }) {
   return <img src={assets[name]} className={`community-icon ${className}`} alt="" />
 }
@@ -14,12 +15,9 @@ export function LittleUniverse() {
   </div>
 }
 
-const stars = ['imgStar','imgStar1','imgStar2','imgStar3','imgStar4','imgStar5','imgStar3','imgStar','imgStar6','imgStar7','imgStar2','imgStar4','imgStar7','imgStar1','imgStar8','imgStar3','imgStar','imgStar4','imgStar6','imgStar9','imgStar'] as const
 export default function CommunityShell({ children }: { children: ReactNode }) {
   return <div className="community-page">
-    <div className="community-stars" aria-hidden="true">{stars.map((name,index) => <img key={index} src={assets[name]} />)}
-      {Array.from({length: 8}, (_,index) => <span key={index}>✦</span>)}
-    </div>
+    <GlitterStars />
     <AppNavbar />
     <main className="community-content">{children}</main>
   </div>

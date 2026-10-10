@@ -7,6 +7,7 @@ import { libraryApi, libraryArt as art, libraryOrder, universeStatus } from '../
 import type { LibraryService, SavedUniverse, UniversePreferences } from '../lib/library'
 import AppNavbar from './AppNavbar'
 import './LibraryPage.css'
+import GlitterStars from './GlitterStars'
 
 interface Viewer { id: string; name: string }
 type Modal = { kind: 'abandon' | 'rate'; item: SavedUniverse } | { kind: 'help' | 'activity' }
@@ -21,7 +22,7 @@ function ConnectedLibrary() {
   const session = authClient!.useSession()
   return <LibraryScreen key={session.data?.user.id ?? 'guest'} pending={session.isPending} viewer={session.data?.user ? {id: session.data.user.id, name: session.data.user.name || 'Fan'} : null} />
 }
-export default function LibraryPage() { return <div className="library-page"><AppNavbar />{authClient ? <ConnectedLibrary /> : <LibraryScreen viewer={null} />}</div> }
+export default function LibraryPage() { return <div className="library-page"><GlitterStars /><AppNavbar />{authClient ? <ConnectedLibrary /> : <LibraryScreen viewer={null} />}</div> }
 
 function Dialog({ title, onClose, busy, children }: { title: string; onClose: () => void; busy: boolean; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null)

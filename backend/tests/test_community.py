@@ -54,8 +54,12 @@ class CommunityApiTests(unittest.TestCase):
         with patch('app.services.community.feed',return_value={'posts':[],'media':[],'active_fans':0}) as feed:
             code,_ = asyncio.run(request('/api/community/posts'))
             self.assertEqual(code,200)
+            self.assertIsNone(feed.call_args.args[0])
             self.assertFalse(feed.call_args.args[4])
             self.assertIsNone(feed.call_args.args[5])
+            code,_ = asyncio.run(request('/api/community/posts?category=theory'))
+            self.assertEqual(code,200)
+            self.assertEqual(feed.call_args.args[0],'theory')
             for query in ('category=unknown','offset=-1','sort=unsafe','q='+'a'*201):
                 self.assertEqual(asyncio.run(request('/api/community/posts?'+query))[0],422)
 
@@ -160,6 +164,9 @@ class CommunityDatabaseTests(unittest.TestCase):
         community.set_like(discussion.id,'liker',True,False)
         feed = community.feed('theory','Different','Prediction','popular',False,None,0)
         self.assertEqual([post.id for post in feed.posts],[theory.id])
+        all_tags = community.feed(None,'','','latest',False,None,0)
+        self.assertIn(theory.id,[post.id for post in all_tags.posts])
+        self.assertGreater(len(all_tags.posts),len(feed.posts))
         self.assertNotIn('owner',theory.author)
         self.assertEqual(community.feed('theory','Demo','','latest',False,None,0).posts,[])
 

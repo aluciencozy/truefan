@@ -1,0 +1,24 @@
+.page-navigation { height: 88px; padding: 20px 48px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--mantle); border-bottom: 1px solid var(--border); }
+.page-navigation nav { display: flex; align-items: center; gap: 8px; }
+.page-navigation nav a { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 14px; border-radius: 12px; font: 16px var(--display); color: var(--subtle, #a6aecf); white-space: nowrap; }
+.page-navigation nav a:last-child { font-size: 14px; }
+.page-navigation nav a:hover { background: var(--surface); }
+.page-navigation nav a.active { color: var(--text); background: #31324466; }
+.page-navigation-account { display: flex; align-items: center; gap: 10px; color: var(--text); min-width: 0; }
+.page-navigation-account > span:nth-child(2) { max-width: 160px; min-width: 0; }
+.page-navigation-account strong, .page-navigation-account small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-navigation-account strong { font-size: 12px; font-weight: 500; }
+.page-navigation-account small { font-size: 10px; color: var(--subtle, #a6aecf); }
+.page-navigation img { display: block; flex-shrink: 0; max-width: none; }
+.page-navigation-avatar { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: var(--surface); color: var(--mauve); font: 15px var(--display); }
+.page-navigation { flex-shrink: 0; font-family: 'Inter', system-ui, sans-serif; }
+.page-navigation a { text-decoration: none; }
+.page-navigation a:focus-visible { outline: 2px solid var(--mauve); outline-offset: 4px; }
+@media (max-width: 1000px) { .page-navigation { padding-inline: 28px; } }
+@media (max-width: 700px) {
+  .page-navigation { height: auto; min-height: 76px; padding: 16px; gap: 8px; }
+  .page-navigation nav { gap: 2px; flex: 1; min-width: 0; }
+  .page-navigation nav a, .page-navigation nav a:last-child { padding: 8px; font-size: 12px; gap: 6px; flex-direction: column; text-align: center; }
+  .page-navigation-account > span:nth-child(2), .page-navigation-account > img { display: none; }
+  .page-navigation-account .page-navigation-avatar { width: 30px; height: 30px; font-size: 12px; }
+}

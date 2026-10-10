@@ -789,17 +789,24 @@ A build, an OAuth redirect, or mocked JWT tests do not prove the complete live f
 
 `/community` implements the Figma design in typed React components. Shared colors,
 local Pixelify Sans/Inter fonts, starry backgrounds, and control styles live in
-`frontend/src/index.css`; original Figma SVG assets live in `frontend/public/community`. The shared palette
+`frontend/src/index.css`, `frontend/src/components/CommunityPage.css`, and the shared
+`AppNavbar` / `GlitterStars` components; original Figma SVG assets live in
+`frontend/public/community`. The shared palette
 is used throughout the app; Community and Library typography/form tokens are
 scoped to their pages to preserve the homepage and constellation explorer styles. The palette
-matches Truefan’s Community frame (`123:30`): charcoal `#1e1e2e`, panels
+matches the **TRUE FAN Community 1** frame (`123:30`): charcoal `#1e1e2e`, panels
 `#181825`, borders `#45475a`, pale text `#cdd6f4`, and lavender `#cba6f7`.
 A shared navbar across the homepage, explorer, saved universes, community, and account
 pages centers Explore, Saved Universes (`/library`), and Community, with account controls
-on the right. The header is transparent; individual controls use backdrop blur and
-subtle shadows to blend with each page. Its active tab uses a spring animation, respects reduced motion, and
-moves to a centered second row on smaller screens. Community has
-Discussions, Theories, and Reviews, search/media filters, latest/popular sorting,
+on the right. Its transparent header and blurred controls blend with each page. The active
+link animates gently, respects reduced motion, and moves to a centered second row on
+smaller screens. Community and Saved universes retain their gently twinkling dots and
+larger star accents; stars remain static when reduced motion is requested.
+The full-width Community feed uses smaller typography, media and tag dropdowns
+(Any tag shows all categories), search, and latest/popular sorting. Create post opens a
+form dialog; conversations open a readable dialog with scrolling posts/replies and a
+fixed reply form, native keyboard focus trapping, Escape dismissal, and focus return.
+Community supports
 post links, optional review ratings, likes, and comments. There are no episode controls
 on this page. Saved universes has its own owner-scoped library API, documented below.
 
@@ -822,7 +829,7 @@ Community API contracts (also available in `/openapi.json`):
 
 | Endpoint | Access / behavior |
 | --- | --- |
-| `GET /api/community/posts` | Public; `category`, `media`, `q`, `sort`, `include_spoilers`, `offset`; 20 posts per page and `has_more`. |
+| `GET /api/community/posts` | Public; optional `category` (omitted = all categories), `media`, `q`, `sort`, `include_spoilers`, `offset`; 20 posts per page and `has_more`. |
 | `POST /api/community/posts` | Verified Neon bearer JWT; category, media, title, body, `contains_spoilers`, optional rating 1–5 for reviews. |
 | `GET /api/community/posts/{id}` | Public; respects `include_spoilers`, including copied post links. |
 | `PUT /api/community/posts/{id}/like` | Verified JWT; `{ "liked": true }` or false; one like per user/post. |
@@ -835,7 +842,7 @@ The visitor badge counts activity within the last 90 seconds, refreshing every
 25 seconds while the page is visible. Anonymous visitors are counted by browser,
 and authenticated visitors are deduplicated by verified user ID across browsers.
 It is an estimate of recent presence, not a fabricated fixed “128” or an exact count
-of humans. Counts span the Community tabs. Public posts use stable pseudonyms;
+of humans. Counts span Community categories. Public posts use stable pseudonyms;
 ownership comes exclusively from the verified JWT, never request-supplied user IDs.
 
 Spoiler posts and comments are excluded in backend queries by default, including
