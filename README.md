@@ -195,6 +195,10 @@ Franchise search requires the existing Neon cache; provider/storage errors stay 
 Empty searches stay on the current page. Opening `/explore` without a selected
 story shows the shared search; it does not automatically load the development fixture.
 The constellation displays story totals without numbered branch labels.
+On desktop, moving the cursor across the universe canvas looks toward it with a
+smooth, bounded camera offset. Hovering worlds or connections pauses the offset
+for selection; leaving the canvas returns to center. Drag navigation stays disabled,
+and reduced-motion preferences disable cursor movement.
 The explorer’s **Find another story** uses the same search component, suggestions,
 discovery, and direct universe navigation as the homepage. The TrueFan header link
 returns home to search again. The explorer retains media selection,

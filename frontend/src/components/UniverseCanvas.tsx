@@ -89,7 +89,7 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
   const [journey, setJourney] = useState<Journey | null>(null)
   const [hovered, setHovered] = useState<{ nodeId?: string; edgeId?: string } | null>(null)
   const container = useRef<HTMLDivElement | null>(null)
-  const pointer = useCanvasParallax(container, active)
+  const pointer = useCanvasParallax(container, active, true)
   const anchors = useRef<Positions>({})
   const previousFocus = useRef(focusedId)
   const travelSerial = useRef(0)

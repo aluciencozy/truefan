@@ -19,6 +19,56 @@ let { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.
 outputText = outputText.replaceAll("from 'react'", `from ${JSON.stringify(pathToFileURL(require.resolve('react')).href)}`)
 const { useCanvasParallax } = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
 
+test('cursor-follow looks toward the mouse, scales within limits, and holds worlds still for selection', async () => {
+  const listeners = new Map(), values = new Map()
+  const previousComputedStyle = globalThis.getComputedStyle
+  let displayedOffset
+  globalThis.getComputedStyle = () => ({ translate: displayedOffset ?? [...values.values()].join(' ') })
+  let width = 1000, height = 600
+  const container = { current: {
+    style: { setProperty: (name, value) => values.set(name, value) },
+    getBoundingClientRect: () => ({ left: 0, top: 0, width, height }),
+    querySelectorAll: () => [],
+    querySelector: () => ({}),
+    addEventListener: (name, listener) => listeners.set(name, listener),
+    removeEventListener: name => listeners.delete(name),
+  } }
+  function Canvas() { useCanvasParallax(container, true, true); return null }
+  const offset = () => [values.get('--parallax-x'), values.get('--parallax-y')]
+  const move = overrides => listeners.get('pointermove')({ pointerType: 'mouse', buttons: 0,
+    clientX: width, clientY: height, target: { closest: () => null }, ...overrides })
+  let renderer
+  try {
+    await act(async () => { renderer = create(createElement(Canvas)) })
+    move({}); assert.deepEqual(offset(), ['-180px', '-108px'])
+    move({ clientX: 0, clientY: 0 }); assert.deepEqual(offset(), ['180px', '108px'])
+    move({ clientX: width / 2, clientY: height / 2 }); assert.deepEqual(offset(), ['0px', '0px'])
+    width = 2000; height = 1200
+    move({ clientX: 9000, clientY: -9000 }); assert.deepEqual(offset(), ['-240px', '160px'])
+    for (const selector of ['.react-flow__node-destination', '.react-flow__edge']) {
+      move({ target: { closest: selectors => selectors.includes(selector) ? {} : null } })
+      assert.deepEqual(offset(), ['-240px', '160px'])
+    }
+    displayedOffset = '-120px 80px'
+    listeners.get('pointerdown')()
+    move({ buttons: 1 }); assert.deepEqual(offset(), ['-120px', '80px'])
+    displayedOffset = '-60px'
+    listeners.get('pointerdown')(); assert.deepEqual(offset(), ['-60px', '0px'])
+    displayedOffset = undefined
+    listeners.get('pointerleave')(); assert.deepEqual(offset(), ['0px', '0px'])
+    move({}); move({ target: { closest: selectors => selectors.includes('.react-flow__panel') ? {} : null } })
+    assert.deepEqual(offset(), ['0px', '0px'])
+    width = 400; height = 300
+    move({}); assert.deepEqual(offset(), ['-72px', '-54px'])
+    move({ pointerType: 'touch', buttons: 1 }); assert.deepEqual(offset(), ['0px', '0px'])
+  } finally {
+    if (renderer) await act(async () => renderer.unmount())
+    globalThis.getComputedStyle = previousComputedStyle
+  }
+  assert.equal(listeners.size, 0)
+  assert.deepEqual(offset(), ['0px', '0px'])
+})
+
 test('mouse effects stay bounded, reset on leave/drag/controls, and disable for touch or reduced motion', async () => {
   const listeners = new Map(), values = new Map()
   const sparks = []

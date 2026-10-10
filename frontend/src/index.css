@@ -200,6 +200,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 /* Independent translate preserves React Flow's camera transform and leaves controls still. */
 :is(.universe-canvas, .graph-canvas) .react-flow__viewport { translate: var(--parallax-x, 0px) var(--parallax-y, 0px); transition: translate .22s ease-out; }
 .app-shell :is(.universe-canvas, .graph-canvas)::before { display: block; inset: -20px; opacity: .25; translate: calc(var(--parallax-x, 0px) * .35) calc(var(--parallax-y, 0px) * .35); transition: translate .35s ease-out; }
+.app-shell .universe-canvas::before { inset: -100px; }
 @media (prefers-reduced-motion: reduce) {
   .cursor-stars { display: none; }
   :is(.universe-canvas, .graph-canvas) .react-flow__viewport, .app-shell :is(.universe-canvas, .graph-canvas)::before { translate: none; }
