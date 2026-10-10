@@ -23,7 +23,7 @@ const stages = {
 
 export default function App() {
   const reduced = useReducedMotion()
-  const searchDrawer = useRef<HTMLDetailsElement>(null)
+  const searchDialog = useRef<HTMLDialogElement>(null)
   const focusMedia = useCallback((item: Media) => { setFocusedId(item.id) }, [])
   const [searchParams] = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
@@ -152,7 +152,7 @@ export default function App() {
 
   async function openUniverse(item: Media) {
     universeController.current?.abort()
-    if (searchDrawer.current) searchDrawer.current.open = false
+    searchDialog.current?.close()
     if (!item.anilist_id) { setUniverse(null); enter(item); return }
     const controller = new AbortController(); universeController.current = controller
     latestProgress.current = null; setProgressMessage(''); setMedia(item); setProgress(0); setUniverse(null); setGraph(null); setSelectedId(null); setView('universe'); setError(''); setExpanding(false)
@@ -249,10 +249,10 @@ export default function App() {
             {media && (identity ? <button disabled={librarySaving || (inUniverse && !universe)} onClick={() => void saveUniverse()}>{librarySaving ? 'Saving…' : '＋ Save universe'}</button> : <Link to="/auth/sign-in">Sign in to save</Link>)}
             {universe && !inUniverse && <button onClick={() => { setView('universe'); setSelectedId(null); setError('') }}>← Universe</button>}
             {media && !inUniverse && <ProgressControl media={media} progress={progress} onProgress={changeProgress} disabled={awaitingState} />}
-            <details ref={searchDrawer} className="explorer-search" open={!media && !initialMedia}>
-              <summary aria-label={media ? 'Find another story' : 'Find your story'} title={media ? 'Find another story' : 'Find your story'}><img src="/home/search.svg" width="18" height="18" alt="" /><span>{media ? 'Find another story' : 'Find your story'}</span></summary>
-              {controls}
-            </details>
+            <button className="explorer-search" aria-haspopup="dialog" aria-label={media ? 'Find another story' : 'Find your story'} title={media ? 'Find another story' : 'Find your story'} onClick={() => {
+              searchDialog.current?.showModal()
+              searchDialog.current?.querySelector('input')?.focus()
+            }}><img src="/home/search.svg" width="18" height="18" alt="" /><span>{media ? 'Find another story' : 'Find your story'}</span></button>
           </div>
         </div>
         {libraryMessage && <p className="generation-note" role="status">{libraryMessage}</p>}
@@ -289,5 +289,11 @@ export default function App() {
         </footer>
       </section>
     </main>
+    <dialog ref={searchDialog} className="story-search-dialog" aria-labelledby="story-search-title" onClick={event => {
+      if (event.target === event.currentTarget) searchDialog.current?.close()
+    }}>
+      <button className="story-search-close" aria-label="Close story search" onClick={() => searchDialog.current?.close()}>×</button>
+      {controls}
+    </dialog>
   </div>
 }
