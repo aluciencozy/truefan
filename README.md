@@ -41,10 +41,10 @@ Saved progress needs the application table initialized as described below.
 3. Pan/zoom the graph and select Mira to read an introductory description.
 4. Finish episode 2 and advance the selector: new connections become visible.
 5. Rewind to episode 1: the new faction and its relationships disappear.
-6. With Neon Auth configured, open Account, sign in with Google, then
-   use “Verify API session” to exercise the protected FastAPI endpoint.
+6. With Neon Auth configured, use the account icon to sign in with Google.
+   Episode changes save automatically; opening a story restores watched progress.
 
-Signed-in users can save and retrieve progress across reloads and devices.
+Signed-in progress persists across reloads and devices.
 Spoiler-safe profiles and Q&A will share the same progress boundary.
 
 ## Architecture and stack
@@ -193,8 +193,7 @@ live in `frontend/public/home/`; the font license is in `frontend/public/fonts/`
 Log in and Sign up use the existing Neon Auth routes.
 
 The two graph calls should return 3 and 5 entities respectively. In `/explore`,
-“Backend connected” proves the `/health` call succeeded. The visible graph comes
-from FastAPI, not a separate frontend fixture. Change episodes and click a node
+the visible graph comes from FastAPI, not a separate frontend fixture. Change episodes and click a node
 to verify the graph and details update. Stop FastAPI and reload to check the error UI.
 
 ## Environment variables
@@ -336,12 +335,12 @@ JWT can remain valid until expiry; no immediate bearer-token revocation is promi
 
 1. Run both apps, then open `/auth/sign-in`; only the Google login button should appear, without email/password fields.
 2. Click Google, complete sign-in, and confirm you return to the dashboard with an Account session.
-3. Open Account on the dashboard and click **Verify API session**; `/api/me` should return your subject.
-4. Select episode 2 and click **Save progress**. Change to episode 1, then click **Retrieve progress**; it should restore episode 2.
-5. Reload the page: the session should restore. Retrieve progress again to prove persistence.
+3. Open a story and select episode 2. The footer should show **Saved** after the authenticated progress request completes.
+4. Rewind to episode 1: later facts disappear while watched history remains at episode 2.
+5. Reload and reopen the story: the session and watched episode 2 should restore automatically.
 6. Visit `/account/settings` to update account details or sign out; `/account/security` and `/account/sessions` redirect there.
 7. Sign out via `/auth/sign-out`. The dashboard should show sign-in links; private API requests without a JWT must return 401.
-8. Sign in as another user and verify there is no saved progress until that user saves it.
+8. Sign in as another user and verify there is no saved progress until that user updates an episode.
 
 If authentication works but `/token` does not, inspect trusted domains, cross-origin
 cookie blocking, and the Auth URL. Safari/third-party cookie policies can prevent
@@ -449,8 +448,9 @@ The following normalized-table layout remains an optional future direction:
 | neon_auth user/session/account | Managed by Neon Auth; use its actual provisioned schema instead of recreating it |
 
 User-owned progress APIs must derive ownership from verified identity and apply
-that owner in every query. Guest progress is transient; signed-in users save/retrieve it explicitly from the
-Account panel. Plan foreign keys for media/endpoints, uniqueness constraints,
+that owner in every query. Guest progress is transient; signed-in episode changes
+save automatically and story entry restores watched progress. Plan foreign keys
+for media/endpoints, uniqueness constraints,
 and indexes by media/reveal unit. Keep source and review metadata with each fact.
 
 **Important future limit:** a single reveal point on an entity only protects its
@@ -546,8 +546,11 @@ Guest confirmations/overrides last for the current app session. Signed-in users
 load all discovered works' state through deterministic bulk batches of at most
 50 IDs and save flags immediately. Merged cached universes may contain more than
 50 nodes; they all remain visible.
-Episode selection remains a spoiler lens: use **Account → Save progress** to
-persist watched units. The frontend saves at least the previously recorded unit
+The compact episode stepper also accepts a typed episode number, with prologue
+numbering preserved. Every signed-in change automatically persists watched units;
+writes run in order and failures offer a retry. Character loading and generation
+status appear in the center of the canvas. The account icon opens an animated
+settings/logout dropdown. The frontend saves at least the previously recorded unit
 and does not erase completion when you rewind. API completion flags are
 authoritative; the frontend never infers completion from an unknown one-unit
 fallback or generation coverage. Account changes clear user state. Entry locks
@@ -702,7 +705,7 @@ Recommended next five implementation tasks:
 
 1. Install dependencies, link/deploy Neon Auth, and verify Google sign-in/session/JWT flow end to end.
 2. Choose one real demo series; curate story units and review entity/relationship reveal points.
-3. Expand the graph schema and add automatic saved-progress resume if useful.
+3. Expand the graph schema as more curated stories become available.
 4. Coordinate the universe unlock UI with `fm/truefan-universe-explorer`; see the
    [backend contract and frontend dependency](docs/IMPLEMENTATION.md#7-http-api-reference).
 5. Run one provenance-preserving Hugging Face extraction experiment, then deploy the demo to Vercel/Railway.

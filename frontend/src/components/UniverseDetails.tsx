@@ -26,7 +26,7 @@ export default function UniverseDetails({ media, universe, model, guide, release
   return <aside className="details panel universe-details" aria-label="Selected anime">
     <div className="world-panel-heading"><span className="world-focus-label">✦ In focus</span><span className={`watch-state ${guide.status}`}>{locked ? 'Locked' : guide.status === 'completed' ? 'Completed' : 'Available'}</span></div>
     <h2>{media.title}</h2>
-    {locked ? <><p>Complete the previous entry in this inferred branch, or choose your own starting point.</p>
+    {locked ? <><p>Continue from the previous entry, or choose your own starting point.</p>
       {previous && <button className="relation-jump" onClick={() => onFocus(previous)}>Previous: {previous.title}</button>}
       <button className="primary" disabled={busy} onClick={() => onUnlock(media)}>Unlock anyway</button></> : <>
       <p className="world-summary">{summary}</p>
@@ -46,7 +46,6 @@ export default function UniverseDetails({ media, universe, model, guide, release
         return <div key={JSON.stringify(relation)}><span>{relation.source === media.id ? 'Has ' : 'Related from: '}{relationLabel(relation.type)}</span>
           <button onClick={() => onFocus(other)}>{other.title}</button></div>
       }) : <p>No connections discovered yet.</p>}
-      <p className="guidance-note">Branch release guidance is approximate, not canonical prerequisites or guaranteed spoiler-free viewing.</p>
     </details>
     {(universe.truncated || universe.cache?.incomplete) && <p className="guidance-note">This is a bounded, incomplete map. More connections may exist.</p>}
     {universe.cache?.stale && <p className="guidance-note">Cached metadata may be out of date.</p>}
