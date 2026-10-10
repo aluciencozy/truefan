@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     )
     database_url: str = ""
     hf_token: str = ""
+    hf_model: str = "meta-llama/Llama-3.1-8B-Instruct"
+    hf_api_url: str = "https://router.huggingface.co/v1/chat/completions"
     anilist_api_url: str = "https://graphql.anilist.co"
     frontend_url: str = "http://localhost:3000"
     neon_auth_jwks_url: str = ""

@@ -5,15 +5,19 @@ from app.schemas import CurrentUser, UserProgress
 from app.services import progress as progress_service
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.schemas import (AskRequest, ExtractRequest, GraphResponse, HealthResponse,
-                         Media, PlaceholderResponse, RevealPoint)
+from app.schemas import (AskRequest, ExtractRequest, FlowGraphResponse, GraphExtractRequest, GraphResponse,
+                         HealthResponse, Media, PlaceholderResponse, RevealPoint)
+from app.services import huggingface
+from app.services.catalog import load_catalog
 from app.services.demo import ENTITIES, MEDIA, RELATIONSHIPS
-from app.services.graph import filter_graph
+from app.services.graph import filter_graph, to_flow_graph
 
 app = FastAPI(title="Spoiler-Aware Media Knowledge Graph", version="0.1.0")
-app.add_middleware(CORSMiddleware,
-                   allow_origins=[settings.frontend_url.rstrip("/")],
-                   allow_methods=["GET", "POST", "PUT"], allow_headers=["Content-Type", "Authorization"])
+# Explicit origins only (never "*"): credentials and the Authorization header are in play.
+ALLOWED_ORIGINS = list(dict.fromkeys(
+    ["http://localhost:3000", "http://127.0.0.1:3000", settings.frontend_url.rstrip("/")]))
+app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=True,
+                   allow_methods=["*"], allow_headers=["*"])
 
 
 def get_demo(media_id: str) -> Media:
@@ -43,6 +47,26 @@ def media_graph(media_id: str, progress: int = Query(ge=0)):
     if progress > media.total_units:
         raise HTTPException(status_code=422, detail="Progress exceeds this media’s total units")
     return filter_graph(media_id, RevealPoint(unit=progress), ENTITIES, RELATIONSHIPS)
+
+
+@app.post("/api/media/{media_id}/extract", response_model=FlowGraphResponse)
+def extract_media_graph(media_id: str, request: GraphExtractRequest):
+    """Extract a graph from pasted text with Hugging Face; on any AI failure serve the curated graph.
+
+    Both paths go through filter_graph at the viewer's progress, so the fallback never sends future facts.
+    """
+    catalog = load_catalog(media_id)
+    if catalog is None:
+        raise HTTPException(status_code=404, detail="Media not found")
+    media, entities, relationships, origin = catalog
+    if request.progress.unit > media.total_units:
+        raise HTTPException(status_code=422, detail="Progress exceeds this media’s total units")
+    try:
+        entities, relationships = huggingface.extract_graph(request.summary, request.source, request.reveal_point)
+        origin = "ai"
+    except huggingface.ExtractionUnavailable:
+        pass  # keep the curated rows loaded above
+    return to_flow_graph(filter_graph(media_id, request.progress, entities, relationships), origin)
 
 
 @app.post("/api/extract", response_model=PlaceholderResponse, status_code=501)

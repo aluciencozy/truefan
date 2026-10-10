@@ -76,3 +76,49 @@ class PlaceholderResponse(BaseModel):
 
 class CurrentUser(BaseModel):
     id: str = Field(min_length=1)
+
+
+class GraphExtractRequest(BaseModel):
+    summary: str = Field(min_length=1, max_length=8000)
+    source: str = Field(min_length=1, max_length=2000)
+    reveal_point: RevealPoint  # where the pasted text's facts are revealed
+    progress: RevealPoint  # the viewer's progress; nothing beyond it is returned
+
+
+class FlowPosition(BaseModel):
+    x: float
+    y: float
+
+
+class FlowItemData(BaseModel):
+    revealed_at: RevealPoint
+    provenance: Provenance
+
+
+class FlowNodeData(FlowItemData):
+    label: str
+    entity_type: str
+    description: str
+
+
+class FlowNode(BaseModel):
+    id: str
+    position: FlowPosition
+    data: FlowNodeData
+
+
+class FlowEdge(BaseModel):
+    id: str
+    source: str
+    target: str
+    label: str
+    data: FlowItemData
+
+
+class FlowGraphResponse(BaseModel):
+    media_id: str
+    progress: RevealPoint
+    # "ai" = model output from the pasted text (unverified); "database"/"builtin" = curated fallback.
+    origin: Literal["ai", "database", "builtin"]
+    nodes: list[FlowNode]
+    edges: list[FlowEdge]
