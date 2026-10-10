@@ -173,8 +173,8 @@ def read_media_states(user: Annotated[CurrentUser, Depends(current_user)],
 @app.put('/api/me/media-state/{media_id}', response_model=UserMediaState)
 def write_media_state(media_id: str, update: UserMediaStateUpdate,
                       user: Annotated[CurrentUser, Depends(current_user)]):
-    get_media(media_id)
-    return progress_service.update_media_state(user.id, media_id, update)
+    media = get_media(media_id)
+    return progress_service.update_media_state(user.id, media_id, update, media)
 
 
 @app.get('/api/media/{media_id}/universe', response_model=Universe)

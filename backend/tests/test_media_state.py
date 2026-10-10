@@ -44,7 +44,7 @@ class MediaStateTests(unittest.TestCase):
         state = progress.update_media_state('verified', 'anilist-1', UserMediaStateUpdate(manual_unlocked=True))
         self.assertEqual(state.progress.unit, 5); self.assertTrue(state.completed)
         args = self.conn.execute.call_args.args[1]
-        self.assertEqual(args, ('verified', 'anilist-1', None, True, True))
+        self.assertEqual(args, ('verified', 'anilist-1', 0, None, True, True))
 
     def test_prologue_completion_uses_final_canonical_unit(self):
         media = anilist.normalize(entry(19603))

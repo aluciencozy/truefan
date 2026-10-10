@@ -90,17 +90,20 @@ def get_media_states(user_id: str, media_ids: list[str]) -> list[UserMediaState]
         raise HTTPException(503, "Progress storage unavailable; run python -m app.init_db") from error
 
 
-def update_media_state(user_id: str, media_id: str, update: UserMediaStateUpdate) -> UserMediaState:
+def update_media_state(user_id: str, media_id: str, update: UserMediaStateUpdate, media: Media | None = None) -> UserMediaState:
     if not settings.database_url:
         raise HTTPException(503, "Configure DATABASE_URL for saved progress")
+    unit = media.total_units if update.completed and media and media.total_units_known else 0
     try:
         with connection() as conn:
             row = conn.execute("""INSERT INTO public.user_progress(user_id,media_id,completed_unit,completed,manual_unlocked)
-                VALUES(%s,%s,0,%s,COALESCE(%s,false)) ON CONFLICT(user_id,media_id) DO UPDATE
+                VALUES(%s,%s,%s,%s,COALESCE(%s,false)) ON CONFLICT(user_id,media_id) DO UPDATE
                 SET completed=COALESCE(EXCLUDED.completed,user_progress.completed),
+                completed_unit=CASE WHEN EXCLUDED.completed THEN GREATEST(user_progress.completed_unit,EXCLUDED.completed_unit)
+                    ELSE user_progress.completed_unit END,
                 manual_unlocked=CASE WHEN %s THEN EXCLUDED.manual_unlocked ELSE user_progress.manual_unlocked END,
                 updated_at=now() RETURNING completed_unit,completed,manual_unlocked""",
-                (user_id, media_id, update.completed, update.manual_unlocked,
+                (user_id, media_id, unit, update.completed, update.manual_unlocked,
                  'manual_unlocked' in update.model_fields_set)).fetchone()
             totals = _known_totals(conn, [media_id]) if row[1] is None else {}
             return _state(media_id, row, totals)
