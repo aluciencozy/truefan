@@ -1,25 +1,35 @@
 // Keep in sync with backend/app/schemas.py; /openapi.json is the API contract.
 export interface RevealPoint { unit: number }
 export interface UserProgress { media_id: string; progress: RevealPoint }
+export interface MediaReleaseDate { year: number | null; month: number | null; day: number | null }
+export interface UserMediaState {
+  media_id: string; progress: RevealPoint | null; completed: boolean; manual_unlocked: boolean
+}
 export interface Media {
   id: string
   title: string
   type: 'anime' | 'tv' | 'manga' | 'game' | 'movie'
   progress_unit: 'episode' | 'chapter' | 'movie' | 'milestone'
   total_units: number
+  total_units_known?: boolean
+  release_date?: MediaReleaseDate | null
   description: string
   anilist_id: number | null
+  has_prologue: boolean
+  cover_url: string | null
+  format: string | null
 }
-export interface Provenance { source: string; source_unit: number; verified: boolean }
+export interface Provenance { source: string; source_unit: number; verified: boolean; model: string | null; evidence: string | null; episode_number: number | null; source_title: string | null }
 export interface Entity {
   id: string; name: string; type: 'character' | 'faction' | 'location' | 'object'
   description: string; revealed_at: RevealPoint; provenance: Provenance
 }
 export interface Relationship {
-  id: string; source: string; target: string; type: string
+  id: string; source: string; target: string; type: string; label: string | null
   revealed_at: RevealPoint; provenance: Provenance
 }
 export interface GraphResponse {
+  experimental: boolean; generation: GenerationStatus | null
   media_id: string; progress: RevealPoint
   entities: Entity[]; relationships: Relationship[]
 }
@@ -43,4 +53,19 @@ export interface FlowEdge { id: string; source: string; target: string; label: s
 export interface FlowGraphResponse {
   media_id: string; progress: RevealPoint; origin: 'ai' | 'database' | 'builtin'
   nodes: FlowNode[]; edges: FlowEdge[]
+}
+
+export interface GenerationStatus {
+  status: 'not_generated' | 'queued' | 'retrieving' | 'generating' | 'ready' | 'partial' | 'empty' | 'failed'
+  processed_units: number; supported_units: number[]; episode_cap: number
+  error: string | null; updated_at: string | null; experimental: boolean
+}
+export interface UniverseCache {
+  refreshed_at: string | null; stale: boolean; incomplete: boolean; revision: number
+  can_expand: boolean; limitations: string[]
+}
+export interface UniverseRelation { source: string; target: string; type: string }
+export interface Universe {
+  root_id: string; media: Media[]; relationships: UniverseRelation[]; truncated: boolean
+  franchise_id?: string | null; cache?: UniverseCache | null
 }

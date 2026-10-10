@@ -127,11 +127,13 @@ def main() -> int:
     check("health body", body == {"status": "ok", "mode": "demo"})
 
     _, _, body = expect_status("search match", "GET", "/api/media/search?q=lantern", 200)
-    check("search returns Media[]", isinstance(body, list) and len(body) == 1 and has_media_shape(body[0]))
+    # Search merges the demo with live AniList results, so assert inclusion and shape, not exact length.
+    check("search returns Media[] including the demo",
+          isinstance(body, list) and all(has_media_shape(m) for m in body) and MEDIA in [m.get("id") for m in body])
     _, _, body = expect_status("search case-insensitive", "GET", "/api/media/search?q=LANTERN%20harbor", 200)
-    check("search case-insensitive finds media", bool(body))
-    _, _, body = expect_status("search no match", "GET", "/api/media/search?q=zzzz", 200)
-    check("search no match is []", body == [])
+    check("search case-insensitive finds the demo", MEDIA in [m.get("id") for m in body])
+    _, _, body = expect_status("search unlikely query", "GET", "/api/media/search?q=zzzzqqxx", 200)
+    check("search unlikely query excludes the demo", isinstance(body, list) and MEDIA not in [m.get("id") for m in body])
     expect_status("search q=200 chars", "GET", "/api/media/search?q=" + "a" * 200, 200)
     expect_status("search q=201 chars", "GET", "/api/media/search?q=" + "a" * 201, 422)
 

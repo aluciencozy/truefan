@@ -17,15 +17,21 @@ returns only facts at or before the user's exact progress.
 - Neon Auth UI for Google-only sign-in, sign-out, account settings, sessions, and a protected API identity check.
 - Persistent per-user media progress through authenticated FastAPI endpoints.
 - Lazy Neon Postgres connection helper; no database or external credentials needed to boot.
-- Typed extraction/Q&A contracts and integration placeholders; neither calls an AI model.
+- Dynamic AniList search and reusable Neon franchise caches with bounded discovery and explicit expansion.
+  See [franchise discovery and API details](docs/IMPLEMENTATION.md#search-and-universe-discovery);
+  unlock presentation remains a dependency on `fm/truefan-universe-explorer`.
+- Automatic experimental character extraction from Kitsu/TVmaze through configurable HF inference.
+- Shared Neon graph caching, bounded background jobs, resumable checkpoints, and per-episode filtering.
+- Legacy extraction/Q&A placeholder routes remain available; the new media-scoped generation route calls HF.
 
 The fixture is **Lantern Harbor**, a fictional three-episode story. Episode 1
 reveals three nodes, episode 2 reveals a faction, and episode 3 reveals an object.
 Moving backwards removes later information immediately, including selected details.
 Progress 0 gives an empty graph. No real-series spoilers are included in the fixture.
 
-This is boilerplate, not a finished product. Search currently returns only this
-fixture. Accounts use real Neon Auth when configured, but production deployments and a real demo series are not implemented.
+The starter fixture remains available alongside dynamic AniList search. Accounts use real Neon Auth when configured. Automatic experimental
+graphs now supplement it; existing production deployments require the updated code
+and additive schema to enable the new flow.
 Saved progress needs the application table initialized as described below.
 
 ## Example experience
@@ -49,9 +55,9 @@ Vite + React browser app (Vercel)
   └─ HTTP / JSON → FastAPI (Railway)
                     ├─ reveal-point filtering
                     ├─ JWT verification for user-owned APIs
-                    ├─ Neon Postgres (per-user progress)
-                    ├─ AniList GraphQL (planned metadata)
-                    └─ Hugging Face Inference Providers (planned extraction)
+                    ├─ Neon Postgres (progress and shared caches)
+                    ├─ AniList GraphQL (media metadata)
+                    └─ Hugging Face Inference Providers (experimental extraction)
 ```
 
 The frontend is a separate SPA; there are no Next.js, SSR, or frontend API routes.
@@ -83,9 +89,9 @@ and PyJWT with cryptography for signed identity verification.
 │   │   ├── config.py         # Server configuration
 │   │   ├── auth.py           # Verified Neon identity dependency
 │   │   ├── database.py       # Lazy Postgres connection
-│   │   ├── schema.sql        # Application user_progress table
+│   │   ├── schema.sql        # Application schema (see docs/IMPLEMENTATION.md)
 │   │   ├── init_db.py        # Explicit table setup command
-│   │   └── services/         # Progress storage, demo data, filtering, AniList/HF placeholders
+│   │   └── services/         # Progress, filtering, AniList, episode providers, inference, shared graph jobs
 │   ├── tests/               # Auth, ownership, and spoiler-boundary checks
 │   ├── .env.example
 │   ├── Procfile              # Railway start command
@@ -155,6 +161,7 @@ Checks:
 ```bash
 # In frontend/
 npm run typecheck
+npm test
 npm run build
 npm run preview
 
@@ -165,7 +172,15 @@ curl 'http://localhost:8000/api/media/lantern-harbor/graph?progress=1'
 curl 'http://localhost:8000/api/media/lantern-harbor/graph?progress=3'
 ```
 
-The two graph calls should return 3 and 5 entities respectively. In the browser,
+The home route (`/`) is the TrueFan search hero, using Catppuccin Mocha and
+self-hosted JetBrains Mono. Submitting a title opens `/explore?q=...`; submitting
+an empty search opens the guest demo. The explorer retains media selection,
+progress filtering, and account controls. Home-page image nodes are decorative
+artwork reused from the Figma design, not factual story relationships. Assets
+live in `frontend/public/home/`; the font license is in `frontend/public/fonts/`.
+Log in and Sign up use the existing Neon Auth routes.
+
+The two graph calls should return 3 and 5 entities respectively. In `/explore`,
 “Backend connected” proves the `/health` call succeeded. The visible graph comes
 from FastAPI, not a separate frontend fixture. Change episodes and click a node
 to verify the graph and details update. Stop FastAPI and reload to check the error UI.
@@ -175,8 +190,7 @@ to verify the graph and details update. Stop FastAPI and reload to check the err
 | Variable | Location | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | Backend | Neon Postgres connection string, with TLS parameters from Console |
-| `HF_TOKEN` | Backend | Secret Inference Providers token used by `POST /api/media/{id}/extract` |
-| `HF_MODEL`, `HF_API_URL` | Backend | Optional overrides (defaults: `meta-llama/Llama-3.1-8B-Instruct`, the HF router chat-completions URL) |
+| `HF_TOKEN` | Backend | Secret Inference Providers token for graph generation, local probes, and `POST /api/media/{id}/extract` |
 | `ANILIST_API_URL` | Backend | Defaults to `https://graphql.anilist.co` |
 | `FRONTEND_URL` | Backend | Exact allowed browser origin; defaults to `http://localhost:3000` |
 | `VITE_API_URL` | Frontend | Public FastAPI origin; defaults to `http://localhost:8000` |
@@ -240,7 +254,9 @@ python -m app.init_db
 
 For schema setup, use the direct Neon connection string from Console → Connect
 (turn off connection pooling); the app can use the pooled string afterwards.
-The SQL creates only `public.user_progress`; it leaves Neon's auth tables alone.
+The additive setup preserves existing progress and leaves Neon's auth tables alone.
+See the [implemented schema](docs/IMPLEMENTATION.md#5-actual-database-schema) and
+[franchise migration instructions](docs/IMPLEMENTATION.md#additive-deployment-migration).
 
 The account pages use `createAuthClient` from `@neondatabase/neon-js/auth`, its
 React adapter, and `NeonAuthUIProvider`, `AuthView`, and `AccountView` from
@@ -329,10 +345,14 @@ these contracts in `src/lib/types.ts`.
 | Endpoint | Contract / starter behavior |
 | --- | --- |
 | `GET /health` | `{ "status": "ok", "mode": "demo" }`; does not imply DB/provider readiness |
-| `GET /api/media/search?q=...` | Case-insensitive title search; returns `Media[]` for the fixture |
+| `GET /api/media/search?q=...` | See [search behavior](docs/IMPLEMENTATION.md#search-and-universe-discovery) |
 | `GET /api/media/{id}` | One `Media`; unknown IDs return 404 |
+| `GET /api/media/{id}/universe` | Public cache-first franchise graph; `root_id` remains the exact selected work |
+| `POST /api/media/{id}/universe/expand` | Public bounded frontier expansion; body `{ "expected_revision": N }`; stale revision is 409 |
+| `GET /api/me/media-state?media_id=...` | Bearer token; 1–50 unique IDs; returns `{media_id, progress, completed, manual_unlocked}[]` |
+| `PUT /api/me/media-state/{id}` | Bearer token; supplied `completed`/`manual_unlocked` flags only; preserves saved units |
 | `GET /api/media/{id}/graph?progress=N` | Required non-negative completed unit; returns filtered `GraphResponse`; out-of-range returns 422 |
-| `POST /api/media/{id}/extract` | `GraphExtractRequest` (`summary`, `source`, `reveal_point`, viewer `progress`); calls Hugging Face with server-only `HF_TOKEN` and returns React Flow `{nodes, edges}` (`FlowGraphResponse`, `origin: "ai"`, unverified). On any provider failure (timeout, 429, bad output, no token) it returns the curated graph from Neon (`origin: "database"`) or the in-code seed (`"builtin"`). Both paths are filtered by `progress`; unknown media 404, progress beyond total 422 |
+| `POST /api/media/{id}/extract` | Bearer token plus `GraphExtractRequest` (`summary`, `source`, `reveal_point`, viewer `progress`); calls Hugging Face with server-only `HF_TOKEN`/`HF_MODEL` and returns React Flow `{nodes, edges}` (`FlowGraphResponse`, `origin: "ai"`, unverified). On any provider failure (timeout, 429, bad output, no token) it returns the curated graph from Neon (`origin: "database"`), the in-code seed (`"builtin"`), or an empty graph for uncurated titles. Every path is filtered by `progress`; progress beyond total 422. Separate from the cached, queued `POST /api/media/{id}/generation` |
 | `POST /api/extract` | `ExtractRequest`; returns 501 with a typed `not_implemented` message |
 | `POST /api/ask` | `AskRequest`; returns 501 without generating an answer |
 | `GET /api/me` | Bearer token required; returns `{ "id": "verified-user-subject" }` |
@@ -389,8 +409,10 @@ specifies the unit label. Progress 0 means nothing completed. Seasons/episode
 numbers will map into this order through a story-unit table. Branched game
 stories will need an explicit path-aware extension instead of guessing a sequence.
 
-`public.user_progress` is implemented in `app/schema.sql`. The broader graph
-schema remains planned:
+The [implemented database schema](docs/IMPLEMENTATION.md#5-actual-database-schema)
+is defined in `app/schema.sql`. Generated graphs use episode snapshots in JSONB
+so they can be cached across users while retaining progress-specific descriptions.
+The following normalized-table layout remains an optional future direction:
 
 | Concept | Planned fields / ownership |
 | --- | --- |
@@ -413,42 +435,179 @@ introductory description. Later aliases, identities, affiliations, biographies,
 and changed relationships must be stored as separately revealable facts or
 versions. Do not replace an early description with a full-story biography.
 
-## Planned AniList integration
+## Universe exploration and release guidance
 
-Call AniList GraphQL from `backend/app/services/anilist.py` to search titles,
-normalize anime/manga metadata, and retain AniList IDs separately from internal
-media IDs. Add timeouts, rate-limit handling, and modest caching when implemented.
+Search results keep their exact AniList media ID and your typed query. Selecting
+an anime opens an effectively infinite React Flow canvas. Select a destination
+to smoothly focus it, inspect its connections, and use **Enter anime** (or
+double-click an accessible node) to open the existing episode-filtered character
+graph. **Return home** focuses the original selection; zoom controls, fit-view and
+a desktop minimap navigate the map. Returning from characters keeps the canvas
+and camera mounted. The minimap is hidden on narrow mobile screens.
+
+`universeModel.ts` normalizes stable typed connections while preserving the
+original directed AniList evidence. PREQUEL reverses placement direction;
+reciprocal SEQUEL/PREQUEL evidence shares one connection. Alternatives are
+symmetric cross-links, never fabricated sequels. A deterministic, cycle-safe
+primary sequel forest retains other connections as dashed links. Straight
+continuation chains share an inferred branch; forks and multiple parents split
+branches. Explicit alternatives, spinoffs, side stories and adaptations prevent
+transitive branch merging. Different format families (TV/TV_SHORT/ONA versus
+films, OVAs or specials) also remain separate, so an optional OVA prequel does not
+become a TV-season viewing prerequisite. Adaptation/version branches remain connected nearby.
+These heuristics describe provisional groups, not canonical continuity facts.
+
+`universeLayout.ts` lazily loads ELK.js and places fixed-size nodes inside inferred
+branch regions, then places those regions in radial constellations using a deterministic semantic
+spanning forest (sequel links first, adaptation/version links next, branch links
+then weak associations). Disconnected components are packed separately. This
+scaffold only controls geometry; the rendered connections retain the general graph. Input
+IDs/edges are sorted and layout uses a fixed seed. Release dates, watched state
+and overlays are absent from geometry inputs. Expansion preserves all existing
+media anchors, aligns new members to branch anchors when possible and appends
+colliding cards. This favors spatial memory over a perfect refreshed layout;
+branch regions/cross-links can become less tidy after several expansions.
+Layout failure falls back to deterministic branch lanes without hiding nodes.
+
+**Release guidance** numbers entries *within each branch*, rather than
+interleaving unrelated continuities by global release date. Sorting compares
+known year/month/day, puts missing components after known components at the same
+year/month, then uses stable media ID. Partial dates stay labeled partial and
+undated entries sort last. Nothing invents a date or treats a release sequence as
+story chronology or guaranteed spoiler-free viewing.
+
+All discovered nodes stay visible. **Locked** shows title, cover and actual
+connections, with no episode metadata/story details or character entry.
+**Available** can be entered; **Completed** remains accessible and has a watched
+marker. Incomplete covers are dimmed. Each inferred branch has its own available
+starting point, so alternate/spinoff branches can be explored in parallel.
+Later dated releases in that branch are available after the preceding release
+is confirmed complete. Undated works remain available rather than blocking
+forever; partial-date suggestions are approximate. Existing positive watched
+progress or a manual override grants entry regardless of the suggestion.
+**Unlock anyway** changes availability only, preserving saved units/completions.
+**I finished this anime** explicitly confirms completion, including uncertain
+counts, without fabricating watched episode numbers.
+
+Guest confirmations/overrides last for the current app session. Signed-in users
+load all discovered works' state through deterministic bulk batches of at most
+50 IDs and save flags immediately. Merged cached universes may contain more than
+50 nodes; they all remain visible.
+Episode selection remains a spoiler lens: use **Account → Save progress** to
+persist watched units. The frontend saves at least the previously recorded unit
+and does not erase completion when you rewind. API completion flags are
+authoritative; the frontend never infers completion from an unknown one-unit
+fallback or generation coverage. Account changes clear user state. Entry locks
+are navigation guidance, not new server authorization; public character API
+access and backend reveal filtering remain unchanged.
+
+`Media` adds nullable fuzzy `release_date: {year, month, day}` and
+`total_units_known` (false by default; old snapshots remain compatible).
+`Universe` retains `root_id`, `media`, raw `relationships` and `truncated`, and
+adds nullable `franchise_id` and `cache` (`refreshed_at`, `stale`, `incomplete`,
+`revision`, `can_expand`, `limitations`). A cached franchise can be reused through
+different entry works while preserving the selected root. **Expand universe**
+uses the cached revision, respects configured discovery bounds, and retains the
+map on errors. Saved frontier expansion is not guaranteed complete discovery or
+a full stale-metadata refresh. Names alone never establish membership.
+
+Deploy the companion backend/cache migration before this frontend: apply its
+additive schema with `python -m app.init_db` using the target direct database URL.
+`FRANCHISE_CACHE_TTL_SECONDS` is backend-only (default 86400). Missing persistent
+storage retains bounded live discovery with null cache evidence. Provider
+metadata, membership and dates can be incomplete. Keep collection bounded and
+on demand; AniList public API access is not a license to mirror its catalog.
+Character extraction, Auth/JWT verification and episode reveal rules are unchanged.
+
+Run `npm test` in `frontend/` (Node 24 recommended) for pure normalization,
+release/progression/override, deterministic ELK, expansion-anchor, safe locked
+panel and Auth API checks. Backend tests remain in `backend/tests`.
+
+## AniList integration
+
+See [search and reusable franchise discovery](docs/IMPLEMENTATION.md#search-and-universe-discovery)
+for the implemented metadata flow and its limitations.
 AniList is metadata, not a trustworthy episode-by-episode reveal dataset. Character
 biographies and cast lists can themselves contain spoilers, so never send them
 straight to a progress-filtered profile. Other media providers can be added later.
 
-## Planned Hugging Face ingestion pipeline
+## Episode-summary source investigation
+
+The standalone Kitsu/TVmaze comparison reuses the original Jikan probe's HTTP
+client, AniList resolver, sampling, and metrics. Run it from `backend/`:
+
+```bash
+.venv/bin/python scripts/episode_provider_feasibility.py --output /tmp/truefan-episode-provider-results.json
+```
+
+It samples five numbered episodes from each of five anime per provider, verifies
+Kitsu external-ID mappings, and uses TVDB IDs to match TVmaze where available.
+It separates missing text from request errors and records numbering and specials.
+Raw responses stay outside the repository; never commit the results file.
+See [the comparison report](docs/episode-provider-feasibility.md) for measured
+coverage, matching limits, and why episode safety still needs review. Kitsu is the
+stronger candidate in this sample; TVmaze can supplement sparse information.
+These provider probes are experiments, not production integrations, and make no
+AI calls or Neon writes. The [earlier Jikan report](docs/jikan-feasibility.md) remains a historical
+record of that investigation.
+
+## Hugging Face extraction experiment
+
+From `backend/`, using the server-only `HF_TOKEN` in `backend/.env`:
+
+```bash
+.venv/bin/python -m scripts.hf_extraction_feasibility --output /tmp/truefan-hf-extraction.json
+.venv/bin/python -m unittest discover -s tests
+```
+
+This bounded experiment resolves UBW and samples the prologue plus episodes 1–5.
+Kitsu is primary; TVmaze supplies a matched prologue when Kitsu's episode text is
+null. Six independent requests per run use Qwen3-4B-Instruct-2507 through Hugging Face's
+nscale provider, with structured JSON and Pydantic validation. Pass
+`--model Qwen/Qwen2.5-72B-Instruct:deepinfra` to reproduce the larger-model
+comparison; that model uses a custom Qwen license rather than Apache 2.0. Running the script
+can consume inference credits. Raw descriptions/responses stay outside the repo.
+Lexical grounding rejects missing names, fabricated evidence, and invalid edges;
+semantic support and spoiler timing require separate review. Candidates are never
+loaded by the production API. See [the extraction report](docs/hf-extraction-feasibility.md)
+and [reviewed candidates](docs/data/ubw-extraction-candidates.json).
+
+## Automated graph generation
 
 ```text
 AniList
     ↓
 media metadata + characters
     ↓
-episode/wiki/manual summaries
+Kitsu episode descriptions / TVmaze fallback / curated summaries
     ↓
 Hugging Face open-source model / Inference Providers
     ↓
-structured entities + relationships + reveal points + provenance
+structured entities + relationship assertions + source support + provenance
     ↓
-manual verification if necessary
+automatic schema/source checks + approximate support boundaries
     ↓
 Neon Postgres
     ↓
 spoiler-aware graph API
 ```
 
-`services/huggingface.py` is deliberately a placeholder. Choose a supported model
-and provider, use server-only `HF_TOKEN`, submit summaries with explicit story-unit
-and source context, and validate output against Pydantic before storing anything.
-Record source references, unit, model/provider, extraction run, and review status.
-Model-inferred relationships or reveal points must not automatically become
-verified facts. Begin with manually curated summaries and human-reviewed output.
-Wikipedia/MediaWiki sources can be considered later; no scraping is implemented.
+`services/huggingface.py` now provides the runtime inference adapter. Runtime graphs
+are automatically served as experimental/unverified; they are not manually moderated
+or imported from offline candidate JSON. Support boundaries are approximate and not
+advertised as guaranteed spoiler-safe. See the implementation guide below.
+
+See [the automated pipeline guide](docs/automated-graph-generation.md) for API
+contracts, job recovery, provider matching, UBW prologue numbering, quotas, storage,
+and limitations. Before deploying the updated backend, run `python -m app.init_db`
+with a direct Neon URL. Existing tables/progress remain intact. Configure server-side
+`HF_MODEL`, `HF_TOKEN`, and `GENERATION_EPISODE_CAP`; defaults and other controls
+are documented in `backend/.env.example`. Changing progress never reruns inference.
+
+The frontend opens a universe from search, focuses media on selection, then opens an accessible work through **Enter anime** or double-click.
+New graphs require Google authentication; cached graphs are shared. Save/Retrieve
+progress still uses the existing user-owned endpoints. Initial generation is capped
+and reports partial coverage honestly. No Vercel/Railway hosting settings were changed.
 
 ## Deployment targets
 
@@ -477,7 +636,8 @@ Recommended next five implementation tasks:
 1. Install dependencies, link/deploy Neon Auth, and verify Google sign-in/session/JWT flow end to end.
 2. Choose one real demo series; curate story units and review entity/relationship reveal points.
 3. Expand the graph schema and add automatic saved-progress resume if useful.
-4. Replace fixture search with AniList metadata while keeping graph facts curated.
+4. Coordinate the universe unlock UI with `fm/truefan-universe-explorer`; see the
+   [backend contract and frontend dependency](docs/IMPLEMENTATION.md#7-http-api-reference).
 5. Run one provenance-preserving Hugging Face extraction experiment, then deploy the demo to Vercel/Railway.
 
 Future features include spoiler-safe versioned profiles, refusal-aware Q&A using
@@ -522,12 +682,12 @@ installed SDK and HTTP fixtures. Protected API success and Postgres save/retriev
 still require a live check after the fix.
 A build, an OAuth redirect, or mocked JWT tests do not prove the complete live flow.
 
-## Seeding the demo catalog
+## Seeding the curated demo catalog
 
 `schema.sql` also defines `media`, `entities` and `relationships` (`unlock_episode` = the
 API's `revealed_at.unit`). From `backend/`, run `python scripts/seed_demo_data.py` to create
-the tables and upsert Lantern Harbor and *Attack on Titan* season 1 (25 entities across
-episodes 1/5/10/15/20/25). It is idempotent. Seed reveal episodes are hand-written and
+the tables and upsert Lantern Harbor and *Attack on Titan* season 1 (25 entities revealed at
+episodes 1/5/10/15/20 and 24 edges up to episode 25). It is idempotent. Seed reveal episodes are hand-written and
 unreviewed (`verified = false`); they err late, never early. Without the seed, or when
 Neon is unreachable, the extract endpoint falls back to the same data compiled into
 `app/services/seed_catalog.py`.
