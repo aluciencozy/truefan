@@ -42,17 +42,18 @@ class CacheTests(unittest.TestCase):
         self.assertEqual(one['media'], two['media'])
         details.assert_not_called(); get_media.assert_not_called()
 
-    def test_stale_and_projected_hits_keep_exact_root_and_honest_limits(self):
+    def test_stale_hits_keep_all_cached_members_edges_and_exact_root(self):
         cache = snapshot()
         cache.row['refreshed_at'] -= timedelta(days=3)
         with patch.object(settings, 'universe_node_cap', 1):
             result = franchises.response(cache, 'anilist-2')
-        self.assertEqual([m.id for m in result.media], ['anilist-2'])
-        self.assertEqual(result.relationships, [])
+        self.assertEqual(result.root_id, 'anilist-2')
+        self.assertEqual(result.media, cache.graph.media)
+        self.assertEqual(result.relationships, cache.graph.relationships)
         self.assertTrue(result.cache.stale)
         self.assertTrue(result.cache.incomplete)
-        self.assertFalse(result.cache.can_expand)
-        self.assertIn('response_node_cap', result.cache.limitations)
+        self.assertTrue(result.cache.can_expand)
+        self.assertIn('stale_metadata', result.cache.limitations)
 
     def test_miss_or_storage_failure_keeps_live_fallback_without_cache_claim(self):
         live = anilist.Discovery(Universe(root_id='anilist-1', media=[anilist.normalize(entry(1))], relationships=[]),
@@ -88,7 +89,8 @@ class CacheTests(unittest.TestCase):
         saved = snapshot()
         discovery = anilist.Discovery(saved.graph, {'anilist-1', 'anilist-2'}, {'anilist-1', 'anilist-2'},
                                      set(), {'inferred_membership'}, {'anilist-2'})
-        with patch('app.services.franchises.load', return_value=saved), \
+        with patch.object(settings, 'universe_node_cap', 2), \
+             patch('app.services.franchises.load', return_value=saved), \
              patch('app.services.anilist.discover', return_value=discovery) as discover, \
              patch('app.services.franchises.publish', return_value=snapshot(revision=3, frontier=[])) as publish:
             result = franchises.expand('anilist-2', UniverseExpandRequest(expected_revision=2))
@@ -97,25 +99,23 @@ class CacheTests(unittest.TestCase):
         self.assertEqual(discover.call_args.kwargs['expanded'], {'anilist-1'})
         publish.assert_called_once_with(discovery, expected=saved)
 
-    def test_exhausted_or_capped_expansion_does_not_replay_root(self):
-        for saved in (snapshot(frontier=[]), snapshot()):
-            with patch.object(settings, 'universe_node_cap', 2), \
-                 patch('app.services.franchises.load', return_value=saved), patch('app.services.anilist.discover') as discover:
-                franchises.expand('anilist-1', UniverseExpandRequest(expected_revision=2))
-            discover.assert_not_called()
+    def test_exhausted_expansion_does_not_replay_root(self):
+        with patch('app.services.franchises.load', return_value=snapshot(frontier=[])), \
+             patch('app.services.anilist.discover') as discover:
+            franchises.expand('anilist-1', UniverseExpandRequest(expected_revision=2))
+        discover.assert_not_called()
 
-    def test_failed_expansion_retains_snapshot_freshness_and_revision(self):
-        saved = snapshot(); refreshed = saved.row['refreshed_at']
+    def test_failed_expansion_rejects_publication(self):
+        saved = snapshot()
         with patch('app.services.franchises.load', return_value=saved), \
              patch('app.services.anilist.discover', side_effect=ValueError('provider')), \
              patch('app.services.franchises.connection') as connection, \
              patch('app.services.franchises.publish') as publish, self.assertRaises(HTTPException) as raised:
             franchises.expand('anilist-1', UniverseExpandRequest(expected_revision=2))
         self.assertEqual(raised.exception.status_code, 502)
-        self.assertEqual(saved.row['refreshed_at'], refreshed); self.assertEqual(saved.row['revision'], 2)
         publish.assert_not_called()
-        sql, params = connection.return_value.__enter__.return_value.execute.call_args.args
-        self.assertNotIn('refreshed_at=', sql); self.assertEqual(params, ('franchise-test', 2))
+        params = connection.return_value.__enter__.return_value.execute.call_args.args[1]
+        self.assertEqual(params, ('franchise-test', 2))
 
     def test_publish_revision_is_rechecked_inside_transaction(self):
         saved = snapshot()

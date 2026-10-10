@@ -50,27 +50,20 @@ def load(media_id: str) -> Snapshot | None:
 
 def response(snapshot: Snapshot, media_id: str) -> Universe:
     row, graph = snapshot.row, snapshot.graph
-    cap = settings.universe_node_cap
-    # Config reductions/overlap merges must still retain the exact selected node.
-    ids = sorted(m.id for m in graph.media if m.id != media_id)
-    visible = set([media_id, *ids[:max(0, cap - 1)]])
-    projected = len(graph.media) > cap
     refreshed = row['refreshed_at']
     stale = refreshed is None or (datetime.now(timezone.utc) - refreshed).total_seconds() > settings.franchise_cache_ttl_seconds
     limits = set(row['limitations'])
-    if projected:
-        limits.add('response_node_cap')
     if stale:
         limits.add('stale_metadata')
     frontier = set(row['discovery'].get('frontier', []))
-    return Universe(root_id=media_id, media=[m for m in graph.media if m.id in visible],
-                    relationships=[e for e in graph.relationships if e.source in visible and e.target in visible],
-                    truncated=projected or bool(frontier) or 'node_cap' in limits,
+    return Universe(root_id=media_id, media=graph.media,
+                    relationships=graph.relationships,
+                    truncated=bool(frontier) or 'node_cap' in limits,
                     franchise_id=row['id'], cache=UniverseCache(
                         refreshed_at=refreshed.isoformat() if refreshed else None, stale=stale,
                         # Even exhausted provider relations do not prove canonical completeness.
                         incomplete=True, revision=row['revision'],
-                        can_expand=bool(frontier) and len(graph.media) < cap,
+                        can_expand=bool(frontier),
                         limitations=sorted(limits)))
 
 
@@ -192,7 +185,7 @@ def expand(media_id: str, request: UniverseExpandRequest) -> Universe:
         if request.expected_revision != snapshot.row['revision']:
             raise HTTPException(409, 'Universe cache changed; reload before expanding')
         state = snapshot.row['discovery']
-        if not state.get('frontier') or len(snapshot.graph.media) >= cap:
+        if not state.get('frontier'):
             return response(snapshot, media_id)
         try:
             discovery = anilist.discover(media_id, seed=snapshot.graph,

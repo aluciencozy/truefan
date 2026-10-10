@@ -7,6 +7,7 @@ import unittest
 import uuid
 from unittest.mock import patch
 import psycopg
+from psycopg.types.json import Jsonb
 from app.config import settings
 from app.schemas import RevealPoint, UserProgress, UserMediaStateUpdate, UniverseExpandRequest
 from app.services import anilist, franchises, progress
@@ -33,7 +34,7 @@ class FranchiseDatabaseTests(unittest.TestCase):
     def setUp(self):
         with psycopg.connect(self.url) as conn:
             conn.execute('TRUNCATE ' + ','.join(self.namespace + '.' + name for name in
-                         ('franchise_media', 'media_relations', 'franchises', 'user_progress')) + ' CASCADE')
+                         ('franchise_media', 'media_relations', 'franchises', 'user_progress', 'generated_graphs')) + ' CASCADE')
         @contextmanager
         def connection():
             with psycopg.connect(self.url) as conn:
@@ -62,14 +63,21 @@ class FranchiseDatabaseTests(unittest.TestCase):
                          {('anilist-1', 'anilist-2', 'SEQUEL'), ('anilist-2', 'anilist-1', 'PREQUEL')})
 
     def test_strong_overlap_merges_deterministic_survivor_and_preserves_all_members(self):
-        a = franchises.publish(self.discover(1, [(2, 'SEQUEL')]))
-        b = franchises.publish(self.discover(3, [(4, 'SEQUEL')]))
-        self.assertNotEqual(a.row['id'], b.row['id'])
-        merged = franchises.publish(self.discover(2, [(3, 'ALTERNATIVE')]))
+        with patch.object(settings, 'universe_node_cap', 2):
+            a = franchises.publish(self.discover(1, [(2, 'SEQUEL')]))
+            b = franchises.publish(self.discover(3, [(4, 'SEQUEL')]))
+            self.assertNotEqual(a.row['id'], b.row['id'])
+            merged = franchises.publish(self.discover(2, [(3, 'ALTERNATIVE')]))
         self.assertEqual(merged.row['id'], min(a.row['id'], b.row['id']))
         self.assertEqual({m.id for m in merged.graph.media}, {f'anilist-{n}' for n in range(1, 5)})
         for number in range(1, 5):
             self.assertEqual(franchises.load(f'anilist-{number}').row['id'], merged.row['id'])
+            with patch.object(settings, 'universe_node_cap', 2), patch('app.services.anilist.details') as provider:
+                graph = franchises.universe(f'anilist-{number}')
+            provider.assert_not_called()
+            self.assertEqual(graph.root_id, f'anilist-{number}')
+            self.assertEqual(graph.media, merged.graph.media)
+            self.assertEqual(graph.relationships, merged.graph.relationships)
         with self.connection() as conn:
             rows = conn.execute('SELECT id,merged_into FROM public.franchises ORDER BY id').fetchall()
         self.assertEqual(sum(row[1] is None for row in rows), 1)
@@ -147,7 +155,7 @@ class FranchiseDatabaseTests(unittest.TestCase):
     def test_configured_cap_increase_resumes_only_capped_source_and_frontier(self):
         with patch.object(settings, 'universe_node_cap', 2):
             saved = franchises.publish(self.discover(1, [(2, 'SEQUEL'), (3, 'SEQUEL')]))
-            self.assertFalse(franchises.response(saved, 'anilist-1').cache.can_expand)
+            self.assertTrue(franchises.response(saved, 'anilist-1').cache.can_expand)
         rows = {'anilist-1': entry(1, [(2, 'SEQUEL'), (3, 'SEQUEL')]), 'anilist-2': entry(2)}
         with patch.object(settings, 'universe_node_cap', 4), \
              patch('app.services.anilist.details', side_effect=lambda key: rows[key]) as provider:
@@ -155,6 +163,48 @@ class FranchiseDatabaseTests(unittest.TestCase):
         self.assertEqual([call.args[0] for call in provider.call_args_list], ['anilist-1', 'anilist-2'])
         self.assertEqual({m.id for m in graph.media}, {'anilist-1', 'anilist-2', 'anilist-3'})
         self.assertTrue(graph.cache.can_expand)
+
+    def test_at_cap_expansion_persists_retained_frontier_relations(self):
+        with patch.object(settings, 'universe_node_cap', 2):
+            saved = franchises.publish(self.discover(1, [(2, 'SEQUEL')]))
+            self.assertTrue(franchises.response(saved, 'anilist-1').cache.can_expand)
+            with patch('app.services.anilist.details', return_value=entry(2, [(1, 'PREQUEL')])) as provider:
+                graph = franchises.expand('anilist-2', UniverseExpandRequest(expected_revision=1, depth=0))
+        self.assertEqual([call.args[0] for call in provider.call_args_list], ['anilist-2'])
+        self.assertEqual(len(graph.media), 2)
+        self.assertEqual({(e.source, e.target, e.type) for e in graph.relationships},
+                         {('anilist-1', 'anilist-2', 'SEQUEL'), ('anilist-2', 'anilist-1', 'PREQUEL')})
+        self.assertFalse(graph.cache.can_expand)
+        self.assertEqual(franchises.load('anilist-2').graph.relationships, graph.relationships)
+
+    def test_prologue_completion_at_final_unit_and_legacy_inference(self):
+        franchises.publish(self.discover(19603, []))
+        media = anilist.normalize(entry(19603))
+        for unit, completed in ((12, False), (13, True), (12, True)):
+            progress.save_progress('a', UserProgress(media_id=media.id, progress=RevealPoint(unit=unit)), media)
+            self.assertEqual(progress.get_media_states('a', [media.id])[0].completed, completed)
+        with self.connection() as conn:
+            conn.execute("INSERT INTO public.user_progress(user_id,media_id,completed_unit) VALUES('legacy',%s,12)", (media.id,))
+        self.assertFalse(progress.get_media_states('legacy', [media.id])[0].completed)
+        with self.connection() as conn:
+            conn.execute("UPDATE public.user_progress SET completed_unit=13 WHERE user_id='legacy'")
+        self.assertTrue(progress.get_media_states('legacy', [media.id])[0].completed)
+
+    def test_generated_snapshot_controls_legacy_completion_in_both_read_paths(self):
+        stale = entry(1); stale['episodes'] = 1
+        with patch('app.services.anilist.details', return_value=stale):
+            franchises.publish(anilist.discover('anilist-1', depth_limit=0))
+        with self.connection() as conn:
+            conn.execute("""INSERT INTO public.generated_graphs(media_id,media,model,episode_cap,requested_by)
+                VALUES(%s,%s,'test',12,'test')""", ('anilist-1', Jsonb(anilist.normalize(entry(1)).model_dump())))
+            conn.execute("INSERT INTO public.user_progress(user_id,media_id,completed_unit) VALUES('a','anilist-1',1)")
+        self.assertFalse(progress.get_media_states('a', ['anilist-1'])[0].completed)
+        state = progress.update_media_state('a', 'anilist-1', UserMediaStateUpdate(manual_unlocked=True))
+        self.assertFalse(state.completed); self.assertEqual(state.progress.unit, 1)
+        with self.connection() as conn:
+            conn.execute("UPDATE public.user_progress SET completed_unit=12 WHERE user_id='a'")
+        self.assertTrue(progress.get_media_states('a', ['anilist-1'])[0].completed)
+        self.assertTrue(progress.update_media_state('a', 'anilist-1', UserMediaStateUpdate(manual_unlocked=False)).completed)
 
     def test_legacy_inference_and_additive_migration_preserve_rows(self):
         with self.connection() as conn:

@@ -5,7 +5,7 @@ import psycopg
 from app.auth import current_user
 from app.config import settings
 from app.main import app
-from app.schemas import CurrentUser, UserMediaState, UserMediaStateUpdate, RevealPoint
+from app.schemas import CurrentUser, UserMediaState, UserMediaStateUpdate, RevealPoint, UserProgress
 from app.services import anilist, progress
 from test_anilist import entry
 from test_franchises import request
@@ -28,7 +28,8 @@ class MediaStateTests(unittest.TestCase):
     def test_bulk_queries_only_verified_owner_requested_ids_without_provider(self):
         saved = MagicMock(); saved.fetchall.return_value = [('anilist-1', 12, None, True), ('anilist-2', 1, False, False)]
         catalog = MagicMock(); catalog.fetchall.return_value = [('anilist-1', anilist.normalize(entry(1)).model_dump())]
-        self.conn.execute.side_effect = [saved, catalog]
+        generated = MagicMock(); generated.fetchall.return_value = []
+        self.conn.execute.side_effect = [saved, catalog, generated]
         with patch('app.services.anilist.details') as provider:
             states = progress.get_media_states('verified', ['anilist-3', 'anilist-2', 'anilist-1'])
         self.assertEqual([s.media_id for s in states], ['anilist-1', 'anilist-2', 'anilist-3'])
@@ -38,14 +39,29 @@ class MediaStateTests(unittest.TestCase):
         self.assertEqual(self.conn.execute.call_args_list[1].args[1], (['anilist-1'],))
         provider.assert_not_called()
 
-    def test_override_write_preserves_units_and_completion(self):
+    def test_override_returns_saved_units_and_completion(self):
         self.conn.execute.return_value.fetchone.return_value = (5, True, True)
         state = progress.update_media_state('verified', 'anilist-1', UserMediaStateUpdate(manual_unlocked=True))
         self.assertEqual(state.progress.unit, 5); self.assertTrue(state.completed)
-        sql, args = self.conn.execute.call_args.args
+        args = self.conn.execute.call_args.args[1]
         self.assertEqual(args, ('verified', 'anilist-1', None, True, True))
-        conflict_clause = sql.split('DO UPDATE')[1]
-        self.assertNotIn('completed_unit=', conflict_clause)
+
+    def test_prologue_completion_uses_final_canonical_unit(self):
+        media = anilist.normalize(entry(19603))
+        for unit, completed in ((12, False), (13, True)):
+            progress.save_progress('verified', UserProgress(media_id=media.id, progress=RevealPoint(unit=unit)), media)
+            self.assertEqual(self.conn.execute.call_args.args[1], ('verified', media.id, unit, completed, 13))
+            self.assertEqual(progress._state(media.id, (unit, None, False), {media.id: media.total_units}).completed, completed)
+
+    def test_generated_totals_take_precedence_for_legacy_inference(self):
+        for generated_count, unit, expected in ((12, 1, False), (12, 12, True), (None, 12, False)):
+            stale = entry(1); stale['episodes'] = 1
+            fresh = entry(1); fresh['episodes'] = generated_count
+            saved = MagicMock(); saved.fetchall.return_value = [('anilist-1', unit, None, False)]
+            catalog = MagicMock(); catalog.fetchall.return_value = [('anilist-1', anilist.normalize(stale).model_dump())]
+            generated = MagicMock(); generated.fetchall.return_value = [('anilist-1', anilist.normalize(fresh).model_dump())]
+            self.conn.execute.side_effect = [saved, catalog, generated]
+            self.assertEqual(progress.get_media_states('verified', ['anilist-1'])[0].completed, expected)
 
     def test_storage_errors_are_not_empty_watched_lists(self):
         self.conn.execute.side_effect = psycopg.OperationalError('offline')
@@ -73,6 +89,39 @@ class MediaStateApiTests(unittest.TestCase):
                 code, _ = asyncio.run(request('/api/me/media-state/anilist-1', 'PUT', data))
                 self.assertEqual(code, 422)
             write.assert_not_called()
+
+    def test_generated_snapshot_overrides_stale_franchise_bounds(self):
+        app.dependency_overrides[current_user] = lambda: CurrentUser(id='verified')
+        stale = entry(1); stale['episodes'] = None
+        generated = anilist.normalize(entry(1))
+        with patch.object(settings, 'database_url', 'configured'), \
+             patch('app.database.connection') as db, \
+             patch('app.services.franchises.cached_media', return_value=anilist.normalize(stale)) as local, \
+             patch('app.services.anilist.details') as provider, \
+             patch('app.main.cached_generation', return_value=None), \
+             patch('app.services.progress.save_progress', side_effect=lambda owner, saved, media: saved) as save:
+            db.return_value.__enter__.return_value.execute.return_value.fetchone.return_value = (generated.model_dump(),)
+            code, details = asyncio.run(request('/api/media/anilist-1'))
+            self.assertEqual(code, 200); self.assertEqual(details['total_units'], 12)
+            code, _ = asyncio.run(request('/api/media/anilist-1/graph?progress=12'))
+            self.assertEqual(code, 200)
+            code, data = asyncio.run(request('/api/me/progress/anilist-1', 'PUT', {'unit': 12}))
+            self.assertEqual(code, 200); self.assertEqual(data['progress']['unit'], 12)
+            self.assertEqual(save.call_args.args[2], generated)
+            code, _ = asyncio.run(request('/api/me/progress/anilist-1', 'PUT', {'unit': 13}))
+            self.assertEqual(code, 422)
+            local.assert_not_called(); provider.assert_not_called()
+
+    def test_prologue_final_unit_is_accepted(self):
+        app.dependency_overrides[current_user] = lambda: CurrentUser(id='verified')
+        with patch.object(settings, 'database_url', ''), \
+             patch('app.services.anilist.details', return_value=entry(19603)), \
+             patch('app.main.cached_generation', return_value=None), \
+             patch('app.services.progress.save_progress', side_effect=lambda owner, saved, media: saved):
+            code, _ = asyncio.run(request('/api/media/anilist-19603/graph?progress=13'))
+            self.assertEqual(code, 200)
+            code, data = asyncio.run(request('/api/me/progress/anilist-19603', 'PUT', {'unit': 13}))
+            self.assertEqual(code, 200); self.assertEqual(data['progress']['unit'], 13)
 
     def test_bulk_validation_and_owner(self):
         app.dependency_overrides[current_user] = lambda: CurrentUser(id='verified')

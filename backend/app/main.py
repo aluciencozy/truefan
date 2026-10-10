@@ -36,12 +36,6 @@ app.add_middleware(CORSMiddleware,
 def get_media(media_id: str) -> Media:
     if media_id == MEDIA.id:
         return MEDIA
-    try:
-        local = franchises.cached_media(media_id)
-        if local:
-            return local
-    except (RuntimeError, psycopg.Error):
-        pass
     if settings.database_url:
         try:
             from app.database import connection
@@ -50,6 +44,12 @@ def get_media(media_id: str) -> Media:
             if row: return Media.model_validate(row[0])
         except (RuntimeError, psycopg.Error):
             pass
+    try:
+        local = franchises.cached_media(media_id)
+        if local:
+            return local
+    except (RuntimeError, psycopg.Error):
+        pass
     try:
         return anilist.normalize(anilist.details(media_id))
     except (ValueError, KeyError, TypeError):

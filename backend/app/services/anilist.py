@@ -37,7 +37,7 @@ def normalize(entry: dict) -> Media:
     release = MediaReleaseDate.model_validate(raw_date) if any(raw_date.values()) else None
     return Media(id=f"anilist-{entry['id']}", anilist_id=entry['id'],
                  format=entry.get('format'), title=entry['title'].get('english') or entry['title']['romaji'], type='manga' if manga else 'anime',
-                 total_units=count if known else 1, total_units_known=known, release_date=release,
+                 total_units=count + int(prologue) if known else 1, total_units_known=known, release_date=release,
                  description='AniList media entry. Story knowledge is generated separately.',
                  progress_unit='chapter' if manga else 'episode', has_prologue=prologue, cover_url=(entry.get('coverImage') or {}).get('medium'))
 

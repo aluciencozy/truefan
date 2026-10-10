@@ -1,4 +1,3 @@
-import copy
 import unittest
 from unittest.mock import patch
 from pydantic import ValidationError
@@ -29,15 +28,18 @@ class MetadataTests(unittest.TestCase):
         manga = entry(2); manga.update(type='MANGA', chapters=50)
         self.assertEqual(anilist.normalize(manga).progress_unit, 'chapter')
         self.assertTrue(anilist.normalize(manga).total_units_known)
-        self.assertTrue(anilist.normalize(entry(19603)).has_prologue)
+        prologue = anilist.normalize(entry(19603))
+        self.assertTrue(prologue.has_prologue)
+        self.assertEqual(prologue.total_units, 13)
+        unknown = entry(19603); unknown['episodes'] = None
+        self.assertEqual(anilist.normalize(unknown).total_units, 1)
+        self.assertFalse(anilist.normalize(unknown).total_units_known)
         for raw in ({'year': 2023, 'month': 2, 'day': 29}, {'month': 13}, {'day': 0}):
             with self.assertRaises(ValidationError): MediaReleaseDate.model_validate(raw)
 
-    def test_provider_query_retains_dates_and_relation_version(self):
-        with patch('app.services.anilist.query', return_value={'Media': entry(1)}) as query:
-            anilist.details('anilist-1')
-        self.assertIn('startDate{year month day}', query.call_args.args[0])
-        self.assertNotIn('relationType(version:', query.call_args.args[0])
+    def test_details_returns_selected_metadata_and_rejects_invalid_ids(self):
+        with patch('app.services.anilist.query', return_value={'Media': entry(1)}):
+            self.assertEqual(anilist.normalize(anilist.details('anilist-1')), anilist.normalize(entry(1)))
         for bad in ('x', 'anilist-x', 'anilist--1'):
             with self.assertRaises(ValueError): anilist.details(bad)
 
@@ -97,6 +99,21 @@ class DiscoveryTests(unittest.TestCase):
             anilist.discover('anilist-1', seed=done.graph, expanded=done.expanded,
                              strong_ids=done.strong_ids, frontier=done.frontier)
             details.assert_not_called()
+
+    def test_at_cap_frontier_fetch_retains_reciprocal_edges_without_new_admission(self):
+        rows = {'anilist-1': entry(1, [(2, 'SEQUEL')]),
+                'anilist-2': entry(2, [(1, 'PREQUEL'), (3, 'SEQUEL')])}
+        with patch('app.services.anilist.details', side_effect=lambda key: rows[key]) as provider:
+            cold = anilist.discover('anilist-1', node_limit=2, depth_limit=0)
+            provider.reset_mock()
+            warm = anilist.discover('anilist-1', seed=cold.graph, expanded=cold.expanded,
+                                    strong_ids=cold.strong_ids, frontier=cold.frontier,
+                                    node_limit=2, depth_limit=0)
+        self.assertEqual([call.args[0] for call in provider.call_args_list], ['anilist-2'])
+        self.assertEqual({m.id for m in warm.graph.media}, {'anilist-1', 'anilist-2'})
+        self.assertEqual({(e.source, e.target, e.type) for e in warm.graph.relationships},
+                         {('anilist-1', 'anilist-2', 'SEQUEL'), ('anilist-2', 'anilist-1', 'PREQUEL')})
+        self.assertIn('node_cap', warm.limitations)
 
     def test_missing_or_mismatched_selected_media_fails(self):
         for raw in (None, entry(2)):

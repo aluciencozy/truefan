@@ -51,8 +51,12 @@ def _known_totals(conn: psycopg.Connection, media_ids: list[str]) -> dict[str, i
     rows = conn.execute("""SELECT DISTINCT ON (media_id) media_id,media
         FROM public.franchise_media WHERE media_id=ANY(%s)
         ORDER BY media_id,refreshed_at DESC,franchise_id""", (media_ids,)).fetchall()
+    snapshots = dict(rows)
+    snapshots.update(conn.execute(
+        'SELECT media_id,media FROM public.generated_graphs WHERE media_id=ANY(%s)',
+        (media_ids,)).fetchall())
     totals = {}
-    for media_id, data in rows:
+    for media_id, data in snapshots.items():
         media = Media.model_validate(data)
         if media.total_units_known:
             totals[media_id] = media.total_units
