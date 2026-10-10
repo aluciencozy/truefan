@@ -4,11 +4,13 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import App from './App'
 import AuthProvider from './components/AuthProvider'
 import AuthPages from './components/AuthPages'
+import HomePage from './components/HomePage'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode><BrowserRouter><AuthProvider><Routes>
-    <Route path="/" element={<App />} />
+    <Route path="/" element={<HomePage />} />
+    <Route path="/explore" element={<App />} />
     <Route path="/auth/:path" element={<AuthPages />} />
     <Route path="/account/:path" element={<AuthPages account />} />
     <Route path="*" element={<Navigate to="/" replace />} />
