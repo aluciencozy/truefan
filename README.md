@@ -218,7 +218,7 @@ to verify the graph and details update. Stop FastAPI and reload to check the err
 | Variable | Location | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | Backend | Neon Postgres connection string, with TLS parameters from Console |
-| `HF_TOKEN` | Backend | Secret Inference Providers token for graph generation and local probes |
+| `HF_TOKEN` | Backend | Secret Inference Providers token for graph generation, local probes, and `POST /api/media/{id}/extract` |
 | `ANILIST_API_URL` | Backend | Defaults to `https://graphql.anilist.co` |
 | `FRONTEND_URL` | Backend | Exact allowed browser origin; defaults to `http://localhost:3000` |
 | `VITE_API_URL` | Frontend | Public FastAPI origin; defaults to `http://localhost:8000` |
@@ -384,6 +384,7 @@ these contracts in `src/lib/types.ts`.
 | `GET /api/me/media-state?media_id=...` | Bearer token; 1–50 unique IDs; returns `{media_id, progress, completed, manual_unlocked}[]` |
 | `PUT /api/me/media-state/{id}` | Bearer token; supplied `completed`/`manual_unlocked` flags only; marking completed advances progress to the known final unit; other updates and unknown totals preserve saved units |
 | `GET /api/media/{id}/graph?progress=N` | Required non-negative completed unit; returns filtered `GraphResponse`; out-of-range returns 422 |
+| `POST /api/media/{id}/extract` | Bearer token plus `GraphExtractRequest` (`summary`, `source`, `reveal_point`, viewer `progress`); calls Hugging Face with server-only `HF_TOKEN`/`HF_MODEL` and returns React Flow `{nodes, edges}` (`FlowGraphResponse`, `origin: "ai"`, unverified). On any provider failure (timeout, 429, bad output, no token) it returns the curated graph from Neon (`origin: "database"`), the in-code seed (`"builtin"`), or an empty graph for uncurated titles. Every path is filtered by `progress`; progress beyond total 422. Separate from the cached, queued `POST /api/media/{id}/generation` |
 | `POST /api/extract` | `ExtractRequest`; returns 501 with a typed `not_implemented` message |
 | `POST /api/ask` | `AskRequest`; returns 501 without generating an answer |
 | `GET /api/me` | Bearer token required; returns `{ "id": "verified-user-subject" }` |
@@ -902,3 +903,13 @@ Validation: frontend `npm test`, `npm run build`; backend
 release ordering, grouped legacy progress, tombstones, verified ownership,
 preference validation, repeating previews, pin/rating actions, cancellation,
 failed deletion, last-item empty state, and account changes.
+
+## Seeding the curated demo catalog
+
+`schema.sql` also defines `media`, `entities` and `relationships` (`unlock_episode` = the
+API's `revealed_at.unit`). From `backend/`, run `python scripts/seed_demo_data.py` to create
+the tables and upsert Lantern Harbor and *Attack on Titan* season 1 (25 entities revealed at
+episodes 1/5/10/15/20 and 24 edges up to episode 25). It is idempotent. Seed reveal episodes are hand-written and
+unreviewed (`verified = false`); they err late, never early. Without the seed, or when
+Neon is unreachable, the extract endpoint falls back to the same data compiled into
+`app/services/seed_catalog.py`.

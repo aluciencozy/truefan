@@ -8,11 +8,12 @@ from app.schemas import CurrentUser, UserProgress
 from app.services import progress as progress_service
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.schemas import (AskRequest, ExtractRequest, GraphResponse, HealthResponse,
-                         Media, PlaceholderResponse, RevealPoint, TrendingCover)
+from app.schemas import (AskRequest, ExtractRequest, FlowGraphResponse, GraphExtractRequest, GraphResponse,
+                         HealthResponse, Media, PlaceholderResponse, RevealPoint, TrendingCover)
+from app.services.catalog import load_catalog
 from app.services.demo import ENTITIES, MEDIA, RELATIONSHIPS
-from app.services.graph import filter_graph
-from app.services import anilist, generation, franchises, universe_search
+from app.services.graph import filter_graph, to_flow_graph
+from app.services import anilist, generation, franchises, huggingface, universe_search
 from app.schemas import (Universe, GenerationStatus, UniverseExpandRequest,
                          UserMediaState, UserMediaStateUpdate, UniverseSearchResponse)
 
@@ -32,8 +33,11 @@ from app.community_api import router as community_router
 app.include_router(community_router)
 from app.library_api import router as library_router
 app.include_router(library_router)
+# Explicit origins only (never "*"): the Authorization header is in play.
+ALLOWED_ORIGINS = list(dict.fromkeys(
+    ["http://localhost:3000", "http://127.0.0.1:3000", settings.frontend_url.rstrip("/")]))
 app.add_middleware(CORSMiddleware,
-                   allow_origins=[settings.frontend_url.rstrip("/")],
+                   allow_origins=ALLOWED_ORIGINS,
                    allow_methods=["GET", "POST", "PUT"], allow_headers=["Content-Type", "Authorization"])
 
 
@@ -128,6 +132,30 @@ def media_graph(media_id: str, progress: int = Query(ge=0)):
     graph.generation = generation.status(row)
     # Enrich only the episode-filtered graph; the full cast and aliases stay server-side.
     return anilist.character_portraits(graph, media.anilist_id)
+
+
+@app.post("/api/media/{media_id}/extract", response_model=FlowGraphResponse)
+def extract_media_graph(media_id: str, request: GraphExtractRequest,
+                        user: Annotated[CurrentUser, Depends(current_user)]):
+    """Extract a graph from pasted text with Hugging Face; on any AI failure serve the curated graph.
+
+    Signed-in users only: it spends the server's HF_TOKEN. Both paths go through filter_graph at the
+    viewer's progress, so the fallback never sends future facts. Titles without curated rows fall back
+    to an empty graph rather than an error.
+    """
+    catalog = load_catalog(media_id)
+    if catalog is not None:
+        media, entities, relationships, origin = catalog
+    else:
+        media, entities, relationships, origin = get_media(media_id), [], [], "builtin"
+    if request.progress.unit > media.total_units:
+        raise HTTPException(status_code=422, detail="Progress exceeds this media’s total units")
+    try:
+        entities, relationships = huggingface.extract_graph(request.summary, request.source, request.reveal_point)
+        origin = "ai"
+    except huggingface.ExtractionUnavailable:
+        pass  # keep the curated rows loaded above
+    return to_flow_graph(filter_graph(media_id, request.progress, entities, relationships), origin)
 
 
 @app.post("/api/extract", response_model=PlaceholderResponse, status_code=501)

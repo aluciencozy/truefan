@@ -1,4 +1,5 @@
-from app.schemas import Entity, GraphResponse, Relationship, RevealPoint
+from app.schemas import (Entity, FlowEdge, FlowGraphResponse, FlowItemData, FlowNode, FlowNodeData,
+                         FlowPosition, GraphResponse, Relationship, RevealPoint)
 
 
 def is_revealed(reveal: RevealPoint, progress: RevealPoint) -> bool:
@@ -19,3 +20,17 @@ def filter_graph(media_id: str, progress: RevealPoint, entities: list[Entity],
              and edge.source in ids and edge.target in ids]
     return GraphResponse(media_id=media_id, progress=progress,
                          entities=visible, relationships=edges)
+
+
+def to_flow_graph(graph: GraphResponse, origin: str) -> FlowGraphResponse:
+    """Reshape an already-filtered graph into React Flow's nodes/edges. No reveal logic here."""
+    nodes = [FlowNode(id=entity.id, position=FlowPosition(x=(i % 4) * 240, y=(i // 4) * 200 + (i % 2) * 65),
+                      data=FlowNodeData(label=entity.name, entity_type=entity.type,
+                                        description=entity.description, revealed_at=entity.revealed_at,
+                                        provenance=entity.provenance))
+             for i, entity in enumerate(graph.entities)]
+    edges = [FlowEdge(id=edge.id, source=edge.source, target=edge.target, label=edge.type,
+                      data=FlowItemData(revealed_at=edge.revealed_at, provenance=edge.provenance))
+             for edge in graph.relationships]
+    return FlowGraphResponse(media_id=graph.media_id, progress=graph.progress, origin=origin,
+                             nodes=nodes, edges=edges)

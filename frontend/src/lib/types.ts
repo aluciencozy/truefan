@@ -42,6 +42,20 @@ export interface ExtractRequest {
 }
 export interface AskRequest extends UserProgress { question: string }
 export interface PlaceholderResponse { status: 'not_implemented'; message: string }
+export interface GraphExtractRequest {
+  summary: string; source: string; reveal_point: RevealPoint; progress: RevealPoint
+}
+export interface FlowItemData { revealed_at: RevealPoint; provenance: Provenance }
+export interface FlowNode {
+  id: string; position: { x: number; y: number }
+  data: FlowItemData & { label: string; entity_type: string; description: string }
+}
+export interface FlowEdge { id: string; source: string; target: string; label: string; data: FlowItemData }
+// origin: "ai" is unverified model output; "database"/"builtin" are the curated fallback graph.
+export interface FlowGraphResponse {
+  media_id: string; progress: RevealPoint; origin: 'ai' | 'database' | 'builtin'
+  nodes: FlowNode[]; edges: FlowEdge[]
+}
 
 export interface GenerationStatus {
   status: 'not_generated' | 'queued' | 'retrieving' | 'generating' | 'ready' | 'partial' | 'empty' | 'failed'
