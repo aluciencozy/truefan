@@ -2,6 +2,10 @@ import type { UniverseModel } from './universeModel.ts'
 import type { Point, Positions } from './universeLayout.ts'
 import { MEDIA_WIDTH } from './universeLayout.ts'
 
+export function connectionDestination(link: { source: string; target: string }, focusedId: string): string {
+  return link.target === focusedId ? link.source : link.target
+}
+
 export function connectedNeighbors(model: UniverseModel, id: string): string[] {
   return [...new Set(model.links.flatMap(link => link.source === id && link.target !== id ? [link.target]
     : link.target === id && link.source !== id ? [link.source] : []))]
