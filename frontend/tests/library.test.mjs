@@ -23,6 +23,7 @@ const source=(await readFile(new URL('../src/components/LibraryPage.tsx',import.
   .replace("import { authClient } from '../lib/auth'",'const authClient = null')
   .replace("import { libraryApi, libraryArt as art, libraryOrder, universeStatus } from '../lib/library'",'const {libraryApi, libraryArt:art, libraryOrder, universeStatus} = globalThis.__libraryHelpers')
   .replace("import './LibraryPage.css'",'')
+  .replace("import AppNavbar from './AppNavbar'", "const AppNavbar = () => null")
 const {LibraryScreen}=await import(compile(source))
 const fixture = n => ({media_id:`anilist-${n}`,title:`Universe ${n}`,type:'anime',format:'TV',cover_url:null,
   titles:[{media_id:`anilist-${n}`,title:`Universe ${n}`,type:'anime',format:'TV',completed:n%2===0,release_date:null,cover_url:null}],

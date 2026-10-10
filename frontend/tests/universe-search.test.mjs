@@ -29,8 +29,7 @@ globalThis.__sharedSearch = Search
 const Home = await loadComponent('HomePage', source => source
   .replace("import { api } from '../lib/api'", 'const api = globalThis.__searchApi')
   .replace("import { motion, useReducedMotion } from 'motion/react'", "const motion = { section: 'section' }; const useReducedMotion = () => true")
-  .replace("import { Link } from 'react-router-dom'", "const Link = 'a'")
-  .replace("import { authClient } from '../lib/auth'", 'const authClient = { useSession: () => ({ data: {}, isPending: false }) }')
+  .replace("import AppNavbar from './AppNavbar'", 'const AppNavbar = () => null')
   .replace("import UniverseSearch from './UniverseSearch'", 'const UniverseSearch = globalThis.__sharedSearch'))
 const Controls = await loadComponent('MediaControls', source => source
   .replace("import UniverseSearch from './UniverseSearch'", 'const UniverseSearch = globalThis.__sharedSearch'))
@@ -66,7 +65,6 @@ for (const [name, Component, props] of [['homepage', Home, {}], ['Find another s
     assert.equal(result.findByType('small').children[0], 'Connected stories')
     await act(async () => result.props.onClick())
     assert.deepEqual(routes, ['/explore?media=anilist-100'])
-    if (Component === Home) assert.equal(renderer.root.findAllByType('a').filter(link => link.props.to === '/explore').length, 0)
   })
 }
 

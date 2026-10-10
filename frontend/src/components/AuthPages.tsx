@@ -1,19 +1,12 @@
 import { AccountView, AuthView } from '@neondatabase/auth-ui'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { authClient } from '../lib/auth'
+import AppNavbar from './AppNavbar'
 
 export default function AuthPages({ account = false }: { account?: boolean }) {
   const { path } = useParams()
   if (account && path !== 'settings') return <Navigate to="/account/settings" replace />
-  return <main className="auth-shell celestial">
-    <header className="auth-header">
-      <Link className="auth-back" to="/" aria-label="Back to TrueFan" title="Back to TrueFan">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M20 12H4m7-7-7 7 7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </Link>
-      <Link className="home-brand" to="/"><img src="/home/brand.svg" width="26" height="26" alt="" />TrueFan</Link>
-    </header>
+  return <><AppNavbar /><main className="auth-shell celestial">
     <div className="auth-page">
       {authClient ? account
         ? <>
@@ -32,5 +25,5 @@ export default function AuthPages({ account = false }: { account?: boolean }) {
         }} />
         : <><h1>Accounts are coming soon.</h1><p>You can explore stories without an account.</p><Link to="/">Find a story</Link></>}
     </div>
-  </main>
+  </main></>
 }

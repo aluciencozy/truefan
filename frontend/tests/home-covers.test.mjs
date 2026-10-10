@@ -13,8 +13,7 @@ const api = {}
 globalThis.__homeCoverApi = api
 const source = (await readFile(new URL('../src/components/HomePage.tsx', import.meta.url), 'utf8'))
   .replace("import { motion, useReducedMotion } from 'motion/react'", "const motion = { section: 'section' }; const useReducedMotion = () => true")
-  .replace("import { Link } from 'react-router-dom'", "const Link = 'a'")
-  .replace("import { authClient } from '../lib/auth'", 'const authClient = null')
+  .replace("import AppNavbar from './AppNavbar'", 'const AppNavbar = () => null')
   .replace("import { api } from '../lib/api'", 'const api = globalThis.__homeCoverApi')
   .replace("import UniverseSearch from './UniverseSearch'", "const UniverseSearch = 'UniverseSearch'")
 let { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } })
