@@ -21,21 +21,45 @@ const source=(await readFile(new URL('../src/components/LibraryPage.tsx',import.
   .replace("import { Link } from 'react-router-dom'","const Link = 'a'")
   .replace("import { AnimatePresence, motion, useReducedMotion } from 'motion/react'","const AnimatePresence = ({children}) => children; const motion = {div:'div',article:'article'}; const useReducedMotion = () => true")
   .replace("import { authClient } from '../lib/auth'",'const authClient = null')
-  .replace("import { libraryApi, libraryArt as art, libraryOrder, universeStatus } from '../lib/library'",'const {libraryApi, libraryArt:art, libraryOrder, universeStatus} = globalThis.__libraryHelpers')
+  .replace("import { estimatedHoursWatched, libraryApi, libraryArt as art, libraryOrder, universeStatus } from '../lib/library'",'const {estimatedHoursWatched, libraryApi, libraryArt:art, libraryOrder, universeStatus} = globalThis.__libraryHelpers')
   .replace("import './LibraryPage.css'",'')
   .replace("import GlitterStars from './GlitterStars'",'const GlitterStars=()=>null')
   .replace("import AppNavbar from './AppNavbar'", 'const AppNavbar=()=>null')
 const {LibraryScreen}=await import(compile(source))
 const fixture = n => ({media_id:`anilist-${n}`,title:`Universe ${n}`,type:'anime',format:'TV',cover_url:null,
-  titles:[{media_id:`anilist-${n}`,title:`Universe ${n}`,type:'anime',format:'TV',completed:n%2===0,release_date:null,cover_url:null}],
+  titles:[{media_id:`anilist-${n}`,title:`Universe ${n}`,type:'anime',format:'TV',completed:n%2===0,estimated_minutes_watched:n%2===0?264:66,release_date:null,cover_url:null}],
   viewed_count:n%2===0?1:0,total_count:1,pinned:false,rating:null,coverage_incomplete:false,
   saved_at:`2026-01-0${n}T00:00:00Z`,last_explored_at:`2026-01-0${n}T00:00:00Z`})
 const viewer={id:'a',name:'Fan'}
-const nodeMock=()=>({showModal(){},close(){},focus(){},contains(){return false},querySelector(){return null}})
-const button=(renderer,text)=>renderer.root.findAllByType('button').find(node=>node.children.join('')===text)
+const nodeMock=()=>({showModal(){},close(){},focus(){},scrollIntoView(){},closest(){return null},contains(){return false},querySelector(){return null}})
+const button=(renderer,text)=>renderer.root.findAllByType('button').find(node=>node.children.filter(child=>typeof child==='string').join('')===text)
 const label=(renderer,text)=>renderer.root.findByProps({'aria-label':text})
 const rows=renderer=>renderer.root.findAllByType('article')
 async function mount(service,user=viewer) {let renderer; await act(async()=>{renderer=create(createElement(LibraryScreen,{viewer:user,service}),{createNodeMock:nodeMock})});return renderer}
+
+test('estimated hours sum distinct titles across universes, including partial progress',()=>{
+  const first=fixture(1), second=fixture(2)
+  second.titles.push({...first.titles[0]},{...fixture(3).titles[0],estimated_minutes_watched:120})
+  assert.equal(helpers.estimatedHoursWatched([first,second]),7.5)
+  second.titles[1].estimated_minutes_watched=88
+  assert.equal(helpers.estimatedHoursWatched([first,second]),472/60)
+  assert.equal(helpers.estimatedHoursWatched([second,first]),472/60)
+  assert.equal(helpers.estimatedHoursWatched([]),0)
+})
+
+test('watch-time stats use the whole library and reset on account changes',async()=>{
+  const service={list:async()=>[fixture(1),fixture(2)]}
+  const renderer=await mount(service)
+  const watchTime=()=>renderer.root.findByProps({className:'library-watch-time'}).findByType('b').children.join('')
+  try {
+    assert.equal(watchTime(),'5.5')
+    await act(async()=>label(renderer,'Search saved universes').props.onChange({target:{value:'Universe 1'}}))
+    assert.equal(rows(renderer).length,1)
+    assert.equal(watchTime(),'5.5')
+    await act(async()=>renderer.update(createElement(LibraryScreen,{viewer:null,service})))
+    assert.equal(watchTime(),'0')
+  } finally {await act(async()=>renderer.unmount())}
+})
 
 test('library repeats three constellations, filters completed works, searches members, and switches layout',async()=>{
   const renderer=await mount({list:async()=>[1,2,3,4,5,6].map(fixture)})
@@ -45,7 +69,7 @@ test('library repeats three constellations, filters completed works, searches me
     assert.deepEqual(maps,[...helpers.libraryArt.maps,...helpers.libraryArt.maps])
     await act(async()=>button(renderer,'Completed').props.onClick())
     assert.equal(rows(renderer).length,3)
-    await act(async()=>button(renderer,'All universes[object Object]').props.onClick())
+    await act(async()=>button(renderer,'All universes').props.onClick())
     await act(async()=>label(renderer,'Search saved universes').props.onChange({target:{value:'Universe 1'}}))
     assert.equal(rows(renderer).length,1)
     await act(async()=>label(renderer,'Grid view').props.onClick())
@@ -59,14 +83,16 @@ test('pin and rate persist API results; cancel preserves a universe; abandon wai
   const renderer=await mount(service)
   try {
     async function menu(action) {await act(async()=>label(renderer,'Options for Universe 1').props.onClick());await act(async()=>button(renderer,action).props.onClick())}
-    await menu('📌 Pin'); assert.equal(calls[0].prefs.pinned,true)
-    await menu('⭐ Rate');await act(async()=>label(renderer,'Rate 4 out of 5').props.onClick());await act(async()=>button(renderer,'Save rating').props.onClick())
+    await menu('Pin'); assert.equal(calls[0].prefs.pinned,true)
+    assert.equal(label(renderer,'Pinned').findByType('svg').props['aria-hidden'],'true')
+    await menu('Rate');await act(async()=>label(renderer,'Rate 4 out of 5').props.onClick());await act(async()=>button(renderer,'Save rating').props.onClick())
     assert.equal(calls[1].prefs.rating,4)
-    await menu('🚀 Abandon');await act(async()=>button(renderer,'Keep exploring').props.onClick());assert.equal(rows(renderer).length,1)
-    await menu('🚀 Abandon');await act(async()=>button(renderer,'Yes, abandon 🚀').props.onClick())
+    assert.equal(label(renderer,'Your rating: 4 out of 5').props.className,'universe-rating')
+    await menu('Abandon');await act(async()=>button(renderer,'Keep exploring').props.onClick());assert.equal(rows(renderer).length,1)
+    await menu('Abandon');await act(async()=>button(renderer,'Yes, abandon').props.onClick())
     assert.equal(rows(renderer).length,1);assert.equal(renderer.root.findByProps({role:'alert'}).children.join(''),'Offline')
-    fail=false;await act(async()=>button(renderer,'Yes, abandon 🚀').props.onClick())
-    assert.equal(rows(renderer).length,0);assert.ok(renderer.root.findAllByType('h2').some(node=>node.children.join('')==='No signals yet ✦'))
+    fail=false;await act(async()=>button(renderer,'Yes, abandon').props.onClick())
+    assert.equal(rows(renderer).length,0);assert.ok(renderer.root.findAllByType('h2').some(node=>node.children.join('')==='No signals yet'))
   } finally {await act(async()=>renderer.unmount())}
 })
 
@@ -76,7 +102,7 @@ test('account switch aborts stale reads and never accepts a previous owners muta
   const renderer=await mount(service)
   try {
     await act(async()=>label(renderer,'Options for Universe 1').props.onClick())
-    await act(async()=>{button(renderer,'📌 Pin').props.onClick()})
+    await act(async()=>{button(renderer,'Pin').props.onClick()})
     await act(async()=>renderer.update(createElement(LibraryScreen,{viewer:null,service})))
     assert.equal(signal.aborted,true);assert.equal(rows(renderer).length,0)
     await act(async()=>response.resolve({...fixture(1),pinned:true}))

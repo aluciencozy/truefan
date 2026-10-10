@@ -878,6 +878,9 @@ open the exact saved work with `/explore?universe=anilist-ID` rather than search
 by title. Existing viewing-progress records also appear, grouped by cached strong
 franchise membership. Pins, private 1–5 ratings, and abandoned entries survive
 reloads. Search, status/media filters, sorting, and list/grid layouts are functional.
+The page stays within the viewport; only the universe list scrolls, with faded
+edges blending into the background and no enclosing card. Ratings use gold badges
+and actions use SVG icons; the sort control stays compact.
 
 Run `python -m app.init_db` against the deployment database before using the new
 API. The additive `user_saved_universes` table stores a catalog root snapshot,
@@ -897,7 +900,17 @@ entry. Weak side-story boundaries do not merge two independently saved universes
 `SavedUniverse` includes `media_id`, `title`, `cover_url`, `type`, `format`, ordered
 `titles`, `viewed_count`, `total_count`, `coverage_incomplete`, `pinned`, `rating`,
 `saved_at`, and `last_explored_at`. Each title includes catalog metadata,
-`release_date`, and a completion boolean. A viewed node is a **completed work**
+`release_date`, a completion boolean, and `estimated_minutes_watched`. The stats
+show **estimated hours watched** across distinct titles in the caller's saved
+universes: 22 minutes per episode (including partial saved progress) and 120
+minutes per completed movie, including AniList entries with `format: MOVIE`.
+If cached universes disagree on a shared title's estimate, the largest estimate
+is used so changing pin or sort order cannot change the total.
+Known episode totals cap progress and supply the count for completed works;
+unknown totals use saved episode progress. Prologues count as one episode unit.
+Manga chapters, game milestones, and manual unlocks add no watch time. Removing a
+universe removes its exclusive titles from this stat without deleting progress.
+A viewed node is a **completed work**
 (season, sequel, movie, etc.), not an episode count. Explicit completion flags win;
 legacy progress counts as complete only when the work's total is known. Manual
 unlocks never count as completion. Known release dates come first, then undated

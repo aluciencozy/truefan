@@ -43,9 +43,17 @@ def build_item(record: dict, media: list[Media], states: dict[str, dict], *, inc
         state = progress._state(item.id, (row['completed_unit'], row['completed'], row['manual_unlocked']) if row else None, totals)
         if row:
             timestamps.append(row['updated_at'])
+        minutes = 0
+        if item.type == 'movie' or item.format == 'MOVIE' or item.progress_unit == 'movie':
+            minutes = 120 if state.completed else 0
+        elif item.progress_unit == 'episode':
+            episodes = state.progress.unit if state.progress else 0
+            if item.total_units_known:
+                episodes = item.total_units if state.completed else min(episodes, item.total_units)
+            minutes = episodes * 22
         titles.append(LibraryTitle(media_id=item.id, title=item.title, cover_url=item.cover_url,
                                   type=item.type, format=item.format, release_date=item.release_date,
-                                  completed=state.completed))
+                                  completed=state.completed, estimated_minutes_watched=minutes))
     return SavedUniverse(media_id=root.id, title=root.title, cover_url=root.cover_url,
                          type=root.type, format=root.format, titles=titles,
                          viewed_count=sum(item.completed for item in titles), total_count=len(titles),
