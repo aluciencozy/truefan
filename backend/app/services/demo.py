@@ -3,7 +3,7 @@ from app.schemas import Entity, Media, Provenance, Relationship, RevealPoint
 # Fictional fixture; no real-series spoilers or external services required.
 MEDIA = Media(
     id="lantern-harbor", title="Lantern Harbor", type="anime",
-    progress_unit="episode", total_units=3,
+    progress_unit="episode", total_units=3, total_units_known=True,
     description="A fictional three-episode mystery about a missing harbor light.",
 )
 
