@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { authClient } from '../lib/auth'
+import { usePageReady } from '../lib/pageTransition'
 import { estimatedHoursWatched, libraryApi, libraryArt as art, libraryOrder, universeStatus } from '../lib/library'
 import type { LibraryService, SavedUniverse, UniversePreferences } from '../lib/library'
 import AppNavbar from './AppNavbar'
@@ -119,6 +120,7 @@ export function LibraryScreen({viewer, pending = false, service = libraryApi}: {
   const [data, setData] = useState<{owner: string; items: SavedUniverse[]} | null>(null)
   const items = data && data.owner === viewer?.id ? data.items : []
   const [loading, setLoading] = useState(Boolean(viewer))
+  usePageReady(!pending && !loading)
   const [error, setError] = useState('')
   const [mutationError, setMutationError] = useState('')
   const [notice, setNotice] = useState('')

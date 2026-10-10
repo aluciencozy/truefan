@@ -814,6 +814,19 @@ on the right. Its transparent header and blurred controls blend with each page. 
 link animates gently, respects reduced motion, and moves to a centered second row on
 smaller screens. Community and Saved universes retain their gently twinkling dots and
 larger star accents; stars remain static when reduced motion is requested.
+
+In-app page navigation and links opening another Explore story share an orbital
+transition: the page pulls back, a light orbits a central star, and the destination
+settles in. The destination mounts after a 140 ms departure so its existing requests
+run during the journey. `PageTransition` in the frontend route shell uses
+`usePageReady` for initial Explore, Library, and Community loading. Normal journeys
+take 650 ms; slow data extends the journey to at most 1.2 seconds, then the page's
+existing loading/error state appears. Graph generation and background refreshes do
+not hold navigation. Dialog/search query edits and story progress controls do not
+trigger the effect; spoiler-clearing behavior is unchanged. Reduced motion skips
+the effect and hold. Arrival focuses main content, resets forward-navigation scroll,
+and restores saved positions for browser Back/Forward.
+
 The full-width Community feed uses smaller typography, media and tag dropdowns
 (Any tag shows all categories), search, and latest/popular sorting. Create post opens a
 form dialog; conversations open a readable dialog with scrolling posts/replies and a
