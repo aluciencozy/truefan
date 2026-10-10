@@ -77,6 +77,7 @@ test('cover API uses the public endpoint with an abort signal and no authenticat
   })
   const source = (await readFile(new URL('../src/lib/api.ts', import.meta.url), 'utf8'))
     .replace("import { authClient } from './auth'", 'const authClient = null')
+    .replace('import.meta.env.PROD', 'false')
     .replace('import.meta.env.VITE_API_URL', "'http://api.example.test'")
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } })
   const { api } = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))

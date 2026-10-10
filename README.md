@@ -61,7 +61,7 @@ Spoiler-safe profiles and Q&A will share the same progress boundary.
 ```text
 Vite + React browser app (Vercel)
   ├─ Neon Auth: managed users, credentials, sessions
-  └─ HTTP / JSON → FastAPI (Railway)
+  └─ Same-origin HTTP / JSON → Vercel API proxy → FastAPI (Railway)
                     ├─ reveal-point filtering
                     ├─ JWT verification for user-owned APIs
                     ├─ Neon Postgres (progress and shared caches)
@@ -90,7 +90,7 @@ and PyJWT with cryptography for signed identity verification.
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── vite.config.ts
-│   └── vercel.json          # SPA route rewrites
+│   └── vercel.json          # API proxy and SPA route rewrites
 ├── backend/
 │   ├── app/
 │   │   ├── main.py           # Endpoints and CORS
@@ -221,7 +221,7 @@ to verify the graph and details update. Stop FastAPI and reload to check the err
 | `HF_TOKEN` | Backend | Secret Inference Providers token for graph generation, local probes, and `POST /api/media/{id}/extract` |
 | `ANILIST_API_URL` | Backend | Defaults to `https://graphql.anilist.co` |
 | `FRONTEND_URL` | Backend | Exact allowed browser origin; defaults to `http://localhost:3000` |
-| `VITE_API_URL` | Frontend | Public FastAPI origin; defaults to `http://localhost:8000` |
+| `VITE_API_URL` | Frontend | Development FastAPI origin; defaults to `http://localhost:8000`. Production uses the Vercel API proxy. |
 | `VITE_NEON_AUTH_URL` | Frontend | Public branch-specific Neon Auth endpoint; blank disables account UI |
 | `NEON_AUTH_BASE_URL` | Backend | Full branch Auth URL, identical to `VITE_NEON_AUTH_URL`; required for protected APIs |
 | `NEON_AUTH_JWKS_URL` | Backend, optional | Trusted Neon-supplied JWKS URL override; normally derived from the base URL |
@@ -318,11 +318,11 @@ settings are hidden. The existing official React SDK and AuthView remain in use.
   from the localhost/Vercel page Neon redirects to afterwards. Store the Google
   Client ID and Client Secret in Neon, never in `VITE_*` variables. Neon's shared
   Google credentials are for development/testing; use your own for production.
-- On Vercel, set `VITE_API_URL` to Railway and `VITE_NEON_AUTH_URL` to this
-  branch's Auth URL, then rebuild. On Railway, set `FRONTEND_URL` to the exact
-  Vercel frontend origin and use the same `NEON_AUTH_BASE_URL`. Backend CORS
+- On Vercel, set `VITE_NEON_AUTH_URL` to this branch's Auth URL, then rebuild.
+  Production API calls use the same-origin proxy in `frontend/vercel.json`.
+  On Railway, set `FRONTEND_URL` to the exact Vercel frontend origin and use the same `NEON_AUTH_BASE_URL`. Backend CORS
   currently accepts one frontend origin; Neon trusting a preview does not
-  automatically permit that preview to call FastAPI.
+  automatically permit that preview to call FastAPI directly.
 
 See the official [OAuth setup](https://neon.com/docs/auth/guides/setup-oauth),
 [trusted domains](https://neon.com/docs/auth/guides/configure-domains), and
@@ -366,9 +366,14 @@ be necessary. A build or a mocked JWT test is not proof of a live Neon login.
 
 ## Frontend/backend communication and contracts
 
-`frontend/src/lib/api.ts` calls FastAPI directly using `VITE_API_URL`. There is
-no Vite proxy hiding CORS problems. FastAPI allows the configured frontend origin
-and the Content-Type/Authorization headers. It never connects to Postgres on startup.
+`frontend/src/lib/api.ts` uses relative URLs in production. Vercel forwards
+`/api/*` and `/health` to Railway before the SPA fallback, so browsers connect
+only to the frontend hostname for app data. This avoids failures on networks
+that block the shared Railway hostname. Vercel external rewrites are not cached
+by default; authenticated requests keep their bearer tokens. Development calls
+FastAPI directly using `VITE_API_URL`; there is no Vite proxy. FastAPI allows
+the configured frontend origin and the Content-Type/Authorization headers.
+It never connects to Postgres on startup.
 Pydantic models appear at `/docs` and `/openapi.json`; frontend interfaces mirror
 these contracts in `src/lib/types.ts`.
 
@@ -718,8 +723,11 @@ and reports partial coverage honestly. No Vercel/Railway hosting settings were c
 ## Deployment targets
 
 - **Vercel:** root directory `frontend`, Vite preset, `npm run build`, output `dist`.
-  Set `VITE_API_URL` to Railway's HTTPS origin and `VITE_NEON_AUTH_URL` to the same
-  Neon branch used by the backend. Rebuild after changing public variables.
+  Set `VITE_NEON_AUTH_URL` to the same Neon branch used by the backend.
+  API calls are proxied to the Railway origin in `frontend/vercel.json`; update
+  both API rewrite destinations if the backend hostname changes.
+  `VITE_API_URL` is used only during local development. Rebuild after changing
+  public variables.
 - **Railway:** root directory `backend`, install `requirements.txt`, start
   `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (also in Procfile).
   Set `FRONTEND_URL` to the Vercel origin and configure server-only variables.
@@ -727,7 +735,8 @@ and reports partial coverage honestly. No Vercel/Railway hosting settings were c
   URL to Railway `DATABASE_URL`; add the Vercel domain to Neon Auth trusted origins.
 
 No deployment has been performed by this scaffold. No Docker, CI/CD, or auth
-middleware framework is required. `frontend/vercel.json` rewrites frontend routes to `index.html`, so direct auth
+middleware framework is required. `frontend/vercel.json` forwards API and health
+requests to Railway and rewrites frontend routes to `index.html`, so direct auth
 and account links work on Vercel.
 
 ## Hackathon scope and next steps
