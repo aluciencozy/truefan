@@ -51,7 +51,7 @@ async function submit(renderer) {
   await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }))
 }
 
-for (const [name, Component, props] of [['homepage', Home, {}], ['Find another story', Controls, { initialQuery: '', media: null, progress: 0, onProgress() {} }]]) {
+for (const [name, Component, props] of [['homepage', Home, {}], ['Find another story', Controls, { initialQuery: '' }]]) {
   test(`${name} uses the same debounced universe suggestions and direct story navigation`, async t => {
     const calls = []
     api.searchUniverses = async (query, discover) => { calls.push([query, discover]); return { results: [suggestion], auto_open: false } }

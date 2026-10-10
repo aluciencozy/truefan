@@ -186,7 +186,7 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
 
   return <div ref={container} className={`universe-canvas celestial ${overview ? 'overview-mode' : 'focus-mode'}`} aria-label="Anime universe canvas" aria-busy={layoutState === 'loading'}>
     <div className="universe-nebula" aria-hidden="true" />
-    <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onInit={setFlow}
+    <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onInit={setFlow} proOptions={{ hideAttribution: true }}
       minZoom={.01} maxZoom={1.8} nodesConnectable={false} nodesDraggable={false} elementsSelectable={false}
       panOnDrag={false} panOnScroll={false} zoomOnScroll={false} zoomOnPinch={false} zoomOnDoubleClick={false}
       preventScrolling selectionOnDrag={false} autoPanOnNodeFocus={false} autoPanOnNodeDrag={false}
