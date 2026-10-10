@@ -63,6 +63,8 @@ class Entity(BaseModel):
     description: str
     revealed_at: RevealPoint
     provenance: Provenance
+    portrait_url: str | None = None
+    portrait_large_url: str | None = None
 
 
 class Relationship(BaseModel):
@@ -141,6 +143,18 @@ class Universe(BaseModel):
     truncated: bool = False
     franchise_id: str | None = None
     cache: UniverseCache | None = None
+
+
+class UniverseSearchResult(BaseModel):
+    franchise_id: str
+    title: str
+    entry_media_id: str
+    cover_url: str | None = None
+
+
+class UniverseSearchResponse(BaseModel):
+    results: list[UniverseSearchResult]
+    auto_open: bool = False
 
 
 class UniverseExpandRequest(BaseModel):

@@ -1,7 +1,7 @@
-import { useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { authClient } from '../lib/auth'
+import UniverseSearch from './UniverseSearch'
 
 // Decorative media artwork from the Figma hero, not story facts or relationships.
 const artwork = [
@@ -23,13 +23,11 @@ function AccountLinks() {
   const session = authClient!.useSession()
   if (session.isPending) return <span role="status">Checking account…</span>
   return session.data
-    ? <><Link to="/explore">Explore</Link><Link className="home-signup" to="/account/settings">My account</Link></>
+    ? <Link className="home-signup" to="/account/settings">My account</Link>
     : <GuestLinks />
 }
 
 export default function HomePage() {
-  const [query, setQuery] = useState('')
-  const navigate = useNavigate()
   const reduced = useReducedMotion()
 
   return <div className="home-page">
@@ -52,16 +50,7 @@ export default function HomePage() {
           <h1 id="home-title">TrueFan</h1>
           <p>Your story. Your pace. Your connections.</p>
         </div>
-        <form className="home-search-form" role="search" onSubmit={event => {
-          event.preventDefault()
-          navigate(query.trim() ? `/explore?q=${encodeURIComponent(query.trim())}` : '/explore')
-        }}>
-          <img src="/home/search.svg" width="22" height="22" alt="" />
-          <label className="sr-only" htmlFor="home-query">Search for a story</label>
-          <input id="home-query" type="search" maxLength={200} value={query} onChange={event => setQuery(event.target.value)}
-            placeholder="Search anime, series, movies..." autoComplete="off" />
-          <button type="submit">Explore<img src="/home/arrow-right.svg" width="17" height="17" alt="" /></button>
-        </form>
+        <UniverseSearch />
         <p className="home-guidance">Find a story. Set your progress. Explore its connections.</p>
       </motion.section>
     </main>

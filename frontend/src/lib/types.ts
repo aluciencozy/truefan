@@ -23,6 +23,7 @@ export interface Provenance { source: string; source_unit: number; verified: boo
 export interface Entity {
   id: string; name: string; type: 'character' | 'faction' | 'location' | 'object'
   description: string; revealed_at: RevealPoint; provenance: Provenance
+  portrait_url?: string | null; portrait_large_url?: string | null
 }
 export interface Relationship {
   id: string; source: string; target: string; type: string; label: string | null
@@ -55,3 +56,8 @@ export interface Universe {
   root_id: string; media: Media[]; relationships: UniverseRelation[]; truncated: boolean
   franchise_id?: string | null; cache?: UniverseCache | null
 }
+
+export interface UniverseSearchResult {
+  franchise_id: string; title: string; entry_media_id: string; cover_url: string | null
+}
+export interface UniverseSearchResponse { results: UniverseSearchResult[]; auto_open: boolean }

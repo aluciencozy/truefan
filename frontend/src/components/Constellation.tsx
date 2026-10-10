@@ -3,14 +3,15 @@ import { Controls, Handle, Position, ReactFlow, ReactFlowProvider, useReactFlow,
 import type { Edge, Node, NodeProps, Viewport } from '@xyflow/react'
 import { useReducedMotion } from 'motion/react'
 import { canvasLimits } from '../lib/canvasLimits'
+import CharacterPortrait from './CharacterPortrait'
 
-export type StarNode = Node<{ label: string; subtitle: string; kind?: string; active?: boolean; onActivate?: (id: string) => void }, 'star'>
+export type StarNode = Node<{ label: string; subtitle: string; kind?: string; portraitUrl?: string | null; active?: boolean; onActivate?: (id: string) => void }, 'star'>
 const Star = memo(function Star({ id, data }: NodeProps<StarNode>) {
   return <div className={`star-node ${data.kind || ''} ${data.active ? 'is-selected' : ''}`} role="button" tabIndex={0}
     aria-label={`Explore ${data.label}`} aria-pressed={data.active}
     onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); data.onActivate?.(id) } }}>
     <Handle type="target" position={Position.Top} />
-    <div className="star-portrait"><span>{data.label.split(' ').map(word => word[0]).slice(0, 2).join('')}</span></div>
+    <div className="star-portrait" aria-hidden="true"><CharacterPortrait name={data.label} src={data.portraitUrl} /></div>
     <strong>{data.label}</strong><small>{data.subtitle}</small>
     <Handle type="source" position={Position.Bottom} />
   </div>
@@ -61,7 +62,7 @@ export default function Constellation({ nodes, edges, selectedId, onSelect, labe
   const interactiveNodes = useMemo(() => nodes.map(node => ({ ...node, width: 170, height: 160, focusable: false,
     data: { ...node.data, active: node.id === selectedId, onActivate: onSelect } })), [nodes, selectedId, onSelect])
   return <div ref={container} className="graph-canvas celestial" aria-label={label}>
-    <ReactFlowProvider><ReactFlow nodes={interactiveNodes} edges={edges} nodeTypes={nodeTypes}
+    <ReactFlowProvider><ReactFlow nodes={interactiveNodes} edges={edges} nodeTypes={nodeTypes} proOptions={{ hideAttribution: true }}
       minZoom={limits.minZoom} maxZoom={1.8} translateExtent={limits.extent} fitViewOptions={{ padding: .3, maxZoom: 1.1 }}
       nodesDraggable={false} nodesConnectable={false} zoomOnDoubleClick={false}
       onNodeClick={(_, node) => onSelect(node.id)}>

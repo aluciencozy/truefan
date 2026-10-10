@@ -12,9 +12,9 @@ from app.schemas import (AskRequest, ExtractRequest, GraphResponse, HealthRespon
                          Media, PlaceholderResponse, RevealPoint)
 from app.services.demo import ENTITIES, MEDIA, RELATIONSHIPS
 from app.services.graph import filter_graph
-from app.services import anilist, generation, franchises
+from app.services import anilist, generation, franchises, universe_search
 from app.schemas import (Universe, GenerationStatus, UniverseExpandRequest,
-                         UserMediaState, UserMediaStateUpdate)
+                         UserMediaState, UserMediaStateUpdate, UniverseSearchResponse)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -91,6 +91,16 @@ def search_media(q: str = Query(default="", max_length=200)):
         raise HTTPException(502, 'AniList search unavailable; try again shortly') from None
 
 
+@app.get('/api/universes/search', response_model=UniverseSearchResponse)
+def search_universes(q: str = Query(default='', max_length=200), discover: bool = False) -> UniverseSearchResponse:
+    try:
+        return universe_search.search(q, discover)
+    except (RuntimeError, psycopg.Error):
+        raise HTTPException(503, 'Universe search unavailable; check the franchise cache and try again') from None
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(502, 'Universe discovery unavailable; try again shortly') from None
+
+
 @app.get("/api/media/{media_id}", response_model=Media)
 def media_details(media_id: str):
     return get_media(media_id)
@@ -108,7 +118,8 @@ def media_graph(media_id: str, progress: int = Query(ge=0)):
     graph = filter_graph(media_id, RevealPoint(unit=progress), entities, edges)
     graph.experimental = True
     graph.generation = generation.status(row)
-    return graph
+    # Enrich only the episode-filtered graph; the full cast and aliases stay server-side.
+    return anilist.character_portraits(graph, media.anilist_id)
 
 
 @app.post("/api/extract", response_model=PlaceholderResponse, status_code=501)

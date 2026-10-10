@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import type { Entity, GraphResponse, Media } from '../lib/types'
+import CharacterPortrait from './CharacterPortrait'
 
 export default function EntityDetails({ entity, media, graph, onClose, onSelect }: {
   entity: Entity; media: Media; graph: GraphResponse; onClose: () => void; onSelect: (id: string) => void
@@ -13,7 +14,7 @@ export default function EntityDetails({ entity, media, graph, onClose, onSelect 
     initial={{ x: reduced ? 0 : '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: reduced ? 0 : '100%', opacity: 0 }}
     transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 230, damping: 30 }} onKeyDown={event => { if (event.key === 'Escape') onClose() }}>
     <header><span>In focus / {entity.type}</span><button ref={close} onClick={onClose} aria-label="Close character details">×</button></header>
-    <div className={`detail-portrait ${entity.type}`} aria-hidden="true"><span>{entity.name.split(' ').map(word => word[0]).slice(0, 2).join('')}</span></div>
+    <div className={`detail-portrait ${entity.type}`} aria-hidden="true"><CharacterPortrait name={entity.name} src={entity.portrait_large_url || entity.portrait_url} loading="eager" /></div>
     <h2>{entity.name}</h2><p className="detail-story">{media.title}</p>
     <p>{entity.description}</p>
     <section className="detail-connections"><h3>Known connections <span>{related.length}</span></h3>

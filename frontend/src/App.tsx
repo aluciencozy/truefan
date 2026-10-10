@@ -7,33 +7,30 @@ import UniverseDetails from './components/UniverseDetails'
 import EntityDetails from './components/EntityDetails'
 import MediaControls from './components/MediaControls'
 import AuthPanel from './components/AuthPanel'
+import ProgressControl from './components/ProgressControl'
 import { api } from './lib/api'
 import { libraryApi } from './lib/library'
 import { buildUniverseModel } from './lib/universeModel'
-import { buildReleaseGuide, confirmProgress, unlockMedia } from './lib/universeProgression'
+import { buildReleaseGuide, confirmProgress, unlockMedia, worldTitle } from './lib/universeProgression'
 import type { MediaStates } from './lib/universeProgression'
 import type { GraphResponse, Media, Universe, UserMediaState } from './lib/types'
 
 const stages = {
-  not_generated: 'No cached graph yet. Sign in with Google to generate it.',
-  queued: 'Generation queued…', retrieving: 'Retrieving episode descriptions…', generating: 'Generating character relationships…',
-  ready: 'Cached character graph ready.', partial: 'Partial graph available.', empty: 'No usable character information found.', failed: 'Graph generation failed. You can retry.',
+  not_generated: 'Discover the characters revealed at your progress.',
+  queued: 'Preparing your constellation…', retrieving: 'Reading the story so far…', generating: 'Connecting the characters…',
+  ready: 'Your constellation is ready.', partial: 'Some connections are ready to explore.', empty: 'No character connections are available at this point.', failed: 'We couldn’t build this constellation. Try again.',
 }
 
 export default function App() {
   const reduced = useReducedMotion()
-  const [inspectorOpen, setInspectorOpen] = useState(false)
   const searchDrawer = useRef<HTMLDetailsElement>(null)
-  const focusMedia = useCallback((item: Media) => { setFocusedId(item.id); setInspectorOpen(true) }, [])
+  const focusMedia = useCallback((item: Media) => { setFocusedId(item.id) }, [])
   const [searchParams] = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
-  const savedUniverseId = searchParams.get('universe') || ''
+  const initialMedia = searchParams.get('media') || searchParams.get('universe') || ''
   const [librarySaving, setLibrarySaving] = useState(false)
   const [libraryMessage, setLibraryMessage] = useState('')
   const libraryOperation = useRef(0)
-  const [health, setHealth] = useState('Connecting to backend…')
-  const [query, setQuery] = useState(initialQuery)
-  const [results, setResults] = useState<Media[]>([])
   const [media, setMedia] = useState<Media | null>(null)
   const [progress, setProgress] = useState(1)
   const [graph, setGraph] = useState<GraphResponse | null>(null)
@@ -47,20 +44,22 @@ export default function App() {
   const accountEpoch = useRef(0)
   const [stateLoading, setStateLoading] = useState(false)
   const [loadedStateKey, setLoadedStateKey] = useState('')
-  const [stateRevision, setStateRevision] = useState(0)
+  const saveQueue = useRef(Promise.resolve())
+  const latestProgress = useRef<object | null>(null)
+  const [progressMessage, setProgressMessage] = useState('')
   const [stateMessage, setStateMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const [expanding, setExpanding] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [generationError, setGenerationError] = useState('')
-  const [searching, setSearching] = useState(true)
   const [revision, setRevision] = useState(0)
+  const [loadRevision, setLoadRevision] = useState(0)
   const attempted = useRef(new Set<string>())
-  const searchController = useRef<AbortController | null>(null)
   const universeController = useRef<AbortController | null>(null)
   const model = useMemo(() => universe ? buildUniverseModel(universe) : null, [universe])
-  const stateKey = identity && model ? `${identity}:${model.media.map(m => m.id).join(',')}` : ''
+  const stateIds = model ? model.media.map(m => m.id) : media ? [media.id] : []
+  const stateKey = identity && stateIds.length ? `${identity}:${stateIds.join(',')}` : ''
   const awaitingState = Boolean(stateKey) && (stateLoading || loadedStateKey !== stateKey)
   const guide = useMemo(() => model ? buildReleaseGuide(model, states) : {}, [model, states])
 
@@ -68,6 +67,7 @@ export default function App() {
     if (identityRef.current === id) return
     accountEpoch.current++; identityRef.current = id; setIdentity(id)
     setStates({}); setStateMessage(''); setSaving(false); setStateLoading(false); setLoadedStateKey('')
+    latestProgress.current = null; setProgressMessage('')
     setProgress(0); setGraph(null); setSelectedId(null)
     // Returning to the universe applies the new account's entry rules before requesting character facts.
     if (universe) setView('universe')
@@ -77,11 +77,17 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!identity || !model?.media.length) return
+    if (!stateKey) return
     const controller = new AbortController()
     setStateLoading(true); setStateMessage('')
-    api.mediaState(model.media.map(m => m.id), controller.signal).then(saved => {
-      if (!controller.signal.aborted) { setStates(previous => ({ ...previous, ...Object.fromEntries(saved.map(s => [s.media_id, s])) })); setLoadedStateKey(stateKey) }
+    api.mediaState(stateIds, controller.signal).then(saved => {
+      if (!controller.signal.aborted) {
+        setStates(previous => ({ ...previous, ...Object.fromEntries(saved.map(s => [s.media_id, s])) })); setLoadedStateKey(stateKey)
+        if (!model && media) {
+          setProgress(Math.min(media.total_units, saved.find(s => s.media_id === media.id)?.progress?.unit ?? 0))
+          setGraph(null); setSelectedId(null)
+        }
+      }
     }).catch(error => {
       if (!controller.signal.aborted) {
         setStateMessage(error instanceof Error ? `${error.message} Viewing state could not be loaded; you can still explore.` : 'Saved viewing state unavailable. You can still explore.')
@@ -89,28 +95,18 @@ export default function App() {
       }
     }).finally(() => { if (!controller.signal.aborted) setStateLoading(false) })
     return () => controller.abort()
-  }, [identity, model, stateRevision, stateKey])
+  }, [stateKey])
 
   useEffect(() => {
     const controller = new AbortController()
-    api.health(controller.signal).then(() => setHealth('Backend connected')).catch(() => {
-      if (!controller.signal.aborted) setHealth('Backend unavailable')
-    })
-    setQuery(initialQuery); setSearching(true); setResults([]); setError(''); setGenerationError('')
+    setError(''); setGenerationError('')
     setMedia(null); setProgress(1); setGraph(null); setSelectedId(null); setUniverse(null); setView('characters')
-    if (savedUniverseId) {
-      setView('universe')
-      void api.media(savedUniverseId, controller.signal).then(item => {
-        if (!controller.signal.aborted) void openUniverse(item)
-      }).catch(error => {if (!controller.signal.aborted) setError(error.message)})
-    }
-    api.search(initialQuery, controller.signal).then(items => {
-      if (controller.signal.aborted) return
-      setResults(items); if (!initialQuery && !savedUniverseId) setMedia(items[0] ?? null)
-    }).catch(error => { if (!controller.signal.aborted) setError(error.message) })
-      .finally(() => { if (!controller.signal.aborted) setSearching(false) })
-    return () => { controller.abort(); searchController.current?.abort(); universeController.current?.abort() }
-  }, [initialQuery, savedUniverseId])
+    const load = initialMedia ? api.media(initialMedia, controller.signal).then(item => {
+      if (!controller.signal.aborted) void openUniverse(item)
+    }) : Promise.resolve()
+    load.catch(error => { if (!controller.signal.aborted) setError(error.message) })
+    return () => { controller.abort(); universeController.current?.abort() }
+  }, [initialQuery, initialMedia, loadRevision])
 
   useEffect(() => {libraryOperation.current++; setLibraryMessage(''); setLibrarySaving(false)}, [universe?.root_id, media?.id, identity])
 
@@ -127,8 +123,9 @@ export default function App() {
     finally {if (accountEpoch.current === epoch && libraryOperation.current === operation) setLibrarySaving(false)}
   }
 
+
   useEffect(() => {
-    if (!media || view !== 'characters') return
+    if (!media || view !== 'characters' || awaitingState) return
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout>
     async function load() {
@@ -136,7 +133,7 @@ export default function App() {
         const data = await api.graph(media!.id, progress, controller.signal)
         if (controller.signal.aborted) return
         setGraph(data); setError('')
-        if (data.generation?.status === 'not_generated' && !attempted.current.has(media!.id)) {
+        if (identity && data.generation?.status === 'not_generated' && !attempted.current.has(media!.id)) {
           attempted.current.add(media!.id)
           try { await api.generate(media!.id, 'start', controller.signal); if (!controller.signal.aborted) timer = setTimeout(() => void load(), 1000) }
           catch (error) { if (!controller.signal.aborted) setGenerationError(error instanceof Error ? error.message : 'Sign in to generate a graph.') }
@@ -145,30 +142,20 @@ export default function App() {
     }
     void load()
     return () => { controller.abort(); clearTimeout(timer) }
-  }, [media, progress, view, revision])
-
-  async function search() {
-    searchController.current?.abort()
-    const controller = new AbortController(); searchController.current = controller
-    setSearching(true); setError('')
-    try { const items = await api.search(query, controller.signal); if (!controller.signal.aborted) setResults(items) }
-    catch (error) { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Search failed.') }
-    finally { if (!controller.signal.aborted) setSearching(false) }
-  }
+  }, [media, progress, view, revision, awaitingState, identity])
 
   function enter(item: Media) {
     if (item.anilist_id && (awaitingState || saving || (universe && guide[item.id]?.status === 'locked'))) return
-    setMedia(item); setProgress(Math.min(item.total_units, states[item.id]?.progress?.unit ?? (item.anilist_id ? 0 : 1)))
+    latestProgress.current = null; setProgressMessage(''); setMedia(item); setProgress(Math.min(item.total_units, states[item.id]?.progress?.unit ?? (identity || item.anilist_id ? 0 : 1)))
     setSelectedId(null); setGraph(null); setError(''); setGenerationError(''); setView('characters')
   }
 
   async function openUniverse(item: Media) {
     universeController.current?.abort()
-    setInspectorOpen(false)
     if (searchDrawer.current) searchDrawer.current.open = false
     if (!item.anilist_id) { setUniverse(null); enter(item); return }
     const controller = new AbortController(); universeController.current = controller
-    setMedia(item); setProgress(0); setUniverse(null); setGraph(null); setSelectedId(null); setView('universe'); setError(''); setExpanding(false)
+    latestProgress.current = null; setProgressMessage(''); setMedia(item); setProgress(0); setUniverse(null); setGraph(null); setSelectedId(null); setView('universe'); setError(''); setExpanding(false)
     setFocusedId(item.id)
     try { const data = await api.universe(item.id, controller.signal); if (!controller.signal.aborted) { setUniverse(data); setFocusedId(data.root_id) } }
     catch (error) { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Universe unavailable.') }
@@ -207,7 +194,25 @@ export default function App() {
 
   function changeProgress(unit: number) {
     setProgress(unit); setSelectedId(null); setGraph(null)
-    if (media && !identity) setStates(previous => confirmProgress(previous, media, unit))
+    if (!media) return
+    setStates(previous => confirmProgress(previous, media, unit))
+    if (identity) {
+      const item = media, epoch = accountEpoch.current, update = {}
+      latestProgress.current = update; setProgressMessage('Saving…')
+      // Serialize writes so a slower earlier episode cannot overwrite a later one.
+      saveQueue.current = saveQueue.current.then(async () => {
+        if (epoch !== accountEpoch.current) return
+        try {
+          const saved = await api.saveProgress(item.id, unit)
+          if (epoch === accountEpoch.current) {
+            setStates(previous => confirmProgress(previous, item, saved.progress.unit))
+            if (latestProgress.current === update) setProgressMessage('Saved')
+          }
+        } catch {
+          if (epoch === accountEpoch.current && latestProgress.current === update) setProgressMessage('Could not save progress. Check your connection and try again.')
+        }
+      })
+    }
   }
 
   async function generate() {
@@ -222,8 +227,8 @@ export default function App() {
   const generation = visibleGraph?.generation
   const running = generation && ['queued','retrieving','generating'].includes(generation.status)
   const inUniverse = view === 'universe'
-  const controls = <MediaControls query={query} onQuery={setQuery} onSearch={() => void search()} results={results}
-    media={media} onSelect={item => void openUniverse(item)} progress={progress} onProgress={changeProgress} searching={searching} showProgress={!inUniverse} />
+  const headingMedia = inUniverse ? universe?.media.find(item => item.id === universe.root_id) ?? media : media
+  const controls = <MediaControls initialQuery={initialQuery} />
 
   function closeCharacter() {
     setSelectedId(null)
@@ -232,68 +237,59 @@ export default function App() {
     })
   }
 
-  return <div className="app-shell">
+  return <div className="app-shell celestial">
     <header className="app-header">
       <Link className="home-brand" to="/" aria-label="TrueFan home"><img src="/home/brand.svg" width="30" height="30" alt="" />TrueFan</Link>
       <span className="explorer-title">✧ Constellation explorer</span>
-      <div className="header-meta"><Link className="app-community-link" to="/community">Community ✦</Link><span role="status" className="connection">{health}</span><AuthPanel media={inUniverse ? null : media}
-        progress={Math.max(progress, media ? states[media.id]?.progress?.unit ?? 0 : 0)} onIdentity={onIdentity} onState={onState}
-        onProgress={unit => { setProgress(unit); setSelectedId(null); setGraph(null) }} /></div>
+      <div className="header-meta"><Link className="app-community-link" to="/community">Community ✦</Link><AuthPanel onIdentity={onIdentity} /></div>
     </header>
     <main className="workspace">
-      <details ref={searchDrawer} className="explorer-search" open={!media}>
-        <summary><img src="/home/search.svg" width="18" height="18" alt="" />{media ? 'Find another story' : 'Find your story'}</summary>
-        {controls}
-      </details>
       <section className="graph-panel" aria-label="Graph explorer">
         <div className="graph-heading"><div><span className="view-label">{inUniverse ? 'Your connected universe' : 'Character constellation'}</span>
-          <h1>{inUniverse ? universe?.media.find(item => item.id === universe.root_id)?.title || media?.title : media?.title || 'Every story is a universe.'}</h1>
-          <p>{inUniverse ? `${model?.media.length ?? 0} stories / ${model?.branches.length ?? 0} branches` : media ? progress === 0 ? 'Not started' : media.has_prologue ? progress === 1 ? 'Through the prologue' : `Through episode ${progress - 1}` : `Through ${media.progress_unit} ${progress}` : 'Choose a story to find your first constellation.'}</p></div>
+          <h1>{headingMedia ? worldTitle(headingMedia, inUniverse ? guide[headingMedia.id] : undefined) : 'Every story is a universe.'}</h1>
+          {inUniverse && <p>{model?.media.length ?? 0} stories</p>}</div>
           <div className="graph-actions">
             <Link to="/library">Saved universes ↗</Link>
             {media && (identity ? <button disabled={librarySaving || (inUniverse && !universe)} onClick={() => void saveUniverse()}>{librarySaving ? 'Saving…' : '＋ Save universe'}</button> : <Link to="/auth/sign-in">Sign in to save</Link>)}
-            {media && !inUniverse && <label className="inline-progress" htmlFor="canvas-progress">Your progress<select id="canvas-progress" value={progress} onChange={event => changeProgress(Number(event.target.value))}>
-              <option value={0}>Not started</option>
-              {Array.from({ length: media.total_units }, (_, i) => <option key={i + 1} value={i + 1}>{media.has_prologue ? i === 0 ? 'Prologue' : `Episode ${i}` : `${media.progress_unit} ${i + 1}`}</option>)}
-            </select></label>}
             {universe && !inUniverse && <button onClick={() => { setView('universe'); setSelectedId(null); setError('') }}>← Universe</button>}
-            {inUniverse && universe && <button aria-expanded={inspectorOpen} onClick={() => setInspectorOpen(value => !value)}>Selected story {inspectorOpen ? '−' : '+'}</button>}
+            {media && !inUniverse && <ProgressControl media={media} progress={progress} onProgress={changeProgress} disabled={awaitingState} />}
+            <details ref={searchDrawer} className="explorer-search" open={!media && !initialMedia}>
+              <summary aria-label={media ? 'Find another story' : 'Find your story'} title={media ? 'Find another story' : 'Find your story'}><img src="/home/search.svg" width="18" height="18" alt="" /><span>{media ? 'Find another story' : 'Find your story'}</span></summary>
+              {controls}
+            </details>
           </div>
         </div>
         {libraryMessage && <p className="generation-note" role="status">{libraryMessage}</p>}
-        {!inUniverse && generation && <div className="generation-note" role="status">
-          <span>Experimental AI · errors and spoilers are possible.</span><span>{stages[generation.status]}</span>
-          {!running && ['not_generated','failed','partial','empty'].includes(generation.status) && <button onClick={() => void generate()}>{generation.status === 'not_generated' ? 'Generate graph' : 'Retry unavailable episodes'}</button>}
-          <details><summary>Source coverage</summary><p>{generation.supported_units.length ? `Analyzed story units: ${generation.supported_units.join(', ')}${media?.has_prologue ? ' (unit 1 is the prologue)' : ''}.` : 'No supported episode range yet.'}</p></details>
-          {generation.error && <p>{generation.error}</p>}{generationError && <p role="alert">{generationError}</p>}
-        </div>}
         <div className="graph-stage">
           {universe && model && <div className="universe-layer" hidden={!inUniverse}><UniverseCanvas key={universe.root_id} universe={universe} model={model} guide={guide}
-            focusedId={focusedId} onFocus={focusMedia} onEnter={enter} release={release} onRelease={() => setRelease(value => !value)}
-            onExpand={() => void expandUniverse()} expanding={expanding} /></div>}
+            focusedId={focusedId} active={inUniverse} onFocus={focusMedia} release={release} onRelease={() => setRelease(value => !value)}
+            onExpand={() => void expandUniverse()} expanding={expanding} details={<>
+              {stateLoading && <p className="state-notice" role="status">Retrieving saved viewing state…</p>}
+              <UniverseDetails media={model.media.find(item => item.id === focusedId)} universe={universe} model={model} guide={guide} release={release}
+                state={states[focusedId]} busy={saving || awaitingState} onFocus={focusMedia} onEnter={enter}
+                onUnlock={item => void changeFlags(item, { manual_unlocked: true })} onComplete={item => void changeFlags(item, { completed: true })} message={stateMessage} />
+            </>} /></div>}
           {inUniverse && !universe && !error && <div className="empty celestial" role="status"><span className="empty-star">✧</span>Discovering connected stories…</div>}
-          {error ? <div role="alert" className="error">{error} <button onClick={() => { if (inUniverse && media) void openUniverse(media); else if (!media) void search(); else setRevision(value => value + 1) }}>Retry loading</button></div>
+          {error ? <div role="alert" className="error">{error} <button onClick={() => { if (inUniverse && media) void openUniverse(media); else if (!media) setLoadRevision(value => value + 1); else setRevision(value => value + 1) }}>Retry loading</button></div>
             : !inUniverse ? <motion.div className="character-layer" key={media?.id} initial={{ opacity: 0, scale: reduced ? 1 : .9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: reduced ? 0 : .65 }}>
-              {visibleGraph ? visibleGraph.entities.length ? <GraphCanvas key={`${media?.id}-${progress}`} graph={visibleGraph} onSelect={setSelectedId} selectedId={selectedId} />
+              {!awaitingState && generation && generation.status !== 'ready' && (running || !visibleGraph?.entities.length) ? <div className="empty celestial character-status" role="status" aria-live="polite">
+                <span className="empty-star" aria-hidden="true">✧</span>
+                <h2>{running ? 'Building your constellation…' : 'Your constellation is taking shape.'}</h2>
+                <p>{stages[generation.status]}</p>
+                {!running && (identity ? <button onClick={() => void generate()}>{generation.status === 'not_generated' ? 'Build constellation' : 'Try again'}</button> : <Link className="constellation-signin" to="/auth/sign-in">Sign in to explore</Link>)}
+                {generation.error && <p>{generation.error}</p>}{generationError && <p role="alert">{generationError}</p>}
+              </div> : !awaitingState && visibleGraph ? visibleGraph.entities.length ? <GraphCanvas key={`${media?.id}-${progress}`} graph={visibleGraph} onSelect={setSelectedId} selectedId={selectedId} />
                 : <div className="empty celestial"><span className="empty-star">✧</span>{running ? 'Building your constellation…' : 'Your connections begin here.'}<p>{generation ? 'Choose how far you have watched to reveal available characters.' : 'Advance your progress to reveal your first connections.'}</p></div>
-              : <div className="empty celestial" role="status"><span className="empty-star">✧</span>{media ? 'Finding your constellation…' : 'A whole universe is waiting.'}<p>{media ? 'Loading the knowledge revealed at your progress.' : 'Search for an anime, or explore the Lantern Harbor demo.'}</p></div>}
+              : <div className="empty celestial" role="status"><span className="empty-star">✧</span>{awaitingState ? 'Picking up where you left off…' : media ? 'Finding your constellation…' : 'A whole universe is waiting.'}<p>{media ? 'Loading the knowledge revealed at your progress.' : 'Search for a story to explore its universe.'}</p></div>}
               {/* Unmount immediately on progress changes, including any exiting details, to avoid stale spoilers. */}
               <AnimatePresence key={`details-${media?.id}-${progress}`}>
                 {selected && media && visibleGraph && <EntityDetails entity={selected} media={media} graph={visibleGraph} onSelect={setSelectedId} onClose={closeCharacter} />}
               </AnimatePresence>
             </motion.div> : null}
-          {inUniverse && universe && model && <div className="universe-inspector" hidden={!inspectorOpen}>
-            <button className="inspector-close" aria-label="Close story details" onClick={() => setInspectorOpen(false)}>×</button>
-            {stateLoading && <p role="status">Retrieving saved viewing state…</p>}
-            {identity && <button disabled={stateLoading || saving} onClick={() => setStateRevision(value => value + 1)}>Reload saved state</button>}
-            <UniverseDetails media={model.media.find(item => item.id === focusedId)} universe={universe} model={model} guide={guide[focusedId]} release={release}
-              busy={saving || awaitingState} onFocus={focusMedia} onEnter={enter}
-              onUnlock={item => void changeFlags(item, { manual_unlocked: true })} onComplete={item => void changeFlags(item, { completed: true })} message={stateMessage} />
-          </div>}
         </div>
         <footer className="graph-footer">
           <div className="map-key">{inUniverse ? <><span><i className="available-dot" />Available</span><span><i className="locked-dot" />Locked</span><span><i className="completed-dot" />Completed</span></> : <span><i className="available-dot" />Revealed at your progress</span>}</div>
-          <span>{inUniverse ? 'Branches are inferred, not story chronology.' : 'Your story. Your pace.'}</span><span>Scroll to zoom · Drag to explore</span>
+          <span role="status">{!inUniverse && progressMessage ? <>{progressMessage}{progressMessage.startsWith('Could not') && <button onClick={() => changeProgress(progress)}>Retry</button>}</> : !inUniverse && stateMessage ? stateMessage : 'Your story. Your pace.'}{identity && !inUniverse && generation?.status === 'partial' && visibleGraph?.entities.length ? <button onClick={() => void generate()}>Retry missing connections</button> : null}</span><span>{inUniverse ? 'Arrow keys to travel · Overview to see all worlds' : 'Scroll to zoom · Drag to explore'}</span>
         </footer>
       </section>
     </main>
