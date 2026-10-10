@@ -117,7 +117,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .controls .home-suggestions { position: static; margin-top: 8px; }
 .graph-panel { position: relative; }
 .graph-heading { min-height: 140px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 36px; position: relative; z-index: 20; }
-.graph-heading > div:first-child { min-width: 0; backdrop-filter: blur(8px); }
+.graph-heading > div:first-child { min-width: 0; }
 .graph-heading h1 { font-size: clamp(24px, 2.5vw, 36px); line-height: 1.15; margin: 8px 0; max-width: 700px; }
 .graph-heading p { font-size: 11px; margin: 0; }
 .view-label { font-size: 10px; color: var(--muted); }
