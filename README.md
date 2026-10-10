@@ -791,7 +791,8 @@ matches Truefan’s Community frame (`123:30`): charcoal `#1e1e2e`, panels
 `#181825`, borders `#45475a`, pale text `#cdd6f4`, and lavender `#cba6f7`.
 A shared navbar across the homepage, explorer, saved universes, community, and account
 pages centers Explore, Saved Universes (`/library`), and Community, with account controls
-on the right. Its active tab uses a spring animation, respects reduced motion, and
+on the right. The header is transparent; individual controls use backdrop blur and
+subtle shadows to blend with each page. Its active tab uses a spring animation, respects reduced motion, and
 moves to a centered second row on smaller screens. Community has
 Discussions, Theories, and Reviews, search/media filters, latest/popular sorting,
 post links, optional review ratings, likes, and comments. There are no episode controls
