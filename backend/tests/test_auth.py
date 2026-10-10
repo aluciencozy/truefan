@@ -73,3 +73,17 @@ class AuthTests(unittest.TestCase):
             with self.assertRaises(HTTPException) as raised:
                 self.verify(self.token())
             self.assertEqual(raised.exception.status_code, 503)
+
+    def test_jwks_garbage_and_missing_kid_never_500(self):
+        import json
+        with patch.object(self.client, "get_signing_key_from_jwt", side_effect=json.JSONDecodeError("bad", "<html>", 0)):
+            with self.assertRaises(HTTPException) as raised:
+                self.verify(self.token())
+            self.assertEqual(raised.exception.status_code, 503)
+        claims = jwt.decode(self.token(), options={"verify_signature": False})
+        no_kid = jwt.encode(claims, self.private_key, algorithm="EdDSA")
+        for token in [no_kid, "abc"]:
+            with self.subTest(token=token[:3]), self.assertRaises(HTTPException) as raised:
+                self.verify(token)
+            self.assertEqual(raised.exception.status_code, 401)
+
