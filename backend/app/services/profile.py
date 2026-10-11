@@ -5,6 +5,7 @@ services.library, and community posts); only earned badges and the favorite are 
 Everything here is catalog metadata and counts, never character facts.
 """
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from typing import Iterator, Sequence
 import psycopg
 from fastapi import HTTPException
@@ -22,10 +23,10 @@ POINTS = {
 }
 COMMUNITY_POST_CAP = 10
 RANKS = [  # ordered by min_points; the first entry has no badge. Adding a tier = appending an entry.
-    {'id': 'stargazer', 'title': 'Stargazer', 'min_points': 0,  'badge': None},
-    {'id': 'voyager',   'title': 'Voyager',   'min_points': 50, 'badge': '/badges/voyager.svg'},
-    # TODO: future tiers (name, threshold and badge art are product decisions) append here, e.g.
-    # {'id': '<id>', 'title': '<Title>', 'min_points': <int>, 'badge': '/badges/<id>.svg'},
+    {'id': 'stargazer', 'title': 'Stargazer', 'min_points': 0,   'badge': None},
+    {'id': 'voyager',   'title': 'Voyager',   'min_points': 50,  'badge': '/badges/voyager.svg'},
+    {'id': 'comet',     'title': 'Comet',     'min_points': 150, 'badge': '/badges/comet.svg'},
+    {'id': 'solaris',   'title': 'Solaris',   'min_points': 300, 'badge': '/badges/solaris.svg'},
 ]
 
 
@@ -79,9 +80,11 @@ def post_count(conn: psycopg.Connection, user_id: str) -> int:
 
 
 def award(conn: psycopg.Connection, user_id: str, rank_ids: Sequence[str]) -> None:
+    """Insert every qualifying badge (a user can skip tiers) with one shared timestamp; existing rows are kept."""
+    earned_at = datetime.now(timezone.utc)
     for rank_id in rank_ids:
-        conn.execute('''INSERT INTO public.user_badges(user_id,badge_id) VALUES(%s,%s)
-            ON CONFLICT DO NOTHING''', (user_id, rank_id))
+        conn.execute('''INSERT INTO public.user_badges(user_id,badge_id,earned_at) VALUES(%s,%s,%s)
+            ON CONFLICT DO NOTHING''', (user_id, rank_id, earned_at))
 
 
 def earned_badges(conn: psycopg.Connection, user_id: str) -> list[tuple[str, object]]:
@@ -97,8 +100,10 @@ def build(conn: psycopg.Connection, user_id: str) -> Profile:
     award(conn, user_id, [rank.id for rank in ranks if rank.badge and points >= rank.min_points])
     earned = earned_badges(conn, user_id)
     by_id = {rank.id: rank for rank in ranks if rank.badge}
+    order = {rank.id: index for index, rank in enumerate(ranks)}
+    # Oldest first, and tier order within a shared timestamp, so the last badge is always the highest tier.
     badges = [Badge(id=badge_id, title=by_id[badge_id].title, image=by_id[badge_id].badge, earned_at=earned_at)
-              for badge_id, earned_at in earned if badge_id in by_id]
+              for badge_id, earned_at in sorted(earned, key=lambda row: (row[1], order.get(row[0], 0))) if badge_id in by_id]
     rank, next_rank = rank_for(points, [badge.id for badge in badges])
     row = conn.execute('SELECT favorite_media_id FROM public.user_profiles WHERE user_id=%s', (user_id,)).fetchone()
     favorite = next((item for item in universes if row and item.media_id == row[0]), None)

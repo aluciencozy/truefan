@@ -43,8 +43,8 @@ class FakeConnection:
         if 'to_regclass' in sql: return Result([('public.community_posts' if self.community else None,)])
         if 'community_posts' in sql: return Result([(self.posts,)])
         if 'INSERT INTO public.user_badges' in sql:
-            self.writes.append(('badge', params))
-            if all(b[0] != params[1] for b in self.badges): self.badges.append((params[1], NOW))
+            self.writes.append(('badge', params[:2]))
+            if all(b[0] != params[1] for b in self.badges): self.badges.append((params[1], params[2]))
             return Result([])
         if 'FROM public.user_badges' in sql: return Result(list(self.badges))
         if 'INSERT INTO public.user_profiles' in sql:
@@ -98,25 +98,38 @@ class PointsTests(TestCase):
 
 class RankTests(TestCase):
     def test_rank_boundaries(self):
-        for points, rank, nxt in [(0, 'stargazer', 'voyager'), (49, 'stargazer', 'voyager'),
-                                  (50, 'voyager', None), (5000, 'voyager', None)]:
+        for points, rank, nxt, to_go in [(0, 'stargazer', 'voyager', 50), (49, 'stargazer', 'voyager', 1),
+                                         (50, 'voyager', 'comet', 100), (149, 'voyager', 'comet', 1),
+                                         (150, 'comet', 'solaris', 150), (299, 'comet', 'solaris', 1),
+                                         (300, 'solaris', None, 0), (500, 'solaris', None, 0)]:
             current, upcoming = profile.rank_for(points)
             self.assertEqual((current.id, upcoming.id if upcoming else None), (rank, nxt), points)
+            if upcoming: self.assertEqual(upcoming.min_points - points, to_go)
 
     def test_points_to_next(self):
         self.assertEqual(build([])[0].points_to_next, 50)
         self.assertEqual(build([universe(1, [title(1, True), title(2, False)])])[0].points_to_next, 35)  # 10 + 5 saved
-        top = build([universe(n, [title(n, True)]) for n in range(1, 6)])[0]
+        # 30 completed single-world universes = 30 * (10 + 25 + 5) = 1200 points: far past the top tier.
+        top = build([universe(n, [title(n, True)]) for n in range(1, 31)])[0]
+        self.assertEqual((top.rank.id, top.points), ('solaris', 1200))
         self.assertIsNone(top.next_rank); self.assertEqual(top.points_to_next, 0)
+        # Exactly 40 points per universe: 4 universes = 160 points, 140 short of Solaris.
+        mid = build([universe(n, [title(n, True)]) for n in range(1, 5)])[0]
+        self.assertEqual((mid.points, mid.rank.id, mid.next_rank.id, mid.points_to_next), (160, 'comet', 'solaris', 140))
 
     def test_earned_badge_floors_the_rank_if_points_later_drop(self):
         result, _ = build([], badges=[('voyager', NOW)])
-        self.assertEqual((result.points, result.rank.id), (0, 'voyager'))
-        self.assertIsNone(result.next_rank)
+        self.assertEqual((result.points, result.rank.id, result.next_rank.id), (0, 'voyager', 'comet'))
+        self.assertEqual(result.points_to_next, 150)
+        result, _ = build([], badges=[('voyager', NOW), ('comet', NOW), ('solaris', NOW)])
+        self.assertEqual((result.rank.id, result.next_rank, result.points_to_next), ('solaris', None, 0))
 
     def test_rank_table_is_ordered_and_first_has_no_badge(self):
         minimums = [r['min_points'] for r in profile.RANKS]
         self.assertEqual(minimums, sorted(minimums)); self.assertIsNone(profile.RANKS[0]['badge'])
+        self.assertEqual([(r['id'], r['min_points'], r['badge']) for r in profile.RANKS], [
+            ('stargazer', 0, None), ('voyager', 50, '/badges/voyager.svg'),
+            ('comet', 150, '/badges/comet.svg'), ('solaris', 300, '/badges/solaris.svg')])
 
 
 class BadgeTests(TestCase):
@@ -126,6 +139,29 @@ class BadgeTests(TestCase):
         self.assertEqual(result.badges[0].image, '/badges/voyager.svg')
         self.assertEqual(result.rank.id, 'voyager')
         self.assertEqual(conn.writes, [('badge', ('owner', 'voyager'))])
+
+    def test_skipping_tiers_awards_every_qualifying_badge_with_one_timestamp(self):
+        # 8 completed single-world universes = 320 points: Voyager, Comet and Solaris at once.
+        universes = [universe(n, [title(n, True)]) for n in range(1, 9)]
+        result, conn = build(universes)
+        self.assertEqual(result.points, 320)
+        self.assertEqual([b.id for b in result.badges], ['voyager', 'comet', 'solaris'])
+        self.assertEqual(len({b.earned_at for b in result.badges}), 1)
+        self.assertEqual(result.rank.id, 'solaris')
+        self.assertEqual([w[1] for w in conn.writes], [('owner', 'voyager'), ('owner', 'comet'), ('owner', 'solaris')])
+        with patch('app.services.profile.library.collect', return_value=universes):
+            second = profile.build(conn, 'owner')  # a later read keeps the same rows and dates
+        self.assertEqual(len(conn.badges), 3)
+        self.assertEqual([b.earned_at for b in second.badges], [b.earned_at for b in result.badges])
+
+    def test_partial_jump_awards_only_what_qualifies(self):
+        result, _ = build([universe(n, [title(n, True)]) for n in range(1, 5)])  # 160 points
+        self.assertEqual([b.id for b in result.badges], ['voyager', 'comet'])
+
+    def test_badges_are_ordered_by_tier_even_when_stored_out_of_order(self):
+        stamp = datetime(2026, 5, 5, tzinfo=timezone.utc)
+        result, _ = build([], badges=[('solaris', stamp), ('comet', stamp), ('voyager', stamp)])
+        self.assertEqual([b.id for b in result.badges], ['voyager', 'comet', 'solaris'])
 
     def test_not_awarded_below_threshold(self):
         result, conn = build([universe(1, [title(1, True)])])
