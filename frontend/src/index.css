@@ -202,7 +202,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
   :is(.universe-canvas, .graph-canvas) .react-flow__viewport, .app-shell :is(.universe-canvas, .graph-canvas)::before { translate: none; }
 }
 .universe-canvas .react-flow__viewport { will-change: transform; }
-.overview-control { margin: 16px 36px; }
+.overview-control { position: absolute; top: 0; right: 0; z-index: 10; margin: 16px 36px; }
 .overview-control button { display: flex; align-items: center; gap: 9px; padding: 9px 14px; font-size: 13px; background: #181825d9; border-color: #b4befe50; }
 .overview-control button[aria-pressed="true"] { color: var(--mauve); border-color: var(--mauve); }
 .universe-inspector { position: absolute; left: calc(34% + 132px); top: 48%; translate: 0 -50%; width: min(330px, 36%); max-height: calc(100% - 150px); overflow: auto; z-index: 8; border: 1px solid #cba6f738; border-radius: 16px; background: #181825f5; box-shadow: 0 18px 70px #0005, -16px 0 70px #cba6f709; scrollbar-width: thin; font-family: var(--body); }
@@ -286,7 +286,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .detail-provenance dt { color: var(--muted); }
 .detail-provenance dd { overflow-wrap: anywhere; }
 /* Small glass surfaces keep text readable where worlds pass behind the UI. */
-.app-shell :is(.graph-heading > div:first-child, .progress-control > label, .graph-footer > *, .destination > strong, .destination-state, .star-node > strong, .star-node > small) {
+.app-shell :is(.progress-control > label, .graph-footer > *, .destination > strong, .destination-state, .star-node > strong, .star-node > small) {
   background: #11111b40; border-radius: 6px; backdrop-filter: blur(6px);
 }
 .app-shell :is(.account-trigger, .account-dropdown, .graph-actions > button, .progress-stepper, .canvas-toolbar button, .overview-control button, .journey-controls, .universe-inspector, .character-layer > .details, .canvas-status, .canvas-legend, .react-flow__controls, .constellation-signin) {
@@ -381,7 +381,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .world-entry { position: absolute; inset: 0; z-index: 25; display: grid; place-items: center; background: radial-gradient(circle at 40% 43%, #cba6f740, var(--crust) 65%); }
 .world-entry span { font-family: var(--display); font-size: 32px; }
 .is-entering { pointer-events: none; }
-.is-entering .universe-inspector, .is-entering .react-flow__panel { opacity: 0; transition: opacity .25s; }
+.is-entering .universe-inspector, .is-entering .overview-control, .is-entering .react-flow__panel { opacity: 0; transition: opacity .25s; }
 .is-entering .destination:not(.focused) { opacity: .15; transition: opacity .4s; }
 .is-entering .destination.focused .destination-art { filter: brightness(1.3); }
 .is-entering .destination.focused > strong, .is-entering .destination.focused .destination-state { opacity: 0; }
@@ -413,4 +413,8 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
   .canvas-toolbar button { font-size: 11px; padding: 7px 10px; }
   .overview-control { margin: 12px 16px; }
   .overview-control button { font-size: 12px; }
+}
+
+@media (min-width: 760px) {
+  .universe-inspector { margin-top: 60px; max-height: calc(100% - 84px); }
 }
