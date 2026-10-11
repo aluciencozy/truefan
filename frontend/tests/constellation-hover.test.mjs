@@ -42,3 +42,23 @@ test('connection hover highlights both endpoints without selecting or moving the
     assert.deepEqual(previews(), [])
   } finally { if (renderer) await act(async () => renderer.unmount()) }
 })
+
+test('constellation lets drags pan from nodes and edges, and a real drag clears the selection', async () => {
+  const nodes = ['a', 'b'].map(id => ({ id, position: { x: 0, y: 0 }, data: { label: id, subtitle: 'character' } }))
+  const edges = [{ id: 'ab', source: 'a', target: 'b' }]
+  const cleared = []
+  let renderer
+  const props = { nodes, edges, selectedId: 'a', onSelect: id => cleared.push(id), label: 'Test graph' }
+  try {
+    await act(async () => { renderer = create(createElement(Constellation, props)) })
+    const flow = () => renderer.root.findByType('ReactFlow').props
+    // Nodes and edges must not swallow pointer-down, or drags starting on them never pan.
+    assert.equal(flow().elementsSelectable, false)
+    // A user drag (real event) clears the card; React Flow's own camera moves pass a
+    // null event and must leave the selection alone.
+    await act(async () => flow().onMoveStart(null))
+    assert.deepEqual(cleared, [])
+    await act(async () => flow().onMoveStart({ type: 'mousedown', button: 0 }))
+    assert.deepEqual(cleared, [null])
+  } finally { if (renderer) await act(async () => renderer.unmount()) }
+})

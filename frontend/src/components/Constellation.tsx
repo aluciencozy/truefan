@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 import { Controls, Handle, Position, ReactFlow, ReactFlowProvider, useReactFlow, useStore, useNodesInitialized } from '@xyflow/react'
 import type { Edge, EdgeProps, Node, NodeProps, Viewport } from '@xyflow/react'
 import { useReducedMotion } from 'motion/react'
@@ -21,14 +22,13 @@ const Star = memo(function Star({ id, data }: NodeProps<StarNode>) {
 const nodeTypes = { star: Star }
 const edgeTypes = { straight: (props: EdgeProps) => <PointerEdge {...props} /> }
 
-function Camera({ nodes, selectedId }: { nodes: StarNode[]; selectedId?: string | null }) {
+function Camera({ nodes, selectedId, overview }: { nodes: StarNode[]; selectedId?: string | null; overview: RefObject<Viewport | null> }) {
   const { fitView, setCenter, getViewport, setViewport } = useReactFlow()
   const width = useStore(state => state.width)
   const height = useStore(state => state.height)
   const ready = useNodesInitialized()
   const reduced = useReducedMotion()
   const previous = useRef<string | null>(null)
-  const overview = useRef<Viewport | null>(null)
   useEffect(() => {
     if (!ready || !width || !height) return
     const timer = setTimeout(() => {
@@ -50,9 +50,12 @@ function Camera({ nodes, selectedId }: { nodes: StarNode[]; selectedId?: string 
 }
 
 export default function Constellation({ nodes, edges, selectedId, onSelect, label }: {
-  nodes: StarNode[]; edges: Edge[]; selectedId?: string | null; onSelect: (id: string) => void; label: string
+  nodes: StarNode[]; edges: Edge[]; selectedId?: string | null; onSelect: (id: string | null) => void; label: string
 }) {
   const container = useRef<HTMLDivElement>(null)
+  // Live camera position while a character is selected, so closing the panel
+  // returns to where the user actually panned instead of a stale framing.
+  const overview = useRef<Viewport | null>(null)
   const pointer = useCanvasParallax(container)
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null)
   const hoveredEdge = edges.find(edge => edge.id === hoveredEdgeId)
@@ -64,16 +67,24 @@ export default function Constellation({ nodes, edges, selectedId, onSelect, labe
     if (container.current) observer.observe(container.current)
     return () => observer.disconnect()
   }, [])
+  // React Flow stamps `nopan` on every edge, so a drag starting on a line never
+  // reaches the pan handler. Constellation edges are not reconnectable, so drop the
+  // class and let the whole canvas drag; hover previews keep working.
+  useEffect(() => {
+    container.current?.querySelectorAll('.react-flow__edge.nopan').forEach(group => group.classList.remove('nopan'))
+  })
   const limits = useMemo(() => canvasLimits(nodes.map(node => node.position), 170, 160, size.width, size.height), [nodes, size])
   const interactiveNodes = useMemo(() => nodes.map(node => ({ ...node, width: 170, height: 160, focusable: false,
     data: { ...node.data, active: node.id === selectedId, preview: node.id === hoveredEdge?.source || node.id === hoveredEdge?.target, onActivate: onSelect } })), [nodes, selectedId, onSelect, hoveredEdge])
   return <div ref={container} className="graph-canvas celestial" aria-label={label}>
     <CanvasPointerContext.Provider value={pointer}><ReactFlowProvider><ReactFlow nodes={interactiveNodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} proOptions={{ hideAttribution: true }}
       minZoom={limits.minZoom} maxZoom={1.8} translateExtent={limits.extent} fitViewOptions={{ padding: .3, maxZoom: 1.1 }}
-      nodesDraggable={false} nodesConnectable={false} zoomOnDoubleClick={false}
+      nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} zoomOnDoubleClick={false}
+      onMove={(_, viewport) => { if (selectedId) overview.current = viewport }}
+      onMoveStart={event => { if (event && selectedId) onSelect(null) }}
       onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)}
       onNodeClick={(_, node) => onSelect(node.id)}>
-      <Camera nodes={nodes} selectedId={selectedId} />
+      <Camera nodes={nodes} selectedId={selectedId} overview={overview} />
       <Controls showInteractive={false} orientation="horizontal" position="bottom-left" fitViewOptions={{ padding: .3, maxZoom: 1.1 }} />
     </ReactFlow></ReactFlowProvider></CanvasPointerContext.Provider>
   </div>
