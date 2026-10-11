@@ -83,7 +83,7 @@ test('nested replies expand under a main comment and submitting calls the chosen
   await act(async()=>title(r).props.onClick());assert.equal(r.root.findAllByProps({className:'conversation-comment'}).length,1)
   await act(async()=>r.root.findByProps({className:'comment-expand'}).props.onClick());assert.equal(r.root.findAllByProps({className:'conversation-comment'}).length,3)
   const article=r.root.findAllByProps({className:'conversation-comment'})[1]
-  await act(async()=>article.findAllByType('button').find(b=>b.children.join('')==='Reply').props.onClick())
+  await act(async()=>article.findAllByType('button').find(b=>b.children.includes('Reply')).props.onClick())
   assert.equal(r.root.findByProps({htmlFor:'comment-body'}).children.join(''),'Reply to @Sam')
   await act(async()=>body(r).props.onChange({target:{value:'My response'}}));await act(async()=>form(r).props.onSubmit(event))
   assert.equal(payload[4],'child');assert.equal(payload[1],'My response')
@@ -109,5 +109,5 @@ test('inline comment images and the owner menu follow the ten-minute deadline',a
  const expired={...recent,id:'expired',created_at:new Date(Date.now()-600_001).toISOString()}
  const other={...recent,id:'other',is_owner:false}
  const r=await mount({comments:async()=>[recent,expired,other]})
- try{await act(async()=>title(r).props.onClick());assert.equal(r.root.findAllByProps({className:'community-comment-image'}).length,3);assert.equal(r.root.findAllByProps({className:'comment-options'}).length,1);const menu=r.root.findByProps({className:'comment-options'});await act(async()=>menu.findAllByType('button')[0].props.onClick({currentTarget:{closest:()=>({removeAttribute(){}})}}));assert.equal(body(r).props.value,'Image caption');assert.equal(r.root.findAllByProps({className:'attachment-preview'}).length,1)}finally{await act(async()=>r.unmount())}
+ try{await act(async()=>title(r).props.onClick());assert.equal(r.root.findAllByProps({className:'community-comment-image'}).length,3);assert.equal(r.root.findAllByProps({className:'comment-options'}).length,2);const menus=r.root.findAllByProps({className:'comment-options'});assert.equal(menus[1].findAllByType('button')[0].props.disabled,true);const menu=menus[0];await act(async()=>menu.findAllByType('button')[0].props.onClick({currentTarget:{closest:()=>({removeAttribute(){}})}}));assert.equal(body(r).props.value,'Image caption');assert.equal(r.root.findAllByProps({className:'attachment-preview'}).length,1)}finally{await act(async()=>r.unmount())}
 })

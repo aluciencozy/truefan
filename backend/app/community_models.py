@@ -70,6 +70,7 @@ class CommentCreate(ImageAttachment):
     model_config = ConfigDict(extra='forbid')
     body: str = Field(default='', max_length=2000)
     contains_spoilers: bool = False
+    entry_id: UUID | None = None
     parent_id: UUID | None = None
     @model_validator(mode='after')
     def content_required(self) -> 'CommentCreate':
@@ -96,6 +97,7 @@ class CommunityPost(PostCreate):
 
 
 class CommunityComment(ImageAttachment):
+    entry_id: UUID | None = None
     parent_id: UUID | None = None
     reply_to_author: str | None = None
     is_owner: bool = False
