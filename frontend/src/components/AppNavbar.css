@@ -50,14 +50,14 @@
 @property --saturn-angle { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
 .navbar-links { --saturn-angle: 0deg; animation: saturn-drift 18s linear infinite; }
 @keyframes saturn-drift { to { --saturn-angle: 360deg; } }
-.navbar-saturn { position: absolute; inset: -13px -6px; pointer-events: none; }
+.navbar-saturn { position: absolute; inset: -16px 15%; pointer-events: none; }
 /* The tilt layer sits behind the link pill so stars disappear behind it and
    reappear as they orbit, like a moon behind its planet. It must stay above
    z-auto siblings only via the negative z-index: the motion wrapper keeps
    z-index auto (and transform none at rest) so this participates in the
    header stacking context instead of being trapped mid-flight. */
-.saturn-tilt { position: absolute; inset: 0; z-index: -1; transform: rotate(-9deg); }
-.saturn-star { position: absolute; left: calc(50% + cos(var(--saturn-angle) + var(--saturn-phase, 0deg)) * 50%); top: calc(50% + sin(var(--saturn-angle) + var(--saturn-phase, 0deg)) * 50%); width: var(--saturn-size, 3px); height: var(--saturn-size, 3px); border-radius: 50%; background: #f2edff; box-shadow: 0 0 4px var(--nav-accent), 0 0 8px color-mix(in srgb, var(--nav-accent) 60%, transparent); transform: translate(-50%, -50%); animation: saturn-twinkle var(--saturn-twinkle-duration, 5s) ease-in-out var(--saturn-twinkle-delay, 0s) infinite; }
+.saturn-tilt { position: absolute; inset: 0; z-index: -1; transform: rotate(-10deg); }
+.saturn-star { position: absolute; left: calc(50% + cos(var(--saturn-angle) + var(--saturn-phase, 0deg)) * 46%); top: calc(50% + sin(var(--saturn-angle) + var(--saturn-phase, 0deg)) * 53%); width: var(--saturn-size, 3px); height: var(--saturn-size, 3px); border-radius: 50%; background: #f2edff; box-shadow: 0 0 4px var(--nav-accent), 0 0 8px color-mix(in srgb, var(--nav-accent) 60%, transparent); transform: translate(-50%, -50%); animation: saturn-twinkle var(--saturn-twinkle-duration, 5s) ease-in-out var(--saturn-twinkle-delay, 0s) infinite; }
 /* Static fallback spots when trigonometric positioning is unavailable. */
 @supports not (left: calc(cos(0deg) * 1%)) {
   .saturn-star:nth-of-type(1) { left: 100%; top: 50%; }
