@@ -306,7 +306,10 @@ test('explorer without a story offers search without loading the development fix
     await act(async () => renderer.root.findByProps({ 'aria-label': 'Close story search' }).props.onClick())
     assert.equal(dialog.open, false)
     assert.equal(renderer.root.findAllByType('GraphCanvas').length, 0)
-    assert.ok(!JSON.stringify(renderer.toJSON()).includes('Lantern Harbor'))
+    assert.ok(!JSON.stringify(renderer.toJSON(), (key, value) => key === 'fallback' ? undefined : value).includes('Lantern Harbor'))
+    // With no story selected Explore shows the trending sky, keeping today's empty state as its fallback.
+    const sky = renderer.root.findByType('TrendingSky')
+    assert.equal(sky.props.fallback.props.children.includes('A whole universe is waiting.'), true)
   } finally {
     if (renderer) await act(async () => renderer.unmount())
     globalThis.__navigationQuery = 'q=anime'

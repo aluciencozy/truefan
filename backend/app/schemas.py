@@ -244,3 +244,35 @@ class SurprisePick(BaseModel):
     tags: list[str]
     characters_at_start: int = Field(ge=0)
     pool_size: int = Field(ge=1)
+
+
+class TrendingStar(BaseModel):
+    media_id: str
+    title: str
+    cover_url: str | None = None
+    format: str | None = None
+    year: int | None = None
+    completions: int = Field(ge=1)
+    magnitude: float = Field(ge=0.25, le=1.0)
+
+
+class TrendingLink(BaseModel):
+    source: str
+    target: str
+    type: str  # AniList relation (PREQUEL is normalised to SEQUEL) or INFERRED for the connecting chain
+
+
+class TrendingConstellation(BaseModel):
+    franchise_id: str
+    title: str
+    entry_media_id: str
+    score: int = Field(ge=1)
+    stars: list[TrendingStar] = Field(min_length=3, max_length=8)
+    links: list[TrendingLink]
+
+
+class TrendingConstellations(BaseModel):
+    """Aggregate counts only: no user ids or per-user data."""
+    window_days: int
+    demo_signal: bool
+    constellations: list[TrendingConstellation]
