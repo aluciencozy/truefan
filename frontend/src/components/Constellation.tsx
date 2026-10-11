@@ -50,7 +50,7 @@ function Camera({ nodes, selectedId, overview }: { nodes: StarNode[]; selectedId
 }
 
 export default function Constellation({ nodes, edges, selectedId, onSelect, label }: {
-  nodes: StarNode[]; edges: Edge[]; selectedId?: string | null; onSelect: (id: string) => void; label: string
+  nodes: StarNode[]; edges: Edge[]; selectedId?: string | null; onSelect: (id: string | null) => void; label: string
 }) {
   const container = useRef<HTMLDivElement>(null)
   // Live camera position while a character is selected, so closing the panel
@@ -67,14 +67,21 @@ export default function Constellation({ nodes, edges, selectedId, onSelect, labe
     if (container.current) observer.observe(container.current)
     return () => observer.disconnect()
   }, [])
+  // React Flow stamps `nopan` on every edge, so a drag starting on a line never
+  // reaches the pan handler. Constellation edges are not reconnectable, so drop the
+  // class and let the whole canvas drag; hover previews keep working.
+  useEffect(() => {
+    container.current?.querySelectorAll('.react-flow__edge.nopan').forEach(group => group.classList.remove('nopan'))
+  })
   const limits = useMemo(() => canvasLimits(nodes.map(node => node.position), 170, 160, size.width, size.height), [nodes, size])
   const interactiveNodes = useMemo(() => nodes.map(node => ({ ...node, width: 170, height: 160, focusable: false,
     data: { ...node.data, active: node.id === selectedId, preview: node.id === hoveredEdge?.source || node.id === hoveredEdge?.target, onActivate: onSelect } })), [nodes, selectedId, onSelect, hoveredEdge])
   return <div ref={container} className="graph-canvas celestial" aria-label={label}>
     <CanvasPointerContext.Provider value={pointer}><ReactFlowProvider><ReactFlow nodes={interactiveNodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} proOptions={{ hideAttribution: true }}
       minZoom={limits.minZoom} maxZoom={1.8} translateExtent={limits.extent} fitViewOptions={{ padding: .3, maxZoom: 1.1 }}
-      nodesDraggable={false} nodesConnectable={false} zoomOnDoubleClick={false}
+      nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} zoomOnDoubleClick={false}
       onMove={(_, viewport) => { if (selectedId) overview.current = viewport }}
+      onMoveStart={event => { if (event && selectedId) onSelect(null) }}
       onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)}
       onNodeClick={(_, node) => onSelect(node.id)}>
       <Camera nodes={nodes} selectedId={selectedId} overview={overview} />

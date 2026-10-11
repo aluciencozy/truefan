@@ -4,7 +4,7 @@ import { constellationLayout } from '../lib/constellation'
 import Constellation, { type StarNode } from './Constellation'
 
 export default function GraphCanvas({ graph, onSelect, selectedId }: {
-  graph: GraphResponse; onSelect: (id: string) => void; selectedId: string | null
+  graph: GraphResponse; onSelect: (id: string | null) => void; selectedId: string | null
 }) {
   const nodes = useMemo<StarNode[]>(() => {
     const positions = constellationLayout(graph.entities.map(entity => entity.id), graph.relationships)
