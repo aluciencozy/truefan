@@ -102,6 +102,12 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .controls h2 { margin: 0 44px 24px; font-size: 32px; text-align: center; }
 .graph-panel { position: relative; }
 .graph-heading { min-height: 140px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 36px; position: relative; z-index: 20; }
+/* Explore headers float over the sky: never show a panel background or its bottom edge. */
+.app-shell .app-navbar, .app-shell .workspace, .app-shell .graph-panel, .app-shell .graph-stage,
+.app-shell .graph-heading, .app-shell .trending-sky, .app-shell .trending-scroll, .app-shell .trending-heading {
+  background: transparent !important; background-image: none !important; box-shadow: none !important;
+  border: 0 !important; backdrop-filter: none !important; }
+.graph-heading.is-trending { justify-content: flex-end; }
 .graph-heading > div:first-child { min-width: 0; }
 .graph-heading h1 { font-size: clamp(24px, 2.5vw, 36px); line-height: 1.15; margin: 8px 0; max-width: 700px; }
 .graph-heading p { font-size: 13px; margin: 0; }
@@ -293,8 +299,15 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .detail-provenance { display: grid; grid-template-columns: 130px 1fr; gap: 12px; padding-top: 20px; margin-top: 20px; border-top: 1px solid #45475a60; font-size: 13px; line-height: 1.7; }
 .detail-provenance dt { color: var(--muted); }
 .detail-provenance dd { overflow-wrap: anywhere; }
+/* Node labels float over the sky: no glass chip behind show names, just a soft
+   text shadow so the text stays readable where worlds pass behind it. */
+.app-shell :is(.destination > strong, .destination-state, .star-node > strong, .star-node > small) {
+  background: transparent !important; background-image: none !important; box-shadow: none !important;
+  border: 0 !important; border-radius: 0 !important; backdrop-filter: none !important;
+  text-shadow: 0 1px 8px var(--crust), 0 0 20px var(--crust);
+}
 /* Small glass surfaces keep text readable where worlds pass behind the UI. */
-.app-shell :is(.progress-control > label, .destination > strong, .destination-state, .star-node > strong, .star-node > small) {
+.app-shell :is(.progress-control > label) {
   background: #11111b40; border-radius: 6px; backdrop-filter: blur(6px);
 }
 .app-shell :is(.account-trigger, .account-dropdown, .graph-actions > button, .progress-stepper, .canvas-toolbar button, .overview-control button, .journey-controls, .universe-inspector, .character-layer > .details, .canvas-status, .canvas-legend, .react-flow__controls, .constellation-signin) {
