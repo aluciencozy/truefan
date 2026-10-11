@@ -7,6 +7,7 @@ import UniverseDetails from './components/UniverseDetails'
 import EntityDetails from './components/EntityDetails'
 import MediaControls from './components/MediaControls'
 import AppNavbar from './components/AppNavbar'
+import GlitterStars from './components/GlitterStars'
 import ProgressControl from './components/ProgressControl'
 import { api } from './lib/api'
 import { libraryApi } from './lib/library'
@@ -228,6 +229,7 @@ export default function App() {
   }
 
   return <div className="app-shell celestial">
+    <GlitterStars />
     <AppNavbar onIdentity={onIdentity} />
     <main className="workspace">
       <section className="graph-panel" aria-label="Graph explorer">

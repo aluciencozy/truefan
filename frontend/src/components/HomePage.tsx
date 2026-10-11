@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import AppNavbar from './AppNavbar'
+import GlitterStars from './GlitterStars'
 import { api } from '../lib/api'
 import type { TrendingCover } from '../lib/types'
 import UniverseSearch from './UniverseSearch'
@@ -32,6 +33,7 @@ export default function HomePage() {
   return <div className="home-page">
     <AppNavbar />
     <main className="home-hero celestial">
+      <GlitterStars />
       <div className="home-graph" aria-hidden="true">
         <img className="home-glow" src="/home/glow.svg" width="1100" height="680" alt="" />
         <img className="home-connections" src="/home/connections.svg" width="1440" height="724" alt="" />
