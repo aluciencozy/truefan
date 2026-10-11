@@ -1,17 +1,13 @@
 @import "tailwindcss";
 @import "@neondatabase/auth-ui/tailwind";
 @import "@xyflow/react/dist/style.css";
-@font-face { font-family: "JetBrains Mono"; src: url("/fonts/jetbrains-mono-400.ttf") format("truetype"); font-weight: 400 600; font-display: swap; }
-@font-face { font-family: "JetBrains Mono"; src: url("/fonts/jetbrains-mono-700.ttf") format("truetype"); font-weight: 700 900; font-display: swap; }
-@font-face { font-family: "Pixelify Sans"; src: url("/fonts/pixelify-sans-400.ttf") format("truetype"); font-weight: 400 500; font-display: swap; }
-@font-face { font-family: "Pixelify Sans"; src: url("/fonts/pixelify-sans-600.ttf") format("truetype"); font-weight: 600 900; font-display: swap; }
-@theme { --font-sans: "JetBrains Mono", monospace; }
+@theme { --font-sans: "Diphylleia", serif; }
 :root {
   --crust: #11111b; --mantle: #181825; --base: #1e1e2e; --surface: #313244; --border: #45475a;
   --text: #cdd6f4; --subtext: #bac2de; --muted: #a6adc8; --mauve: #cba6f7; --lavender: #b4befe;
   --blue: #89b4fa; --teal: #94e2d5; --peach: #fab387; --yellow: #f9e2af; --green: #a6e3a1; --pink: #f5c2e7;
-  --display: "Pixelify Sans", monospace; --body: "JetBrains Mono", monospace;
-  font-family: "JetBrains Mono", monospace; color: var(--text); background: var(--crust); color-scheme: dark; font-synthesis: none;
+  --display: "Aoboshi One", serif; --body: "Diphylleia", serif;
+  font-family: var(--body); color: var(--text); background: var(--crust); color-scheme: dark; font-synthesis: none;
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
@@ -357,8 +353,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 
 .app-community-link { display: inline-block; font-family: var(--display); font-size: 16px; }
 
-/* Shared night sky; the circular artwork carries the color. */
-.home-page, .app-shell.celestial, .library-page, .community-page, .auth-shell { background-color: var(--crust); background-image: radial-gradient(ellipse at 50% 38%, #31324440, transparent 65%); }
 .home-hero { background: transparent; }
 .home-introduction h1 { font-size: clamp(60px, 7vw, 84px); color: #e8defb; text-shadow: 0 0 48px #cba6f733; }
 .home-introduction p { font-size: 16px; }

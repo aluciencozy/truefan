@@ -7,9 +7,21 @@ import './AppNavbar.css'
 const BrandLink = motion.create(Link)
 
 const destinations = [
-  { to: '/explore', label: 'Explore' },
-  { to: '/library', label: 'Saved Universes' },
-  { to: '/community', label: 'Community' },
+  {
+    to: '/explore',
+    label: 'Explore',
+    icon: <><path d="M12 3c3.8 1.7 6 5.4 6 9l-6 6-6-6c0-3.6 2.2-7.3 6-9Z" /><circle cx="12" cy="9" r="1.5" /><path d="m6 12-3 1 3 3m12-4 3 1-3 3m-8 4 2-2 2 2" /></>,
+  },
+  {
+    to: '/library',
+    label: 'Saved Universes',
+    icon: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />,
+  },
+  {
+    to: '/community',
+    label: 'Community',
+    icon: <><circle cx="12" cy="12" r="2" /><ellipse cx="12" cy="12" rx="9" ry="4.5" transform="rotate(-30 12 12)" /><circle cx="19.8" cy="7.5" r="1" /></>,
+  },
 ] as const
 
 function GuestLinks() {
@@ -28,12 +40,15 @@ export default function AppNavbar({ onIdentity }: { onIdentity?: (id: string | n
       <img src="/home/truefan-logo.svg" width="52" height="52" alt="" />
     </BrandLink>
     <nav className="navbar-links" aria-label="Main navigation">
-      {destinations.map(({ to, label }) => {
+      {destinations.map(({ to, label, icon }) => {
         const active = pathname === to || pathname.startsWith(`${to}/`) || (to === '/explore' && pathname === '/')
         return <Link key={to} to={to} className={`navbar-link${active ? ' active' : ''}`} aria-current={active ? 'page' : undefined}>
           {active && <motion.span className="navbar-indicator" aria-hidden="true"
             initial={reduced ? false : { opacity: 0, scale: .92 }} animate={{ opacity: 1, scale: 1 }}
             transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 380, damping: 32 }} />}
+          <svg className="navbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {icon}
+          </svg>
           <span className="navbar-label">{label}</span>
         </Link>
       })}

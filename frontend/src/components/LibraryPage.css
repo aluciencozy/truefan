@@ -36,7 +36,7 @@
 .library-search:focus-within{border-color:var(--teal)}
 .library-search input{color:#cdd6f4;background:transparent;border:0;outline:none;flex:1;min-width:0;font-size: 13px}
 .library-search input::placeholder{color:#9399b2}
-.library-search kbd{font:10px 'Pixelify Sans',monospace;color:#9399b2;border:1px solid #313244;border-radius:4px;padding:3px 5px}
+.library-search kbd{font:10px var(--display);font-weight:400;color:#9399b2;border:1px solid #313244;border-radius:4px;padding:3px 5px}
 .library-pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:9px 14px;border:1px solid #45475a;background:transparent;border-radius:24px;color:#bac2de;font-size: 13px;cursor:pointer}
 .library-pill:hover,.library-pill.selected{background:#313244}
 .library-pill select{width:auto;min-width:0;padding:0;border:0;outline:none;background:transparent;font-size: 13px;cursor:pointer;max-width:180px}
