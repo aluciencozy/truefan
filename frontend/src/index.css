@@ -107,7 +107,10 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .app-shell .graph-heading, .app-shell .trending-sky, .app-shell .trending-scroll, .app-shell .trending-heading {
   background: transparent !important; background-image: none !important; box-shadow: none !important;
   border: 0 !important; backdrop-filter: none !important; }
-.graph-heading.is-trending { justify-content: flex-end; }
+.graph-heading.is-trending { justify-content: space-between; align-items: center; }
+.trending-title-copy { min-width: 0; }
+.trending-title-copy h2 { margin: 0 0 4px; font: 400 clamp(26px, 3.2vw, 34px)/1.2 var(--display); }
+.trending-title-copy p { margin: 0; color: var(--subtext); font-size: 14px; line-height: 1.5; }
 .graph-heading > div:first-child { min-width: 0; }
 .graph-heading h1 { font-size: clamp(24px, 2.5vw, 36px); line-height: 1.15; margin: 8px 0; max-width: 700px; }
 .graph-heading p { font-size: 13px; margin: 0; }
