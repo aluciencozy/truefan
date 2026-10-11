@@ -21,12 +21,18 @@ export default function AppNavbar({ onIdentity }: { onIdentity?: (id: string | n
   const reduced = useReducedMotion()
 
   return <header className="app-navbar">
+<<<<<<< HEAD
     <BrandLink className="navbar-brand" to="/" aria-label="TrueFan home"
       whileHover={{ scale: 1.12, rotate: -10, y: -2 }}
       whileTap={{ scale: .96, rotate: 0, y: 0 }}
       transition={{ type: 'spring', stiffness: 400, damping: 18 }}>
       <img src="/home/truefan-logo.svg" width="52" height="52" alt="" />
     </BrandLink>
+=======
+    <Link className="navbar-brand" to="/" aria-label="TrueFan home">
+      <img src="/home/truefan-logo.svg" width="80" height="80" alt="" />TrueFan
+    </Link>
+>>>>>>> blur
     <nav className="navbar-links" aria-label="Main navigation">
       {destinations.map(({ to, label }) => {
         const active = pathname === to || pathname.startsWith(`${to}/`) || (to === '/explore' && pathname === '/')
