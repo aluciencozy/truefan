@@ -31,9 +31,11 @@ const Home = await loadComponent('HomePage', source => source
   .replace("import { motion, useReducedMotion } from 'motion/react'", "const motion = { section: 'section' }; const useReducedMotion = () => true")
   .replace("import AppNavbar from './AppNavbar'", 'const AppNavbar = () => null')
   .replace("import GlitterStars from './GlitterStars'", 'const GlitterStars = () => null')
-  .replace("import UniverseSearch from './UniverseSearch'", 'const UniverseSearch = globalThis.__sharedSearch'))
+  .replace("import UniverseSearch from './UniverseSearch'", 'const UniverseSearch = globalThis.__sharedSearch')
+  .replace("import SurpriseLauncher from './SurprisePick'", "const SurpriseLauncher = () => null"))
 const Controls = await loadComponent('MediaControls', source => source
-  .replace("import UniverseSearch from './UniverseSearch'", 'const UniverseSearch = globalThis.__sharedSearch'))
+  .replace("import UniverseSearch from './UniverseSearch'", 'const UniverseSearch = globalThis.__sharedSearch')
+  .replace("import SurpriseLauncher from './SurprisePick'", "const SurpriseLauncher = () => null"))
 const suggestion = { franchise_id: 'fate', title: 'Fate Universe', entry_media_id: 'anilist-100', cover_url: '/cover.png' }
 
 async function mount(t, Component = Search, props = {}) {

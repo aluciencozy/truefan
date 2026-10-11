@@ -5,6 +5,7 @@ import GlitterStars from './GlitterStars'
 import { api } from '../lib/api'
 import type { TrendingCover } from '../lib/types'
 import UniverseSearch from './UniverseSearch'
+import SurpriseLauncher from './SurprisePick'
 
 // Decorative cover positions, not story facts or relationships.
 const artwork = [
@@ -50,6 +51,7 @@ export default function HomePage() {
         </div>
         <UniverseSearch />
         <p className="home-guidance">Find a story. Set your progress. Explore its connections.</p>
+        <SurpriseLauncher covers={covers} />
       </motion.section>
     </main>
     <footer className="home-footer"><span>Explore at your own pace.</span><span>Made for the stories you love.</span></footer>

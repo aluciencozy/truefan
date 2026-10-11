@@ -17,6 +17,7 @@ const source = (await readFile(new URL('../src/components/HomePage.tsx', import.
   .replace("import GlitterStars from './GlitterStars'", 'const GlitterStars = () => null')
   .replace("import { api } from '../lib/api'", 'const api = globalThis.__homeCoverApi')
   .replace("import UniverseSearch from './UniverseSearch'", "const UniverseSearch = 'UniverseSearch'")
+  .replace("import SurpriseLauncher from './SurprisePick'", "const SurpriseLauncher = 'SurpriseLauncher'")
 let { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } })
 outputText = outputText.replace(/from (["'])([^"']+)\1/g, (_, quote, name) => `from ${JSON.stringify(pathToFileURL(require.resolve(name)).href)}`)
 const Home = (await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))).default

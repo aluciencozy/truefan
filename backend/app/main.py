@@ -9,11 +9,11 @@ from app.services import progress as progress_service
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.schemas import (AskRequest, ExtractRequest, FlowGraphResponse, GraphExtractRequest, GraphResponse,
-                         HealthResponse, Media, PlaceholderResponse, RevealPoint, TrendingCover)
+                         HealthResponse, Media, PlaceholderResponse, RevealPoint, SurprisePick, TrendingCover)
 from app.services.catalog import load_catalog
 from app.services.demo import ENTITIES, MEDIA, RELATIONSHIPS
 from app.services.graph import filter_graph, to_flow_graph
-from app.services import anilist, generation, franchises, huggingface, universe_search
+from app.services import anilist, generation, franchises, huggingface, surprise, universe_search
 from app.schemas import (Universe, GenerationStatus, UniverseExpandRequest,
                          UserMediaState, UserMediaStateUpdate, UniverseSearchResponse)
 
@@ -102,6 +102,12 @@ def trending_covers() -> list[TrendingCover]:
         return anilist.trending_covers()
     except (ValueError, KeyError, TypeError):
         raise HTTPException(502, 'AniList trending covers unavailable; try again shortly') from None
+
+
+# Declared before /api/media/{media_id} so "surprise" is never captured as a media id.
+@app.get('/api/media/surprise', response_model=SurprisePick)
+def surprise_media(exclude: str | None = Query(default=None, max_length=200)) -> SurprisePick:
+    return surprise.pick(exclude)
 
 
 @app.get('/api/universes/search', response_model=UniverseSearchResponse)

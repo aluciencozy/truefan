@@ -20,6 +20,8 @@ export interface Media {
   cover_url: string | null
   format: string | null
 }
+// Mirrors GET /api/media/surprise; media.description is always blank for this endpoint.
+export interface SurprisePick { media: Media; start_progress: number; hook: string; tags: string[]; characters_at_start: number; pool_size: number }
 export interface Provenance { source: string; source_unit: number; verified: boolean; model: string | null; evidence: string | null; episode_number: number | null; source_title: string | null }
 export interface Entity {
   id: string; name: string; type: 'character' | 'faction' | 'location' | 'object'

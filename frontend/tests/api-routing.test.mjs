@@ -23,9 +23,13 @@ test('production uses the website origin even with the old Railway env setting',
     await api.health()
     await api.searchUniverses('Demon Slayer', true)
     await api.saveMediaState('anilist-2', { completed: true })
+    await api.surprise()
+    await api.surprise('anilist-21')
     assert.deepEqual(calls.map(call => call.url), [
       '/health', '/api/universes/search?q=Demon%20Slayer&discover=true', '/api/me/media-state/anilist-2',
+      '/api/media/surprise', '/api/media/surprise?exclude=anilist-21',
     ])
+    assert.equal(calls[3].options.headers.get('Authorization'), null)
     assert.equal(calls[2].options.method, 'PUT')
     assert.equal(calls[2].options.headers.get('Authorization'), 'Bearer fixture.jwt')
     assert.deepEqual(JSON.parse(calls[2].options.body), { completed: true })
