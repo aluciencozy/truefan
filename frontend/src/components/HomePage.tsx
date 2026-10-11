@@ -36,7 +36,7 @@ export default function HomePage() {
         <img className="home-glow" src="/home/glow.svg" width="1100" height="680" alt="" />
         <img className="home-connections" src="/home/connections.svg" width="1440" height="724" alt="" />
         {artwork.map(([x, y, size, opacity], index) => <span key={index} className="home-node"
-          style={{ opacity, left: `${x / 1440 * 100}%`, top: `${y / 724 * 100}%`, width: `${size / 1440 * 100}%` }}>
+          style={{ opacity: Math.min(.8, opacity * 3), animationDelay: `${index * -.7}s`, left: `${x / 1440 * 100}%`, top: `${y / 724 * 100}%`, width: `${size * 2.1 / 1440 * 100}%` }}>
           {covers[index] && <img src={covers[index].cover_url} width={size} height={size} alt="" decoding="async"
             onError={event => { event.currentTarget.style.visibility = 'hidden' }} />}
         </span>)}

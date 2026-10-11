@@ -261,10 +261,10 @@ export default function App() {
         <div className="graph-stage">
           {universe && model && <div className="universe-layer" hidden={!inUniverse}><UniverseCanvas key={universe.root_id} universe={universe} model={model} guide={guide}
             focusedId={focusedId} active={inUniverse} onFocus={focusMedia} release={release} onRelease={() => setRelease(value => !value)}
-            onExpand={() => void expandUniverse()} expanding={expanding} details={<>
+            onExpand={() => void expandUniverse()} expanding={expanding} onEnter={enter} details={beginEntry => <>
               {stateLoading && <p className="state-notice" role="status">Retrieving saved viewing state…</p>}
               <UniverseDetails media={model.media.find(item => item.id === focusedId)} universe={universe} model={model} guide={guide} release={release}
-                state={states[focusedId]} busy={saving || awaitingState} onFocus={focusMedia} onEnter={enter}
+                state={states[focusedId]} busy={saving || awaitingState} onFocus={focusMedia} onEnter={beginEntry}
                 onUnlock={item => void changeFlags(item, { manual_unlocked: true })} onComplete={item => void changeFlags(item, { completed: true })} message={stateMessage} />
             </>} /></div>}
           {inUniverse && !universe && !error && <div className="empty celestial" role="status"><span className="empty-star">✧</span>Discovering connected stories…</div>}

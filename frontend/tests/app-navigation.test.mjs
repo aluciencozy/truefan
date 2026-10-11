@@ -15,7 +15,7 @@ globalThis.__navigationQuery = 'q=anime'
 const sourceUrl = new URL('../src/App.tsx', import.meta.url)
 const source = ("import { createElement } from 'react'\n" + await readFile(sourceUrl, 'utf8'))
   .replace("import { Link, useSearchParams } from 'react-router-dom'", "const Link = 'a'; const useSearchParams = () => [new URLSearchParams(globalThis.__navigationQuery)]")
-  .replace(/import (\w+) from '\.\/components\/[^']+'/g, (_, name) => name === 'AppNavbar' ? `const AppNavbar = props => createElement('AuthPanel', { onIdentity: props.onIdentity })` : name === 'UniverseCanvas' ? `const UniverseCanvas = props => createElement('UniverseCanvas', props, props.details)` : `const ${name} = '${name}'`)
+  .replace(/import (\w+) from '\.\/components\/[^']+'/g, (_, name) => name === 'AppNavbar' ? `const AppNavbar = props => createElement('AuthPanel', { onIdentity: props.onIdentity })` : name === 'UniverseCanvas' ? `const UniverseCanvas = props => createElement('UniverseCanvas', props, props.details(props.onEnter))` : `const ${name} = '${name}'`)
   .replace("import { api } from './lib/api'", 'const api = globalThis.__navigationApi')
   .replace("import { libraryApi } from './lib/library'", 'const libraryApi = {}')
 let { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } })

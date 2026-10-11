@@ -24,8 +24,8 @@ export function directionalNeighbor(id: string, neighbors: string[], positions: 
 }
 
 export function focusViewport(point: Point, width: number, height: number) {
-  const compact = width < 760
-  const zoom = compact ? .95 : Math.min(1.25, Math.max(1, width / 1200))
-  return { x: width * (compact ? .5 : .34) - (point.x + MEDIA_WIDTH / 2) * zoom,
-    y: height * (compact ? .25 : .48) - (point.y + 50) * zoom, zoom }
+  const compact = width < 500
+  const zoom = compact ? .95 : Math.min(1.25, Math.max(1, width / 850))
+  return { x: width * .5 - (point.x + MEDIA_WIDTH / 2) * zoom,
+    y: height * .43 - (point.y + 50) * zoom, zoom }
 }
