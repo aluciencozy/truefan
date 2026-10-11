@@ -167,9 +167,9 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .canvas-legend span { display: block; font-size: 13px; color: #7f849c; margin-top: 6px; }
 /* A fixed stage: the worlds travel while the reading position stays still. */
 /* Worlds can extend behind the heading; the sides and footer still bound the map. */
-.universe-canvas { isolation: isolate; overflow: hidden; }
+.universe-canvas { isolation: isolate; overflow: visible; clip-path: inset(-100svh 0 0); }
 /* React Flow sets overflow inline, so this override needs priority. */
-.universe-canvas .react-flow { overflow: hidden; }
+.universe-canvas .react-flow { overflow: visible !important; }
 .universe-canvas .react-flow__pane { cursor: default; }
 .destination-orbit { flex-shrink: 0; will-change: transform; transition: border-color .3s, box-shadow .3s; }
 .destination strong, .destination-state { flex-shrink: 0; }
