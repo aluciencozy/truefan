@@ -823,6 +823,15 @@ link animates gently, respects reduced motion, and moves to a centered second ro
 smaller screens. Community and Saved universes retain their gently twinkling dots and
 larger star accents; stars remain static when reduced motion is requested.
 
+Every full app load plays a 2.45-second Motion logo intro: the star falls and spins
+720 degrees, three dots sweep in from the lower right and trace the arcs with a
+white pulse, then their momentum sends the logo right and down before looping into
+the navbar. The logo banks with the curve so the large star leads the arcs, then
+lands at its original angle. Pages load underneath; interaction resumes after landing,
+with a three-second fallback. For the hackathon demo this intro always plays,
+including with reduced motion enabled, and refresh replays it. It does not replay
+on in-app navigation. The static navbar logo and favicon share the SVG artwork.
+
 In-app page navigation and links opening another Explore story share an orbital
 transition: the page pulls back, a light orbits a central star, and the destination
 settles in. The destination mounts after a 140 ms departure so its existing requests
