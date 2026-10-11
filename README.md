@@ -956,6 +956,41 @@ release ordering, grouped legacy progress, tombstones, verified ownership,
 preference validation, repeating previews, pin/rating actions, cancellation,
 failed deletion, last-item empty state, and account changes.
 
+## Profile, ranks and badges
+
+The account menu's profile header (avatar, name, current title) links to `/profile`: identity card with the
+default avatar (`frontend/public/profile/default-avatar.svg`, the same for everyone), points and rank progress,
+four stats shared with Saved Universes (`libraryStats` in `lib/library.ts`), one favorite universe (also settable
+from a universe's ⋮ menu), and a badge shelf. The name comes from the Neon session, never this API. The profile is
+private and keyed by the verified JWT `sub`. Points are computed on read from existing data; only earned badges
+and the favorite are stored. All rules live in `backend/app/services/profile.py`.
+
+| Rule | Points |
+| --- | --- |
+| Each distinct completed world (deduped by `media_id` across universes) | 10 |
+| Each saved, non-abandoned universe with every world completed | +25 |
+| Each saved, non-abandoned universe | 5 |
+| Each community post you wrote (max 10 posts) | 5 |
+
+| Rank | Points | Badge |
+| --- | --- | --- |
+| Stargazer | 0 | none |
+| Voyager | 50 | `/badges/voyager.svg` |
+
+Add a tier by appending to `RANKS`. Earned badges are inserted once (`ON CONFLICT DO NOTHING`) the first time a
+profile read sees the user qualify, keep their `earned_at`, and are never revoked. A browser-local flag controls
+the one-time rank-up celebration.
+
+Run `python -m app.init_db` to create the additive `user_badges` and `user_profiles` tables.
+
+| Endpoint | Access / behavior |
+| --- | --- |
+| `GET /api/me/profile` | Verified JWT; `{ points, rank, next_rank, points_to_next, breakdown, stats, favorite, badges, ranks }`. `breakdown` is points per rule. `favorite` is a `SavedUniverse` or `null` (also `null` once abandoned). 401 without a token, 503 if the database or tables are unavailable. |
+| `PUT /api/me/profile` | Verified JWT; strict body `{ "favorite_media_id": "<id>" \| null }`. The id must be one of the caller's saved, non-abandoned universes, else 422. Returns the same shape as GET. |
+
+Tests: `backend/tests/test_profile.py` (set `TRUEFAN_PROFILE_DB_TESTS=1` for the opt-in schema test) and
+`frontend/tests/profile.test.mjs`.
+
 ## Seeding the curated demo catalog
 
 `schema.sql` also defines `media`, `entities` and `relationships` (`unlock_episode` = the

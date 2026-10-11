@@ -118,3 +118,16 @@ CREATE TABLE IF NOT EXISTS public.user_saved_universes (
     abandoned BOOLEAN NOT NULL DEFAULT false,
     PRIMARY KEY(user_id, root_media_id)
 );
+
+-- Private profile: earned badges are never revoked; favorite must be one of the owner's saved universes.
+CREATE TABLE IF NOT EXISTS public.user_badges (
+    user_id TEXT NOT NULL,
+    badge_id TEXT NOT NULL,
+    earned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY(user_id, badge_id)
+);
+CREATE TABLE IF NOT EXISTS public.user_profiles (
+    user_id TEXT PRIMARY KEY,
+    favorite_media_id TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
