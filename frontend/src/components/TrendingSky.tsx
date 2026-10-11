@@ -19,7 +19,7 @@ const placeholder = (() => { const random = seededRandom(hashString('trending-pl
 
 function Hint({ children }: { children: ReactNode }) { return <p className="trending-note">{children}</p> }
 
-export default function TrendingSky({ fallback, service = api }: { fallback: ReactNode; service?: TrendingService }) {
+export default function TrendingSky({ fallback, service = api, hideTitle = false }: { fallback: ReactNode; service?: TrendingService; hideTitle?: boolean }) {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT })
   const [hover, setHover] = useState<{ constellation: string; star: string | null } | null>(null)
@@ -67,13 +67,13 @@ export default function TrendingSky({ fallback, service = api }: { fallback: Rea
     return { star, left: Math.min(layout.width - cardWidth - 8, Math.max(8, point.x - cardWidth / 2)), top: point.y > layout.height - 150 ? point.y - point.r - 118 : point.y + point.r + 14, width: cardWidth }
   })() : null
 
-  return <section className="trending-sky" aria-labelledby="trending-title">
-    <header className="trending-heading">
-      <div>
+  return <section className="trending-sky" aria-labelledby={hideTitle ? undefined : 'trending-title'}>
+    <header className={`trending-heading${hideTitle ? ' is-compact' : ''}`}>
+      {hideTitle ? null : <div>
         <h2 id="trending-title">Trending constellations</h2>
         <p>What anime fans are watching right now, and the stories connected to them.</p>
         {data?.source === 'truefan_completions' && <Hint>Based on TrueFan completions this month</Hint>}
-      </div>
+      </div>}
       <SurpriseLauncher />
     </header>
     <div className="trending-scroll" ref={frame}>
