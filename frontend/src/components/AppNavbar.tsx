@@ -50,9 +50,6 @@ export default function AppNavbar({ onIdentity }: { onIdentity?: (id: string | n
         return <Link key={to} to={to} className={`navbar-link${active ? ' active' : ''}`} aria-current={active ? 'page' : undefined}
           onMouseEnter={() => setHovered(to)} onMouseLeave={() => setHovered(null)}
           onFocus={() => setHovered(to)} onBlur={() => setHovered(null)}>
-          {active && <motion.span className="navbar-indicator" aria-hidden="true"
-            initial={reduced ? false : { opacity: 0, scale: .92 }} animate={{ opacity: 1, scale: 1 }}
-            transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 380, damping: 32 }} />}
           <span className="navbar-label">{label}</span>
           {ringed && <motion.span className="navbar-saturn" aria-hidden="true" layoutId="navbar-saturn-ring"
             initial={reduced ? false : { opacity: 0, scale: .9 }} animate={{ opacity: 1, scale: 1 }}
