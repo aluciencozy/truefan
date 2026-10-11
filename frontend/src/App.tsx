@@ -274,7 +274,7 @@ export default function App() {
         </div>
         <footer className="graph-footer">
           <div className="map-key">{inUniverse ? <><span><i className="available-dot" />Available</span><span><i className="locked-dot" />Locked</span><span><i className="completed-dot" />Completed</span></> : <span><i className="available-dot" />Revealed at your progress</span>}</div>
-          <span role="status">{!inUniverse && progressMessage ? <>{progressMessage}{progressMessage.startsWith('Could not') && <button onClick={() => changeProgress(progress)}>Retry</button>}</> : !inUniverse && stateMessage ? stateMessage : 'Your story. Your pace.'}{identity && !inUniverse && generation?.status === 'partial' && visibleGraph?.entities.length ? <button onClick={() => void generate()}>Retry missing connections</button> : null}</span><span>{inUniverse ? 'Arrow keys to travel · Overview to see all worlds' : 'Scroll to zoom · Drag to explore'}</span>
+          <span role="status">{!inUniverse && progressMessage ? <>{progressMessage}{progressMessage.startsWith('Could not') && <button onClick={() => changeProgress(progress)}>Retry</button>}</> : !inUniverse && stateMessage ? stateMessage : 'Your story. Your pace.'}</span><span>{inUniverse ? 'Arrow keys to travel · Overview to see all worlds' : 'Scroll to zoom · Drag to explore'}</span>
         </footer>
       </section>
     </main>
