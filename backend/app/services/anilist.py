@@ -57,12 +57,20 @@ def search_media(search: str) -> list[Media]:
     return [normalize(row) for row in data['Page']['media']]
 
 
+# One request feeds both the home page covers and Explore's trending constellations: both must use this exact
+# text so query()'s one-hour cache is shared. No descriptions are requested, so no synopsis can leak.
+TRENDING_QUERY = ('query{Page(page:1,perPage:16){media(type:ANIME,isAdult:false,sort:TRENDING_DESC){'
+                  + FIELDS + ' trending popularity relations{edges{relationType node{' + FIELDS + ' popularity}}}}}}')
+
+
+def trending_media() -> list[dict]:
+    """The top 16 trending anime in AniList order, each with its relation edges. Do not mutate: it is cached."""
+    return query(TRENDING_QUERY, {})['Page']['media']
+
+
 def trending_covers() -> list[TrendingCover]:
-    data = query('''query{Page(page:1,perPage:16){
-        media(type:ANIME,isAdult:false,sort:TRENDING_DESC){id coverImage{medium}}
-    }}''', {})
     covers = []
-    for row in data['Page']['media']:
+    for row in trending_media():
         url = (row.get('coverImage') or {}).get('medium')
         if isinstance(url, str) and url.startswith('https://s4.anilist.co/'):
             covers.append(TrendingCover(id=row['id'], cover_url=url))

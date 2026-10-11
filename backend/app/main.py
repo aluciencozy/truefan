@@ -9,11 +9,11 @@ from app.services import progress as progress_service
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.schemas import (AskRequest, ExtractRequest, FlowGraphResponse, GraphExtractRequest, GraphResponse,
-                         HealthResponse, Media, PlaceholderResponse, RevealPoint, SurprisePick, TrendingCover)
+                         HealthResponse, Media, PlaceholderResponse, RevealPoint, SurprisePick, TrendingConstellations, TrendingCover)
 from app.services.catalog import load_catalog
 from app.services.demo import ENTITIES, MEDIA, RELATIONSHIPS
 from app.services.graph import filter_graph, to_flow_graph
-from app.services import anilist, generation, franchises, huggingface, surprise, universe_search
+from app.services import anilist, generation, franchises, huggingface, surprise, trending, universe_search
 from app.schemas import (Universe, GenerationStatus, UniverseExpandRequest,
                          UserMediaState, UserMediaStateUpdate, UniverseSearchResponse)
 
@@ -108,6 +108,14 @@ def trending_covers() -> list[TrendingCover]:
 @app.get('/api/media/surprise', response_model=SurprisePick)
 def surprise_media(exclude: str | None = Query(default=None, max_length=200)) -> SurprisePick:
     return surprise.pick(exclude)
+
+
+@app.get('/api/trending/constellations', response_model=TrendingConstellations)
+def trending_constellations(limit: int = Query(default=5, ge=1, le=8)) -> TrendingConstellations:
+    try:
+        return trending.constellations(limit)
+    except (RuntimeError, psycopg.Error):
+        raise HTTPException(503, 'Trending constellations unavailable; check DATABASE_URL and the franchise cache') from None
 
 
 @app.get('/api/universes/search', response_model=UniverseSearchResponse)

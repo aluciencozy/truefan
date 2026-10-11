@@ -11,6 +11,7 @@ import GlitterStars from './components/GlitterStars'
 import ProgressControl from './components/ProgressControl'
 import SurpriseLauncher from './components/SurprisePick'
 import SurpriseTip from './components/SurpriseTip'
+import TrendingSky from './components/TrendingSky'
 import { api } from './lib/api'
 import { browserStorage, clampProgress, parseExploreParams, tipDismissed } from './lib/explore'
 import { libraryApi } from './lib/library'
@@ -297,6 +298,7 @@ export default function App() {
           {inUniverse && universe && awaitingState && <div className="empty celestial" role="status">Retrieving your viewing progress…</div>}
           {inUniverse && !universe && !error && <div className="empty celestial" role="status"><span className="empty-star">✧</span>Discovering connected stories…</div>}
           {error ? <div role="alert" className="error">{error} <button onClick={() => { if (inUniverse && media) void openUniverse(media); else if (!media) setLoadRevision(value => value + 1); else setRevision(value => value + 1) }}>Retry loading</button></div>
+            : !inUniverse && !media && !awaitingState ? <TrendingSky fallback={<div className="empty celestial" role="status"><span className="empty-star">✧</span>A whole universe is waiting.<p>Search for a story to explore its universe.</p><SurpriseLauncher /></div>} />
             : !inUniverse ? <motion.div className="character-layer" key={media?.id} initial={{ opacity: 0, scale: reduced ? 1 : .9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: reduced ? 0 : .65 }}>
               {!awaitingState && generation && generation.status !== 'ready' && (running || !visibleGraph?.entities.length) ? <div className="empty celestial character-status" role="status" aria-live="polite">
                 <span className="empty-star" aria-hidden="true">✧</span>
