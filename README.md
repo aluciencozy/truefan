@@ -860,10 +860,8 @@ cd backend
 python -m app.init_community
 ```
 
-The initializer does not populate the live feed. Optionally use
-`python -m app.init_community --seed-demo` for eleven clearly marked Charlotte starter topics;
-these have zero likes/comments. If storage is unavailable, the UI shows a labelled
-design preview and disables publishing/reactions rather than inventing activity.
+Initialization creates tables only; community shows user-published posts.
+If storage is unavailable, the UI shows a retry control and disables publishing/reactions.
 Deploy the updated backend and frontend to make these changes available online;
 initialize the tables on the same Neon branch used by that deployment.
 
@@ -875,8 +873,8 @@ Community API contracts (also available in `/openapi.json`):
 | `POST /api/community/posts` | Verified Neon bearer JWT; category, media, title, body, `contains_spoilers`, optional rating 1–5 for reviews. |
 | `GET /api/community/posts/{id}` | Public; respects `include_spoilers`, including copied post links. |
 | `PUT /api/community/posts/{id}/like` | Verified JWT; `{ "liked": true }` or false; one like per user/post. |
-| `GET /api/community/posts/{id}/comments` | Public; filters parent and comment spoiler flags; latest 100 comments. |
-| `POST /api/community/posts/{id}/comments` | Verified JWT; body and `contains_spoilers`; inherits a spoiler parent's flag. |
+| `GET /api/community/posts/{id}/comments` | Public; filters parent and comment spoiler flags; first 100 visible comments, ancestors before replies and chronological within each depth. |
+| `POST /api/community/posts/{id}/comments` | Verified JWT; body, `contains_spoilers`, optional `parent_id`; reply targets must be visible in the same post. |
 | `POST /api/community/presence` | Public heartbeat with browser `visitor_id` UUID and category `page`; optional verified JWT. |
 | `GET /api/community/library` | Verified JWT; only the caller's saved media. |
 
@@ -1042,18 +1040,16 @@ Neon is unreachable, the extract endpoint falls back to the same data compiled i
 Community keeps the existing TrueFan navbar, typography, colors, and `GlitterStars` pointer effects.
 The compact category tabs and room sidebar cover discussions (courtroom, fanfiction, drawing),
 theories (battles, prediction capsules, alternate endings, mystery boards), and reviews
-(pitches, first impressions/final verdicts, hot takes, matchmaking). Charlotte starter prompts
-are customizable templates, not real fan activity. Anime context was checked against the
-[official Charlotte site](https://www.charlotteanime.com/); templates do not disclose later plot events.
+(pitches, first impressions/final verdicts, hot takes, matchmaking). Community displays
+user-published posts without starter templates.
 Discussions is selected on arrival and filters the server feed to match the active tab.
-Each category and room keeps its starter cards available alongside existing conversations;
-clicking a card opens an editable draft with its category, room, and Charlotte prompt filled in.
+Each category and room shows its existing user posts; starting a topic opens a blank draft.
 Published room topics open beside the category tabs and room sidebar; the back button returns
 to the feed. Courtrooms include separate prosecution/defense boards and a community jury
 with one changeable verdict per fan. General conversations retain their reply dialog.
 
 Apply the additive migration with `cd backend && python -m app.init_community`.
-Existing posts are preserved. Optional `--seed-demo` adds eleven explicitly labeled Charlotte starters.
+Existing posts are preserved. Initialization does not add templates or sample posts.
 New posts accept `room`, editable `side_a`/`side_b`, and `target_episode`. Room/category must match.
 Owners can PUT/DELETE `/api/community/posts/{id}` and `/api/community/comments/{id}`;
 responses expose `is_owner` rather than JWT subjects. New GET/POST
@@ -1085,3 +1081,26 @@ Validation: `cd frontend && npm test && npm run build`; `cd backend && python -m
 Use `TRUEFAN_COMMUNITY_DB_TESTS=1 python -m unittest discover -s tests -p test_community.py`
 for PostgreSQL ownership, immutability, voting, and clue-filtering checks in temporary tables.
 These database tests do not verify a live Neon login.
+
+### Community comments and detective board
+
+Click a post title or its comment icon to open the conversation; the comment icon scrolls to
+comments. Main comments have expandable replies. Replies to replies stay in that same thread
+and show `@reply_to_author` before the message. Authors can edit/delete their own posts and
+comments, or abandon a draft. Comment creation accepts an optional UUID `parent_id`; responses
+include `parent_id` and `reply_to_author` (a public pseudonym). Editing retains the original
+parent. Deleting a comment keeps its replies as main comments. Marking a parent as a spoiler
+hides its descendants and their counts server-side until spoiler visibility is enabled.
+
+Mystery boards use the existing React Flow package: rectangle, circle, and diamond clues can
+be dragged, zoomed, and connected with straight lines. Each clue supports one outgoing link
+and multiple incoming links. Authors can move/edit their own clues; everyone can explore the
+visible board. Entry requests/responses add optional `board_x`/`board_y` coordinates (finite,
+within ±10,000) and `shape` (`rectangle`, `circle`, `diamond`; default rectangle). Clue positions
+and links persist through the existing authenticated entry API. Room descriptions and spoiler
+shield notes use accessible expandable controls, with hover descriptions on room buttons.
+
+Apply the additive comment-parent and board-layout columns before running the updated backend:
+`cd backend && python -m app.init_community`. No migration is applied automatically by a GET.
+
+Community starter cards and offline sample feeds have been removed. Offline errors show a retry control without fabricated posts. User-authored topics are retained, including topics originally written using a starter prompt.
