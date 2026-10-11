@@ -338,3 +338,57 @@ test('switching stories cancels an old media load and ignores its late response'
     globalThis.__navigationQuery = 'q=anime'
   }
 })
+
+const deepMedia = { ...first, total_units: 12, total_units_known: true }
+async function openDeepLink(query, { signedIn = false, saved = null } = {}) {
+  globalThis.__navigationQuery = query
+  const calls = { graph: [], universe: 0, saved: [] }
+  Object.assign(api, {
+    media: async () => deepMedia,
+    universe: async () => { calls.universe++; return { ...universe, media: [deepMedia, sequel] } },
+    mediaState: async () => saved === null ? [] : [{ media_id: deepMedia.id, progress: { unit: saved }, completed: false, manual_unlocked: false }],
+    saveProgress: async (id, unit) => { calls.saved.push(unit); return { media_id: id, progress: { unit } } },
+    graph: async (id, unit) => { calls.graph.push(unit); return { media_id: id, progress: { unit }, entities: [], relationships: [], generation: null } },
+  })
+  let renderer
+  await act(async () => { renderer = create(createElement(App)) })
+  if (signedIn) await act(async () => renderer.root.findByType('AuthPanel').props.onIdentity('account-1'))
+  await act(async () => {})
+  return { renderer, calls, props: name => renderer.root.findByType(name).props }
+}
+const closeDeepLink = async renderer => { await act(async () => renderer.unmount()); globalThis.__navigationQuery = 'q=anime' }
+
+test('view=characters&progress=1 lands a guest on a non-empty episode-1 graph, skipping the universe map, with the explainer', async () => {
+  const { renderer, calls, props } = await openDeepLink(`media=${first.id}&progress=1&view=characters&from=surprise`)
+  try {
+    assert.equal(calls.universe, 0)
+    assert.equal(props('ProgressControl').progress, 1)
+    assert.deepEqual(calls.graph, [1])
+    assert.equal(renderer.root.findAllByType('SurpriseTip').length, 1)
+  } finally { await closeDeepLink(renderer) }
+})
+
+test('deep-link progress is clamped to the media and invalid values are ignored', async () => {
+  let { renderer, calls, props } = await openDeepLink(`media=${first.id}&progress=99&view=characters`)
+  try { assert.equal(props('ProgressControl').progress, 12); assert.deepEqual(calls.graph, [12]); assert.equal(renderer.root.findAllByType('SurpriseTip').length, 0) }
+  finally { await closeDeepLink(renderer) }
+  ;({ renderer, calls, props } = await openDeepLink(`media=${first.id}&progress=-2&view=characters`))
+  try { assert.equal(props('ProgressControl').progress, 0); assert.deepEqual(calls.graph, [0]) } finally { await closeDeepLink(renderer) }
+})
+
+test('without view=characters a progress param still opens the universe map as before', async () => {
+  const { renderer, calls } = await openDeepLink(`media=${first.id}&progress=2`)
+  try { assert.equal(calls.universe, 1); assert.equal(renderer.root.findAllByType('ProgressControl').length, 0) } finally { await closeDeepLink(renderer) }
+})
+
+test('a signed-in deep link overrides saved progress for this visit and never saves it', async () => {
+  const { renderer, calls, props } = await openDeepLink(`media=${first.id}&progress=2&view=characters`, { signedIn: true, saved: 5 })
+  try {
+    assert.equal(props('ProgressControl').progress, 2)
+    assert.equal(calls.graph.at(-1), 2); assert.ok(!calls.graph.includes(5) && !calls.graph.includes(0))
+    assert.deepEqual(calls.saved, [])
+    // A user's own change is saved and replaces the override.
+    await act(async () => props('ProgressControl').onProgress(3)); await act(async () => {})
+    assert.deepEqual(calls.saved, [3]); assert.equal(props('ProgressControl').progress, 3)
+  } finally { await closeDeepLink(renderer) }
+})

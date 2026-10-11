@@ -1,5 +1,5 @@
 import { authClient } from './auth'
-   import type { CurrentUser, FlowGraphResponse, GenerationStatus, GraphExtractRequest, GraphResponse, HealthResponse, Media, TrendingCover, Universe, UniverseSearchResponse, UserMediaState, UserProgress } from './types'
+   import type { CurrentUser, FlowGraphResponse, GenerationStatus, GraphExtractRequest, GraphResponse, HealthResponse, Media, SurprisePick, TrendingCover, Universe, UniverseSearchResponse, UserMediaState, UserProgress } from './types'
 
 const baseUrl = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
@@ -26,6 +26,7 @@ export async function request<T>(path: string, signal?: AbortSignal, authenticat
 export const api = {
   health: (signal?: AbortSignal) => request<HealthResponse>('/health', signal),
   trendingCovers: (signal?: AbortSignal) => request<TrendingCover[]>('/api/media/trending', signal),
+  surprise: (exclude?: string, signal?: AbortSignal) => request<SurprisePick>(`/api/media/surprise${exclude ? `?exclude=${encodeURIComponent(exclude)}` : ''}`, signal),
   search: (q: string, signal?: AbortSignal) => request<Media[]>(`/api/media/search?q=${encodeURIComponent(q)}`, signal),
   searchUniverses: (q: string, discover = false, signal?: AbortSignal) =>
     request<UniverseSearchResponse>(`/api/universes/search?q=${encodeURIComponent(q)}&discover=${discover}`, signal),

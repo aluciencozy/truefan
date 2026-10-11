@@ -234,3 +234,13 @@ class UserMediaStateUpdate(BaseModel):
         return self
 
 GraphResponse.model_rebuild()
+
+
+class SurprisePick(BaseModel):
+    """A pre-cached, episode-1-safe starting point. `media.description` is always blank."""
+    media: Media
+    start_progress: int = Field(ge=1)
+    hook: str
+    tags: list[str]
+    characters_at_start: int = Field(ge=0)
+    pool_size: int = Field(ge=1)

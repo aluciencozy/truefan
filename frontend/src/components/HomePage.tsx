@@ -5,6 +5,7 @@ import GlitterStars from './GlitterStars'
 import { api } from '../lib/api'
 import type { TrendingCover } from '../lib/types'
 import UniverseSearch from './UniverseSearch'
+import SurpriseLauncher from './SurprisePick'
 
 // Decorative cover positions, not story facts or relationships.
 const artwork = [
@@ -46,12 +47,11 @@ export default function HomePage() {
       <motion.section className="home-search" aria-labelledby="home-title" initial={{ opacity: 0, y: reduced ? 0 : 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : .7 }}>
         <div className="home-introduction">
           <h1 id="home-title">TrueFan</h1>
-          <p>Your story. Your pace. Your connections.</p>
+          <p>Where you become a TrueFan.</p>
         </div>
         <UniverseSearch />
-        <p className="home-guidance">Find a story. Set your progress. Explore its connections.</p>
+        <SurpriseLauncher covers={covers} />
       </motion.section>
     </main>
-    <footer className="home-footer"><span>Explore at your own pace.</span><span>Made for the stories you love.</span></footer>
   </div>
 }

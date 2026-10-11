@@ -9,7 +9,10 @@ import MediaControls from './components/MediaControls'
 import AppNavbar from './components/AppNavbar'
 import GlitterStars from './components/GlitterStars'
 import ProgressControl from './components/ProgressControl'
+import SurpriseLauncher from './components/SurprisePick'
+import SurpriseTip from './components/SurpriseTip'
 import { api } from './lib/api'
+import { browserStorage, clampProgress, parseExploreParams, tipDismissed } from './lib/explore'
 import { libraryApi } from './lib/library'
 import { usePageReady } from './lib/pageTransition'
 import { buildUniverseModel } from './lib/universeModel'
@@ -30,6 +33,12 @@ export default function App() {
   const [searchParams] = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
   const initialMedia = searchParams.get('media') || searchParams.get('universe') || ''
+  const deepLink = parseExploreParams(searchParams)
+  const deepKey = `${deepLink.view ?? ''}|${deepLink.progress ?? ''}`
+  // A deep-linked ?progress= wins over the guest default and over saved progress for this visit only.
+  // It is never written back: only changeProgress (a user action) saves, and it clears the override.
+  const progressOverride = useRef<{ mediaId: string; unit: number } | null>(null)
+  const [tipClosed, setTipClosed] = useState(() => tipDismissed(browserStorage()))
   const [librarySaving, setLibrarySaving] = useState(false)
   const [libraryMessage, setLibraryMessage] = useState('')
   const libraryOperation = useRef(0)
@@ -69,10 +78,10 @@ export default function App() {
     accountEpoch.current++; identityRef.current = id; setIdentity(id)
     setStates({}); setStateMessage(''); setSaving(false); setStateLoading(false); setLoadedStateKey('')
     latestProgress.current = null; setProgressMessage('')
-    setProgress(0); setGraph(null); setSelectedId(null)
+    setProgress(media ? overriddenUnit(media) ?? 0 : 0); setGraph(null); setSelectedId(null)
     // Returning to the universe applies the new account's entry rules before requesting character facts.
     if (universe) setView('universe')
-  }, [universe])
+  }, [universe, media])
   const onState = useCallback((state: UserMediaState) => {
     setStates(previous => ({ ...previous, [state.media_id]: state }))
   }, [])
@@ -85,7 +94,7 @@ export default function App() {
       if (!controller.signal.aborted) {
         setStates(previous => ({ ...previous, ...Object.fromEntries(saved.map(s => [s.media_id, s])) })); setLoadedStateKey(stateKey)
         if (!model && media) {
-          setProgress(Math.min(media.total_units, saved.find(s => s.media_id === media.id)?.progress?.unit ?? 0))
+          setProgress(Math.min(media.total_units, overriddenUnit(media) ?? saved.find(s => s.media_id === media.id)?.progress?.unit ?? 0))
           setGraph(null); setSelectedId(null)
         }
       }
@@ -102,12 +111,17 @@ export default function App() {
     const controller = new AbortController()
     setError(''); setGenerationError('')
     setMedia(null); setProgress(1); setGraph(null); setSelectedId(null); setUniverse(null); setView('characters')
+    progressOverride.current = null
+    const link = parseExploreParams(searchParams)
     const load = initialMedia ? api.media(initialMedia, controller.signal).then(item => {
-      if (!controller.signal.aborted) void openUniverse(item)
+      if (controller.signal.aborted) return
+      if (link.progress !== null) progressOverride.current = { mediaId: item.id, unit: clampProgress(link.progress, item.total_units) }
+      if (link.view === 'characters') { universeController.current?.abort(); setUniverse(null); showCharacters(item) }
+      else void openUniverse(item)
     }) : Promise.resolve()
     load.catch(error => { if (!controller.signal.aborted) setError(error.message) })
     return () => { controller.abort(); universeController.current?.abort() }
-  }, [initialQuery, initialMedia, loadRevision])
+  }, [initialQuery, initialMedia, deepKey, loadRevision])
 
   useEffect(() => {libraryOperation.current++; setLibraryMessage(''); setLibrarySaving(false)}, [universe?.root_id, media?.id, identity])
 
@@ -145,10 +159,18 @@ export default function App() {
     return () => { controller.abort(); clearTimeout(timer) }
   }, [media, progress, view, revision, awaitingState, identity])
 
+  function overriddenUnit(item: Media): number | undefined {
+    const override = progressOverride.current
+    return override?.mediaId === item.id ? clampProgress(override.unit, item.total_units) : undefined
+  }
+  function showCharacters(item: Media) {
+    latestProgress.current = null; setProgressMessage(''); setMedia(item)
+    setProgress(Math.min(item.total_units, overriddenUnit(item) ?? states[item.id]?.progress?.unit ?? (identity || item.anilist_id ? 0 : 1)))
+    setSelectedId(null); setGraph(null); setError(''); setGenerationError(''); setView('characters')
+  }
   function enter(item: Media) {
     if (item.anilist_id && (awaitingState || saving || (universe && guide[item.id]?.status === 'locked'))) return
-    latestProgress.current = null; setProgressMessage(''); setMedia(item); setProgress(Math.min(item.total_units, states[item.id]?.progress?.unit ?? (identity || item.anilist_id ? 0 : 1)))
-    setSelectedId(null); setGraph(null); setError(''); setGenerationError(''); setView('characters')
+    showCharacters(item)
   }
 
   async function openUniverse(item: Media) {
@@ -183,6 +205,7 @@ export default function App() {
   }
 
   function changeProgress(unit: number) {
+    progressOverride.current = null
     setProgress(unit); setSelectedId(null); setGraph(null)
     if (!media) return
     setStates(previous => confirmProgress(previous, media, unit))
@@ -246,6 +269,7 @@ export default function App() {
             }}><img src="/home/search.svg" width="18" height="18" alt="" /><span>{media ? 'Find another story' : 'Find your story'}</span></button>
           </div>
         </div>
+        {deepLink.fromSurprise && !tipClosed && media && !inUniverse && <SurpriseTip onDismiss={() => setTipClosed(true)} />}
         {libraryMessage && <p className="generation-note" role="status">{libraryMessage}</p>}
         <div className="graph-stage">
           {universe && model && <div className="universe-layer" hidden={!inUniverse}><UniverseCanvas key={universe.root_id} universe={universe} model={model} guide={guide}
@@ -267,7 +291,7 @@ export default function App() {
                 {generation.error && <p>{generation.error}</p>}{generationError && <p role="alert">{generationError}</p>}
               </div> : !awaitingState && visibleGraph ? visibleGraph.entities.length ? <GraphCanvas key={`${media?.id}-${progress}`} graph={visibleGraph} onSelect={setSelectedId} selectedId={selectedId} />
                 : <div className="empty celestial"><span className="empty-star">✧</span>{running ? 'Building your constellation…' : 'Your connections begin here.'}<p>{generation ? 'Choose how far you have watched to reveal available characters.' : 'Advance your progress to reveal your first connections.'}</p></div>
-              : <div className="empty celestial" role="status"><span className="empty-star">✧</span>{awaitingState ? 'Picking up where you left off…' : media ? 'Finding your constellation…' : 'A whole universe is waiting.'}<p>{media ? 'Loading the knowledge revealed at your progress.' : 'Search for a story to explore its universe.'}</p></div>}
+              : <div className="empty celestial" role="status"><span className="empty-star">✧</span>{awaitingState ? 'Picking up where you left off…' : media ? 'Finding your constellation…' : 'A whole universe is waiting.'}<p>{media ? 'Loading the knowledge revealed at your progress.' : 'Search for a story to explore its universe.'}</p>{!media && !awaitingState && <SurpriseLauncher />}</div>}
               {/* Unmount immediately on progress changes, including any exiting details, to avoid stale spoilers. */}
               <AnimatePresence key={`details-${media?.id}-${progress}`}>
                 {selected && media && visibleGraph && <EntityDetails entity={selected} media={media} graph={visibleGraph} onSelect={setSelectedId} onClose={closeCharacter} />}

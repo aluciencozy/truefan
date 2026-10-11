@@ -991,6 +991,35 @@ Run `python -m app.init_db` to create the additive `user_badges` and `user_profi
 Tests: `backend/tests/test_profile.py` (set `TRUEFAN_PROFILE_DB_TESTS=1` for the opt-in schema test) and
 `frontend/tests/profile.test.mjs`.
 
+## Surprise me
+
+"Not sure where to start? Surprise me ✦" (home page and the Explore empty state) opens a pick card: a short
+decorative shuffle, then a random pre-cached story with its cover, format · year · episodes, a one-line
+episode-1 hook, genre tags and how many characters appear in episode 1. **Start at episode 1** opens
+`/explore?media=<id>&progress=1&view=characters&from=surprise`; **Show me its universe** opens `/explore?media=<id>`;
+**Pick another** asks again with `exclude=<current id>`.
+
+`GET /api/media/surprise?exclude=<media_id>` is public and never calls AniList or Hugging Face. Eligible titles
+are the entries in `backend/app/data/surprise_picks.json` whose curated graph row exists in `generated_graphs`
+and has at least 2 entities at progress 1 (checked with `filter_graph`). The list is cached in memory for 5 minutes.
+The pick is uniform at random and skips `exclude` when more than one title qualifies. If the database is
+unavailable or nothing qualifies, it returns the Lantern Harbor demo. It never returns 500 or an empty graph.
+`media.description` is always blank, because AniList synopses can spoil.
+
+| Endpoint | Access / behavior |
+| --- | --- |
+| `GET /api/media/surprise?exclude=<media_id>` | Public. `{ media, start_progress: 1, hook, tags, characters_at_start, pool_size }`. Cache-only, spoiler-safe at episode 1. |
+
+Explore also accepts `view=characters` (skip the universe map) and `progress=N` (integer, clamped to `0..total_units`,
+invalid values ignored). Both apply once on load. `progress` overrides the guest default and saved progress for
+that visit only and is never saved automatically. `from=surprise` shows a dismissible explainer (remembered in
+`localStorage`).
+
+**Add or remove eligible titles:** edit `surprise_picks.json` (`media_id` matching `^anilist-\d+$`, a hook of at most
+120 characters written only from that title's episode-1 descriptions in `source_curated_graphs.json`, and 1-3 plain
+genre tags). A title is only offered if its curated graph is in the database (`scripts/replace_generated_graphs.py`).
+Tests: `backend/tests/test_surprise.py` and `frontend/tests/surprise.test.mjs`.
+
 ## Seeding the curated demo catalog
 
 `schema.sql` also defines `media`, `entities` and `relationships` (`unlock_episode` = the
