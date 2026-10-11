@@ -1104,3 +1104,22 @@ Apply the additive comment-parent and board-layout columns before running the up
 `cd backend && python -m app.init_community`. No migration is applied automatically by a GET.
 
 Community starter cards and offline sample feeds have been removed. Offline errors show a retry control without fabricated posts. User-authored topics are retained, including topics originally written using a starter prompt.
+
+### Community images and comment controls
+
+Posts and comments accept an optional `image` field containing a PNG/JPEG/WebP data URL;
+images are returned only with visible spoiler-filtered content and displayed inline in the
+feed/thread. Paperclip buttons attach images and show removable previews. Input files may be
+up to 5 MB; files larger than 500 KB are resized in the browser to fit the existing 500 KB
+storage limit. Drawing-room artwork uses the same attachment control. Comments may contain
+an image without text; posts still require a title, media, and message.
+
+Comment responses expose read-only `editable_until` (creation time plus ten minutes).
+The owner-only three-dot menu offers Edit/Delete until this deadline. The backend checks
+verified ownership and rejects edits/deletions at or after ten minutes with HTTP 409;
+editing does not reset the creation timestamp. This limit applies to comments and replies,
+while topic and room-contribution controls keep their existing rules. Replies use an indented
+thread spine and expandable reply groups inspired by the provided references.
+
+Apply image columns with `cd backend && python -m app.init_community` before deploying.
+Existing posts, comments, and uploaded artwork are preserved.

@@ -19,12 +19,14 @@ const helpers=(await readFile(new URL('../src/lib/community.ts',import.meta.url)
 globalThis.__communityHelpers=await import(compile(helpers))
 globalThis.__communityModal=(await import(compile(await readFile(new URL('../src/components/CommunityModal.tsx',import.meta.url),'utf8')))).default
 globalThis.__commentThread=(await import(compile((await readFile(new URL('../src/components/CommentThread.tsx',import.meta.url),'utf8')).replace("import { timeAgo } from '../lib/community'", 'const {timeAgo}=globalThis.__communityHelpers')))).default
+globalThis.__attachment=(await import(compile(await readFile(new URL('../src/components/CommunityAttachment.tsx',import.meta.url),'utf8')))).default
 const source=(await readFile(new URL('../src/components/CommunityPage.tsx',import.meta.url),'utf8'))
  .replace("import { Link, useNavigate, useSearchParams } from 'react-router-dom'", "const Link='a'; const useNavigate=()=>()=>{}; const useSearchParams=()=>[new URLSearchParams()]")
  .replace("import { authClient } from '../lib/auth'",'const authClient=null')
  .replace("import { communityApi, timeAgo, visitorId, forumRooms } from '../lib/community'",'const {communityApi,examplePosts,timeAgo,visitorId,forumRooms}=globalThis.__communityHelpers')
  .replace("import CommunityShell, { CommunityIcon, LittleUniverse } from './CommunityShell'",'const CommunityShell=({children})=>children; const CommunityIcon=()=>null; const LittleUniverse=()=>null')
  .replace("import CommunityModal from './CommunityModal'",'const CommunityModal=globalThis.__communityModal')
+ .replace("import CommunityAttachment from './CommunityAttachment'", 'const CommunityAttachment=globalThis.__attachment')
  .replace("import CommentThread from './CommentThread'", 'const CommentThread=globalThis.__commentThread')
  .replace("import ForumParticipation from './ForumParticipation'",'const ForumParticipation=()=>null')
  .replace("import './CommunityPage.css'",'')
@@ -100,4 +102,12 @@ test('community retains user posts without starter cards or offline sample posts
  try{assert.equal(r.root.findAllByProps({className:'forum-starters'}).length,0);assert.equal(r.root.findAllByProps({className:'community-card post-card'}).length,posts.length);await act(async()=>r.root.findAllByType('button').find(b=>b.children[0]==='Create post ').props.onClick());const titleInput=r.root.findAllByType('input').find(input=>input.props.placeholder==='Give your conversation a title');assert.equal(titleInput.props.value,'')}finally{await act(async()=>r.unmount())}
  const offline=await mount({feed:async()=>{throw Error('Unavailable')}})
  try{assert.equal(offline.root.findAllByProps({className:'community-card post-card'}).length,0);assert.equal(offline.root.findAllByProps({className:'forum-starters'}).length,0)}finally{await act(async()=>offline.unmount())}
+})
+
+test('inline comment images and the owner menu follow the ten-minute deadline',async()=>{
+ const recent={id:'recent',author:'Alex',body:'Image caption',image:'data:image/png;base64,aGVsbG8=',created_at:new Date(Date.now()-60_000).toISOString(),contains_spoilers:false,is_owner:true}
+ const expired={...recent,id:'expired',created_at:new Date(Date.now()-600_001).toISOString()}
+ const other={...recent,id:'other',is_owner:false}
+ const r=await mount({comments:async()=>[recent,expired,other]})
+ try{await act(async()=>title(r).props.onClick());assert.equal(r.root.findAllByProps({className:'community-comment-image'}).length,3);assert.equal(r.root.findAllByProps({className:'comment-options'}).length,1);const menu=r.root.findByProps({className:'comment-options'});await act(async()=>menu.findAllByType('button')[0].props.onClick({currentTarget:{closest:()=>({removeAttribute(){}})}}));assert.equal(body(r).props.value,'Image caption');assert.equal(r.root.findAllByProps({className:'attachment-preview'}).length,1)}finally{await act(async()=>r.unmount())}
 })

@@ -19,17 +19,18 @@ export const forumRooms: ForumRoom[] = [
 export interface EntryDraft { board_x?: number | null; board_y?: number | null; shape?: 'rectangle' | 'circle' | 'diamond'; kind: 'contribution' | 'join' | 'vote' | 'prediction' | 'clue' | 'art' | 'recommendation' | 'impression'; body: string; side: 'a' | 'b' | 'believable' | 'devastating' | 'neutral'; source: string; artwork: string; connects_to: string | null; contains_spoilers: boolean }
 export interface ForumEntry extends EntryDraft { id: string; author: string; created_at: string; is_owner: boolean; locked: boolean; revealed: boolean; tried: boolean }
 export interface CommunityPost {
-  id: string; category: PostCategory; media: string; title: string; body: string
+  image?: string; id: string; category: PostCategory; media: string; title: string; body: string
   author: string; created_at: string; contains_spoilers: boolean; rating: number | null
   likes: number; comments: number; liked: boolean; example: boolean
   room?: RoomId | null; side_a?: string; side_b?: string; target_episode?: number; is_owner?: boolean
 }
 export interface CommunityComment {
-  parent_id?: string | null; reply_to_author?: string | null;
+  image?: string; editable_until?: string; parent_id?: string | null; reply_to_author?: string | null;
   is_owner?: boolean; id: string; author: string; body: string; contains_spoilers: boolean; created_at: string
 }
 export interface CommunityFeed { posts: CommunityPost[]; media: string[]; active_fans: number; has_more: boolean }
 export interface PostCreate {
+  image?: string;
   room?: RoomId | null; side_a?: string; side_b?: string; target_episode?: number;
   category: PostCategory; media: string; title: string; body: string; contains_spoilers: boolean; rating: number | null
 }
@@ -51,10 +52,10 @@ export const communityApi = {
   post: (id: string, spoilers: boolean, signedIn: boolean, signal?: AbortSignal) => request<CommunityPost>(`/api/community/posts/${encodeURIComponent(id)}${spoilerQuery(spoilers)}`, signal, signedIn),
   like: (id: string, liked: boolean, spoilers: boolean) => request<CommunityPost>(`/api/community/posts/${id}/like${spoilerQuery(spoilers)}`, undefined, true, json({ liked }, 'PUT')),
   comments: (id: string, spoilers: boolean, signal?: AbortSignal, signedIn=false) => request<CommunityComment[]>(`/api/community/posts/${id}/comments${spoilerQuery(spoilers)}`, signal, signedIn),
-  comment: (id: string, body: string, contains_spoilers: boolean, show: boolean, parent_id: string | null = null) => request<CommunityComment>(`/api/community/posts/${id}/comments${spoilerQuery(show)}`, undefined, true, json({ body, contains_spoilers, parent_id })),
+  comment: (id: string, body: string, contains_spoilers: boolean, show: boolean, parent_id: string | null = null, image = '') => request<CommunityComment>(`/api/community/posts/${id}/comments${spoilerQuery(show)}`, undefined, true, json({ body, contains_spoilers, parent_id, image })),
   update: (id: string, post: PostCreate) => request<CommunityPost>(`/api/community/posts/${id}`, undefined, true, json(post, 'PUT')),
   remove: (id: string) => request<{deleted: boolean}>(`/api/community/posts/${id}`, undefined, true, {method:'DELETE'}),
-  editComment: (id: string, body: string, contains_spoilers: boolean) => request<CommunityComment>(`/api/community/comments/${id}`, undefined, true, json({body,contains_spoilers}, 'PUT')),
+  editComment: (id: string, body: string, contains_spoilers: boolean, image = '') => request<CommunityComment>(`/api/community/comments/${id}`, undefined, true, json({body,contains_spoilers,image}, 'PUT')),
   removeComment: (id: string) => request<{deleted: boolean}>(`/api/community/comments/${id}`, undefined, true, {method:'DELETE'}),
   entries: (id: string, spoilers: boolean, signedIn: boolean, signal?: AbortSignal) => request<ForumEntry[]>(`/api/community/posts/${id}/entries${spoilerQuery(spoilers)}`, signal, signedIn),
   saveEntry: (id: string, draft: EntryDraft, spoilers: boolean, entryId?: string) => request<ForumEntry>(`/api/community/posts/${id}/entries${entryId ? '/' + entryId : ''}${spoilerQuery(spoilers)}`, undefined, true, json(draft, entryId ? 'PUT' : 'POST')),

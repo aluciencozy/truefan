@@ -4,6 +4,7 @@ from typing import Any
 import hashlib
 import re
 from uuid import UUID, uuid4
+from datetime import datetime, timedelta, timezone
 
 import psycopg
 from psycopg import Cursor
@@ -50,7 +51,7 @@ COMMENT_TREE = """WITH RECURSIVE visible_comments AS (
 
 def post_select() -> str:
     return """SELECT p.id, p.author, p.category, p.media, p.title, p.body, p.contains_spoilers,
-                     p.rating, p.example, p.created_at, p.room, p.side_a, p.side_b, p.target_episode,
+                     p.rating, p.example, p.created_at, p.image, p.room, p.side_a, p.side_b, p.target_episode,
                      COALESCE(p.user_id=%s,false) AS is_owner,
                (SELECT count(*) FROM public.community_likes l WHERE l.post_id=p.id) AS likes,
                (WITH RECURSIVE visible AS (
@@ -95,11 +96,11 @@ def feed(category: Category | None, media: str, query: str, sort: str,
 def create_post(user_id: str, request: PostCreate) -> CommunityPost:
     post_id = uuid4()
     with storage() as cur:
-        cur.execute("""INSERT INTO public.community_posts(id,user_id,author,category,media,title,body,contains_spoilers,rating,room,side_a,side_b,target_episode)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+        cur.execute("""INSERT INTO public.community_posts(id,user_id,author,category,media,title,body,contains_spoilers,rating,room,side_a,side_b,target_episode,image)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (post_id,user_id,author_name(user_id),request.category,request.media,request.title,
                      request.body,request.contains_spoilers,request.rating if request.category == 'review' else None,
-                     request.room,request.side_a,request.side_b,request.target_episode))
+                     request.room,request.side_a,request.side_b,request.target_episode,request.image))
         return find_post(cur,post_id,user_id,True)
 
 
@@ -124,7 +125,7 @@ def comments(post_id: UUID, user_id: str | None, include_spoilers: bool) -> list
     with storage() as cur:
         find_post(cur,post_id,user_id,include_spoilers)
         cur.execute(COMMENT_TREE + """SELECT c.id,c.author,c.body,c.contains_spoilers,c.created_at,
-                       c.parent_id,p.author AS reply_to_author,COALESCE(c.user_id=%s,false) AS is_owner
+                       c.parent_id,c.image,p.author AS reply_to_author,COALESCE(c.user_id=%s,false) AS is_owner
                        FROM visible_comments c LEFT JOIN visible_comments p ON p.id=c.parent_id
                        ORDER BY c.depth,c.created_at,c.id LIMIT 100""",
                     (post_id,include_spoilers,include_spoilers,user_id))
@@ -149,10 +150,10 @@ def create_comment(post_id: UUID, user_id: str, request: CommentCreate, include_
         cur.execute('SELECT id FROM public.community_posts WHERE id=%s FOR UPDATE', (post_id,))
         post = find_post(cur,post_id,user_id,include_spoilers)
         parent = reply_parent(cur,post_id,request.parent_id,include_spoilers)
-        cur.execute("""INSERT INTO public.community_comments(id,post_id,user_id,author,body,contains_spoilers,parent_id)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id,author,body,contains_spoilers,created_at,parent_id""",
+        cur.execute("""INSERT INTO public.community_comments(id,post_id,user_id,author,body,contains_spoilers,parent_id,image)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id,author,body,contains_spoilers,created_at,parent_id,image""",
                     (uuid4(),post_id,user_id,author_name(user_id),request.body,
-                     request.contains_spoilers or post.contains_spoilers or bool(parent and parent['contains_spoilers']),request.parent_id))
+                     request.contains_spoilers or post.contains_spoilers or bool(parent and parent['contains_spoilers']),request.parent_id,request.image))
         return CommunityComment.model_validate({**cur.fetchone(), "is_owner": True,
                                                "reply_to_author": parent['author'] if parent else None})
 
@@ -201,14 +202,21 @@ def update_post(post_id: UUID, user_id: str, request: PostCreate) -> CommunityPo
             cur.execute("SELECT 1 FROM public.community_entries WHERE post_id=%s AND locked LIMIT 1", (post_id,))
             if cur.fetchone():
                 raise HTTPException(409, 'Keep the target episode after a prediction is locked')
-        cur.execute('UPDATE public.community_posts SET category=%s,media=%s,title=%s,body=%s,contains_spoilers=%s,rating=%s,room=%s,side_a=%s,side_b=%s,target_episode=%s WHERE id=%s',
-                    (request.category,request.media,request.title,request.body,request.contains_spoilers,request.rating,request.room,request.side_a,request.side_b,request.target_episode,post_id))
+        cur.execute('UPDATE public.community_posts SET category=%s,media=%s,title=%s,body=%s,contains_spoilers=%s,rating=%s,room=%s,side_a=%s,side_b=%s,target_episode=%s,image=%s WHERE id=%s',
+                    (request.category,request.media,request.title,request.body,request.contains_spoilers,request.rating,request.room,request.side_a,request.side_b,request.target_episode,request.image,post_id))
         return find_post(cur, post_id, user_id, True)
+
+
+def require_comment_window(row: dict[str, Any]) -> None:
+    if datetime.now(timezone.utc) >= row['created_at'] + timedelta(minutes=10):
+        raise HTTPException(409, 'Comments can only be edited or deleted within 10 minutes of posting')
 
 
 def delete_content(table: str, record_id: UUID, user_id: str) -> dict[str, bool]:
     with storage() as cur:
         row = own_record(cur, table, record_id, user_id)
+        if table == 'community_comments':
+            require_comment_window(row)
         if table == 'community_entries' and row['locked']:
             raise HTTPException(409, 'Locked predictions cannot be changed or deleted')
         cur.execute(f'DELETE FROM public.{table} WHERE id=%s', (record_id,))
@@ -218,10 +226,11 @@ def delete_content(table: str, record_id: UUID, user_id: str) -> dict[str, bool]
 def update_comment(comment_id: UUID, user_id: str, request: CommentCreate) -> CommunityComment:
     with storage() as cur:
         row = own_record(cur, 'community_comments', comment_id, user_id)
+        require_comment_window(row)
         parent = find_post(cur, row['post_id'], user_id, True)
         target = reply_parent(cur, row['post_id'], row['parent_id'], True)
-        cur.execute('UPDATE public.community_comments SET body=%s,contains_spoilers=%s WHERE id=%s RETURNING id,author,body,contains_spoilers,created_at,parent_id',
-                    (request.body,request.contains_spoilers or parent.contains_spoilers or bool(target and target['contains_spoilers']),comment_id))
+        cur.execute('UPDATE public.community_comments SET body=%s,contains_spoilers=%s,image=%s WHERE id=%s RETURNING id,author,body,contains_spoilers,created_at,parent_id,image',
+                    (request.body,request.contains_spoilers or parent.contains_spoilers or bool(target and target['contains_spoilers']),request.image,comment_id))
         return CommunityComment.model_validate({**cur.fetchone(), 'is_owner': True, 'reply_to_author': target['author'] if target else None})
 
 

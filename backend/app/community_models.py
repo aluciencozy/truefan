@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, computed_field
 
 Category = Literal['discussion', 'theory', 'review']
 Room = Literal['courtroom', 'fanfiction', 'drawing', 'battle', 'capsule', 'ending', 'mystery', 'pitch', 'verdict', 'hot-take', 'matchmaking']
@@ -12,7 +12,31 @@ ROOM_CATEGORIES = {'courtroom': 'discussion', 'fanfiction': 'discussion', 'drawi
                   'pitch': 'review', 'verdict': 'review', 'hot-take': 'review', 'matchmaking': 'review'}
 
 
-class PostCreate(BaseModel):
+def validate_image(value: str) -> str:
+    if not value:
+        return value
+    import base64
+    match = re.fullmatch(r'data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)', value)
+    if not match:
+        raise ValueError('Attach a PNG, JPEG, or WebP image')
+    try:
+        data = base64.b64decode(match[2], validate=True)
+    except ValueError:
+        raise ValueError('Invalid image') from None
+    valid = (match[1] == 'png' and data.startswith(b'\x89PNG\r\n\x1a\n') or
+             match[1] == 'jpeg' and data.startswith(b'\xff\xd8\xff') or
+             match[1] == 'webp' and data.startswith(b'RIFF') and data[8:12] == b'WEBP')
+    if not valid or len(data) > 500000:
+        raise ValueError('Use a valid image under 500 KB after resizing')
+    return value
+
+
+class ImageAttachment(BaseModel):
+    image: str = Field(default='', max_length=700000)
+    _image = field_validator('image')(validate_image)
+
+
+class PostCreate(ImageAttachment):
     model_config = ConfigDict(extra='forbid')
     category: Category = 'discussion'
     media: str = Field(min_length=1, max_length=200)
@@ -42,12 +66,17 @@ class PostCreate(BaseModel):
         return value
 
 
-class CommentCreate(BaseModel):
+class CommentCreate(ImageAttachment):
     model_config = ConfigDict(extra='forbid')
-    body: str = Field(min_length=1, max_length=2000)
+    body: str = Field(default='', max_length=2000)
     contains_spoilers: bool = False
     parent_id: UUID | None = None
-    _nonblank = field_validator('body')(PostCreate.nonblank.__func__)
+    @model_validator(mode='after')
+    def content_required(self) -> 'CommentCreate':
+        self.body = self.body.strip()
+        if not self.body and not self.image:
+            raise ValueError('Write a comment or attach an image')
+        return self
 
 
 class LikeUpdate(BaseModel):
@@ -66,7 +95,7 @@ class CommunityPost(PostCreate):
     is_owner: bool = False
 
 
-class CommunityComment(BaseModel):
+class CommunityComment(ImageAttachment):
     parent_id: UUID | None = None
     reply_to_author: str | None = None
     is_owner: bool = False
@@ -75,6 +104,11 @@ class CommunityComment(BaseModel):
     body: str
     contains_spoilers: bool
     created_at: datetime
+
+    @computed_field
+    @property
+    def editable_until(self) -> datetime:
+        return self.created_at + timedelta(minutes=10)
 
 
 class CommunityFeed(BaseModel):
@@ -120,20 +154,7 @@ class EntryCreate(BaseModel):
             raise ValueError('Write your contribution first')
         if self.kind in ('join', 'vote') and self.side == 'neutral':
             raise ValueError('Choose a side')
-        if self.artwork:
-            import base64, re
-            match = re.fullmatch(r'data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)', self.artwork)
-            if not match:
-                raise ValueError('Upload a PNG, JPEG, or WebP image')
-            try:
-                data = base64.b64decode(match[2], validate=True)
-            except ValueError:
-                raise ValueError('Invalid image') from None
-            valid = (match[1] == 'png' and data.startswith(b'\x89PNG\r\n\x1a\n') or
-                     match[1] == 'jpeg' and data.startswith(b'\xff\xd8\xff') or
-                     match[1] == 'webp' and data.startswith(b'RIFF') and data[8:12] == b'WEBP')
-            if not valid or len(data) > 500000:
-                raise ValueError('Use a valid image under 500 KB')
+        validate_image(self.artwork)
         return self
 
 
