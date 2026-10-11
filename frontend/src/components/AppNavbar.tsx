@@ -18,14 +18,16 @@ function GuestLinks() {
   return <><Link to="/auth/sign-in">Log in</Link><Link className="navbar-signup" to="/auth/sign-up">Sign up</Link></>
 }
 
-// Star phases, sizes, and twinkle rhythms for the Saturn ring. Positions stay
-// deterministic so navigation and hydration render the same orbit every time.
+// Star phases, sizes, and twinkle rhythms for the orbiting star ring. Positions
+// stay deterministic so navigation and hydration render the same orbit always.
 const saturnStars = [
   { phase: '0deg', size: '3px', twinkle: '4.5s', delay: '0s' },
-  { phase: '72deg', size: '2px', twinkle: '5.6s', delay: '-1.8s' },
-  { phase: '144deg', size: '2.5px', twinkle: '6.4s', delay: '-3.1s' },
-  { phase: '216deg', size: '2px', twinkle: '4.9s', delay: '-2.4s' },
-  { phase: '288deg', size: '3px', twinkle: '7s', delay: '-4.2s' },
+  { phase: '51deg', size: '2px', twinkle: '5.6s', delay: '-1.8s' },
+  { phase: '103deg', size: '2.5px', twinkle: '6.4s', delay: '-3.1s' },
+  { phase: '154deg', size: '2px', twinkle: '4.9s', delay: '-2.4s' },
+  { phase: '206deg', size: '3px', twinkle: '7s', delay: '-4.2s' },
+  { phase: '257deg', size: '2px', twinkle: '5.2s', delay: '-0.9s' },
+  { phase: '309deg', size: '2.5px', twinkle: '6.1s', delay: '-5.3s' },
 ]
 
 export default function AppNavbar({ onIdentity }: { onIdentity?: (id: string | null) => void }) {
@@ -56,8 +58,6 @@ export default function AppNavbar({ onIdentity }: { onIdentity?: (id: string | n
             initial={reduced ? false : { opacity: 0, scale: .9 }} animate={{ opacity: 1, scale: 1 }}
             transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 350, damping: 28 }}>
             <span className="saturn-tilt">
-              <span className="saturn-ring saturn-ring-inner" />
-              <span className="saturn-ring saturn-ring-outer" />
               {saturnStars.map((star) => <i key={star.phase} className="saturn-star" style={{
                 '--saturn-phase': star.phase,
                 '--saturn-size': star.size,
