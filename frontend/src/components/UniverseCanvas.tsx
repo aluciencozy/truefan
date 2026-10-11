@@ -73,11 +73,11 @@ const directions = { ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 }, Arr
 
 interface Props {
   universe: Universe; model: UniverseModel; guide: Record<string, ReleaseGuide>; focusedId: string; active: boolean
-  release: boolean; onRelease: () => void; onFocus: (media: Media) => void
-  onExpand: () => void; expanding: boolean; onEnter: (media: Media) => void; details: (enter: () => void) => ReactNode
+  release: boolean; onFocus: (media: Media) => void
+  onEnter: (media: Media) => void; details: (enter: () => void) => ReactNode
 }
 
-export default function UniverseCanvas({ universe, model, guide, focusedId, active, release, onRelease, onFocus, onExpand, expanding, onEnter, details }: Props) {
+export default function UniverseCanvas({ universe, model, guide, focusedId, active, release, onFocus, onEnter, details }: Props) {
   const reduced = useReducedMotion()
   const [positions, setPositions] = useState<Positions>({})
   const [layoutState, setLayoutState] = useState<'loading' | 'ready' | 'fallback'>('loading')
@@ -224,8 +224,6 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
       onNodeClick={(_, node) => focus(node.id)} colorMode="dark">
       <Panel position="top-left" className="canvas-toolbar">
         <button onClick={() => focus(universe.root_id)}>⌂ Home world</button>
-        <button aria-pressed={release} onClick={onRelease}>Release guidance {release ? 'on' : 'off'}</button>
-        {universe.cache?.can_expand && <button disabled={expanding} onClick={onExpand}>{expanding ? 'Exploring…' : 'Expand universe'}</button>}
       </Panel>
 
       <Panel position="bottom-center" className="journey-navigation">
