@@ -171,6 +171,9 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 /* React Flow sets overflow inline, so this override needs priority. */
 .universe-canvas .react-flow { overflow: visible !important; }
 .universe-canvas .react-flow__pane { cursor: default; }
+/* The constellation is a bounded draggable map, not an infinite canvas. */
+.graph-canvas .react-flow__pane { cursor: grab; }
+.graph-canvas .react-flow__pane:active { cursor: grabbing; }
 .destination-orbit { flex-shrink: 0; will-change: transform; transition: border-color .3s, box-shadow .3s; }
 .destination strong, .destination-state { flex-shrink: 0; }
 .destination.focused .destination-orbit { border-color: var(--mauve); box-shadow: 0 0 0 5px #cba6f70b, 0 0 0 12px #cba6f707, 0 0 48px #cba6f744; }

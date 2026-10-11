@@ -27,5 +27,8 @@ test('canvas limits fit the complete graph at mobile and desktop widths and boun
     }
     const graphWidth = Math.max(0, ...points.map(p => p.x)) + 176 - Math.min(0, ...points.map(p => p.x))
     assert.ok(graphWidth * minZoom < width)
+    // Bounds stay tight to the graph: a modest pad, not a near-infinite world.
+    assert.ok(extent[1][0] - (Math.max(0, ...points.map(p => p.x)) + 176) <= 300)
+    assert.ok(extent[1][1] - (Math.max(0, ...points.map(p => p.y)) + 174) <= 250)
   }
 })
