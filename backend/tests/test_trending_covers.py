@@ -28,7 +28,9 @@ class TrendingCoverTests(unittest.TestCase):
             query = fetch.call_args.args[1]['query']
             for fragment in ('perPage:16', 'type:ANIME', 'isAdult:false', 'sort:TRENDING_DESC', 'coverImage{medium}'):
                 self.assertIn(fragment, query)
-            self.assertNotIn('title', query)
+            # The covers share one request with Explore's constellations, so titles and relations are fetched too,
+            # but never a description/synopsis.
+            self.assertIn('relations{edges', query)
             self.assertNotIn('description', query)
         operation = app.openapi()['paths']['/api/media/trending']['get']
         self.assertEqual(operation['responses']['200']['content']['application/json']['schema']['items']['$ref'],

@@ -1026,37 +1026,50 @@ Tests: `backend/tests/test_surprise.py` and `frontend/tests/surprise.test.mjs`.
 
 ## Trending constellations
 
-With no story selected, Explore shows a sky of **trending constellations** (the plain "A whole universe is waiting."
-state, with Surprise me, is kept as the fallback when the API is unavailable or returns nothing). Each constellation
-is one cached franchise (five fit on screen at 1440×900 and 1280×800 as a centred 3 + 2; phones stack and scroll); its stars are that franchise's most-completed anime (3 to 8). Bigger, brighter stars have more
-completions this month. Hover or focus a star for a card (cover, title, format · year, "N completions this month"); click
-a star to open that work, or click the constellation's name to open its universe map. Arrow keys move between stars
-in a constellation and Tab moves between constellations.
+With no story selected, Explore shows a sky of **trending constellations**. They come from the same anime the home
+page shows: AniList `TRENDING_DESC`, top 16, non-adult anime. Each trending title (a **seed**) anchors one
+constellation made of its real related anime. Seeds are the brightest stars and carry a small outer ring; hovering one
+shows "Trending #N". Click a star to open that work, or click the constellation's name to open the universe of its best
+seed. Arrow keys move between stars in a constellation and Tab moves between constellations. Five fit on screen at
+1440×900 and 1280×800 as a centred 3 + 2; phones stack and scroll. If a trending title has no cached universe yet,
+opening it follows the normal Explore discovery flow.
 
-`GET /api/trending/constellations?limit=5` is public and **aggregate-only**: no user ids and no per-user data. It
-makes no AniList calls and starts no generation; only cached franchises (rows in `franchise_media`, strong members,
-`merged_into IS NULL`, anime) are eligible, so every click lands on something that loads. The computed list is
-cached in memory for about 5 minutes. A database error or missing `DATABASE_URL` returns 503 and the page falls back.
+`GET /api/trending/constellations?limit=1..8` (default 5) is public. It returns titles, covers, format/year and counts
+only: **no synopses** (the AniList query never asks for descriptions) and no user data.
 
-- **What counts as a completion:** a `user_progress` row that is `completed IS TRUE`, or `completed IS NULL` with
-  `completed_unit >= total_units` when the total is known (the same rule as saved progress), **updated in the last
-  30 days** (`window_days`). Users are counted once per work. A constellation's `score` is the sum of its stars'
-  completions, and the UI uses one wording everywhere (constellation labels, star cards, aria text): "N completions
-  this month".
-- **Stars and links:** top works by completions (ties in release order); `magnitude` runs 0.25 to 1.0 within the
-  constellation. Links are `media_relations` between the chosen stars only (PREQUEL shown as SEQUEL, reciprocals
-  collapsed). If the shape would be disconnected, `INFERRED` links join the stars in release order (drawn dashed).
-- **Demo signal:** with few real users the sky would be empty, so `backend/app/data/trending_demo.json` holds clearly
-  labelled sample completion counts that are added to the real ones, and the page says "Includes sample activity for
-  this demo." Sample ids that are not cached franchise members are ignored. It is controlled by
-  `TRENDING_DEMO_SIGNAL` (default `true`); set it to `false` on the backend host (for example Railway) for real data
-  only. `demo_signal` in the response reports whether it was applied. Edit the JSON to change the sample counts.
+- **One AniList request.** `anilist.trending_media()` fetches the top 16 trending anime with their relation edges in a
+  single GraphQL request through `anilist.query()`'s one-hour cache. `/api/media/trending` (home covers) derives from the
+  same call, in the same order with the same cover-URL validation, so home and Explore always agree and share one request
+  per hour. There are no per-title follow-up requests and nothing starts graph generation.
+- **Constellations.** Seeds that are directly related by a strong relation (and, when cached, seeds in the same
+  franchise) merge into one constellation. Stars are the seed(s) plus related **anime only** (manga and novels are
+  dropped, as in universe maps), preferring SEQUEL, PREQUEL, PARENT, SIDE_STORY, SPIN_OFF and ALTERNATIVE, then
+  AniList popularity. Capped at 8 stars; fewer than 3 and it is skipped. Stars are ordered by release date.
+  Constellations are ordered by the trending rank of their best seed, and `trending_rank` is also given per seed star.
+- **Links.** AniList relation edges between the chosen stars (PREQUEL shown as SEQUEL, reciprocals collapsed), plus
+  cached `media_relations` when the database is available. Dashed `INFERRED` links join anything left disconnected.
+- **Magnitude.** Seeds are always 1.0. Related stars are scaled by AniList popularity within the constellation
+  (0.25 to 0.9), so seeds stay the brightest.
+- **TrueFan completions are a bonus.** When the database is available each star carries `completions`: distinct users
+  with a `user_progress` row that is `completed IS TRUE`, or `completed IS NULL` with `completed_unit >= total_units`
+  when the total is known, updated in the last 30 days (`window_days`). The UI shows them only when above zero.
+- **Title.** The seed's shortened title ("... Universe"), or the shared cached franchise title when several seeds merged
+  through one franchise.
+- **Fallback and cache.** If AniList fails (or returns nothing usable) the sky falls back to each cached franchise's
+  most-completed works (`source: "truefan_completions"`, shown as "Based on TrueFan completions this month"). If both
+  fail the endpoint returns 503 and Explore shows its plain empty state with Surprise me. A database outage alone keeps
+  real trending data and only drops completion counts. The response is cached in memory for about 10 minutes (1 minute
+  when serving the fallback).
+- **Demo signal removed.** The earlier sample-completion boost (`trending_demo.json`, `TRENDING_DEMO_SIGNAL`,
+  `demo_signal`) is gone; delete `TRENDING_DEMO_SIGNAL` from the backend host's variables (harmless if left).
 
 | Endpoint | Access / behavior |
 | --- | --- |
-| `GET /api/trending/constellations?limit=1..8` (default 5) | Public. `{ window_days, demo_signal, constellations: [{ franchise_id, title, entry_media_id, score, stars: [{ media_id, title, cover_url, format, year, completions, magnitude }], links: [{ source, target, type }] }] }`. 503 if the database is unavailable. |
+| `GET /api/trending/constellations?limit=1..8` (default 5) | Public. `{ source: "anilist_trending" \| "truefan_completions", window_days, constellations: [{ franchise_id, title, entry_media_id, score, trending_rank, stars: [{ media_id, title, cover_url, format, year, completions, magnitude, trending, trending_rank }], links: [{ source, target, type }] }] }`. `score` is the sum of the stars' completions. 503 only when AniList and the database both fail. |
+| `GET /api/media/trending` | Unchanged response (`[{ id, cover_url }]`), now derived from the same cached AniList request. |
 
-Tests: `backend/tests/test_trending.py`, `frontend/tests/trending-sky.test.mjs` (layout maths in `lib/trendingSky.ts`).
+Tests: `backend/tests/test_trending.py`, `backend/tests/test_trending_covers.py`, `frontend/tests/trending-sky.test.mjs`
+(layout maths in `lib/trendingSky.ts`).
 
 ## Seeding the curated demo catalog
 
