@@ -89,7 +89,7 @@ export default function App() {
     accountEpoch.current++; identityRef.current = id; setIdentity(id)
     setStates({}); setFocusedId(''); setStateMessage(''); setSaving(false); setStateLoading(false); setLoadedStateKey('')
     latestProgress.current = null; setProgressMessage('')
-    setProgress(media ? overriddenUnit(media) ?? 0 : 0); setGraph(null); setSelectedId(null)
+    setProgress(media ? Math.min(media.total_units, overriddenUnit(media) ?? 1) : 1); setGraph(null); setSelectedId(null)
     // Returning to the universe applies the new account's entry rules before requesting character facts.
     if (universe) setView('universe')
   }, [universe, media])
@@ -105,7 +105,7 @@ export default function App() {
       if (!controller.signal.aborted) {
         setStates(previous => ({ ...previous, ...Object.fromEntries(saved.map(s => [s.media_id, s])) })); setLoadedStateKey(stateKey)
         if (!model && media) {
-          setProgress(Math.min(media.total_units, overriddenUnit(media) ?? saved.find(s => s.media_id === media.id)?.progress?.unit ?? 0))
+          setProgress(Math.min(media.total_units, overriddenUnit(media) ?? saved.find(s => s.media_id === media.id)?.progress?.unit ?? 1))
           setGraph(null); setSelectedId(null)
         }
       }
@@ -176,7 +176,7 @@ export default function App() {
   }
   function showCharacters(item: Media) {
     latestProgress.current = null; setProgressMessage(''); setMedia(item)
-    setProgress(Math.min(item.total_units, overriddenUnit(item) ?? states[item.id]?.progress?.unit ?? (identity || item.anilist_id ? 0 : 1)))
+    setProgress(Math.min(item.total_units, overriddenUnit(item) ?? states[item.id]?.progress?.unit ?? 1))
     setSelectedId(null); setGraph(null); setError(''); setGenerationError(''); setView('characters')
   }
   function enter(item: Media) {
@@ -189,7 +189,7 @@ export default function App() {
     searchDialog.current?.close()
     if (!item.anilist_id) { setUniverse(null); enter(item); return }
     const controller = new AbortController(); universeController.current = controller
-    latestProgress.current = null; setProgressMessage(''); setMedia(item); setProgress(0); setUniverse(null); setGraph(null); setSelectedId(null); setView('universe'); setError('')
+    latestProgress.current = null; setProgressMessage(''); setMedia(item); setProgress(Math.min(item.total_units, overriddenUnit(item) ?? 1)); setUniverse(null); setGraph(null); setSelectedId(null); setView('universe'); setError('')
     setFocusedId(item.id)
     try { const data = await api.universe(item.id, controller.signal); if (!controller.signal.aborted) { setUniverse(data); setFocusedId('') } }
     catch (error) { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Universe unavailable.') }
