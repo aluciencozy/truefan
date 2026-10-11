@@ -1024,6 +1024,40 @@ that visit only and is never saved automatically. `from=surprise` shows a dismis
 genre tags). A title is only offered if its curated graph is in the database (`scripts/replace_generated_graphs.py`).
 Tests: `backend/tests/test_surprise.py` and `frontend/tests/surprise.test.mjs`.
 
+## Trending constellations
+
+With no story selected, Explore shows a sky of **trending constellations** (the plain "A whole universe is waiting."
+state, with Surprise me, is kept as the fallback when the API is unavailable or returns nothing). Each constellation
+is one cached franchise (five fit on screen at 1440×900 and 1280×800 as a centred 3 + 2; phones stack and scroll); its stars are that franchise's most-completed anime (3 to 8). Bigger, brighter stars have more
+completions this month. Hover or focus a star for a card (cover, title, format · year, "N completions this month"); click
+a star to open that work, or click the constellation's name to open its universe map. Arrow keys move between stars
+in a constellation and Tab moves between constellations.
+
+`GET /api/trending/constellations?limit=5` is public and **aggregate-only**: no user ids and no per-user data. It
+makes no AniList calls and starts no generation; only cached franchises (rows in `franchise_media`, strong members,
+`merged_into IS NULL`, anime) are eligible, so every click lands on something that loads. The computed list is
+cached in memory for about 5 minutes. A database error or missing `DATABASE_URL` returns 503 and the page falls back.
+
+- **What counts as a completion:** a `user_progress` row that is `completed IS TRUE`, or `completed IS NULL` with
+  `completed_unit >= total_units` when the total is known (the same rule as saved progress), **updated in the last
+  30 days** (`window_days`). Users are counted once per work. A constellation's `score` is the sum of its stars'
+  completions, and the UI uses one wording everywhere (constellation labels, star cards, aria text): "N completions
+  this month".
+- **Stars and links:** top works by completions (ties in release order); `magnitude` runs 0.25 to 1.0 within the
+  constellation. Links are `media_relations` between the chosen stars only (PREQUEL shown as SEQUEL, reciprocals
+  collapsed). If the shape would be disconnected, `INFERRED` links join the stars in release order (drawn dashed).
+- **Demo signal:** with few real users the sky would be empty, so `backend/app/data/trending_demo.json` holds clearly
+  labelled sample completion counts that are added to the real ones, and the page says "Includes sample activity for
+  this demo." Sample ids that are not cached franchise members are ignored. It is controlled by
+  `TRENDING_DEMO_SIGNAL` (default `true`); set it to `false` on the backend host (for example Railway) for real data
+  only. `demo_signal` in the response reports whether it was applied. Edit the JSON to change the sample counts.
+
+| Endpoint | Access / behavior |
+| --- | --- |
+| `GET /api/trending/constellations?limit=1..8` (default 5) | Public. `{ window_days, demo_signal, constellations: [{ franchise_id, title, entry_media_id, score, stars: [{ media_id, title, cover_url, format, year, completions, magnitude }], links: [{ source, target, type }] }] }`. 503 if the database is unavailable. |
+
+Tests: `backend/tests/test_trending.py`, `frontend/tests/trending-sky.test.mjs` (layout maths in `lib/trendingSky.ts`).
+
 ## Seeding the curated demo catalog
 
 `schema.sql` also defines `media`, `entities` and `relationships` (`unlock_episode` = the

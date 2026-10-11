@@ -20,6 +20,11 @@ export interface Media {
   cover_url: string | null
   format: string | null
 }
+// Mirrors GET /api/trending/constellations: aggregate counts only.
+export interface TrendingStar { media_id: string; title: string; cover_url: string | null; format: string | null; year: number | null; completions: number; magnitude: number }
+export interface TrendingLink { source: string; target: string; type: string }
+export interface TrendingConstellation { franchise_id: string; title: string; entry_media_id: string; score: number; stars: TrendingStar[]; links: TrendingLink[] }
+export interface TrendingConstellations { window_days: number; demo_signal: boolean; constellations: TrendingConstellation[] }
 // Mirrors GET /api/media/surprise; media.description is always blank for this endpoint.
 export interface SurprisePick { media: Media; start_progress: number; hook: string; tags: string[]; characters_at_start: number; pool_size: number }
 export interface Provenance { source: string; source_unit: number; verified: boolean; model: string | null; evidence: string | null; episode_number: number | null; source_title: string | null }

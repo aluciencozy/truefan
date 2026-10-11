@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     franchise_cache_ttl_seconds: int = Field(default=86400, gt=0)
     anilist_api_url: str = "https://graphql.anilist.co"
     frontend_url: str = "http://localhost:3000"
+    # Blend labelled sample completions into the Explore trending sky so a small demo is never empty.
+    trending_demo_signal: bool = True
     neon_auth_jwks_url: str = ""
     neon_auth_base_url: str = ""
 
