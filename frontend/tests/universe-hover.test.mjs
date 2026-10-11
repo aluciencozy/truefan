@@ -42,6 +42,7 @@ test('hover and keyboard focus preview the clicked route without moving worlds o
     await act(async () => flow().onEdgeMouseEnter({}, edge))
     assert.deepEqual(previews(), [edge.id])
     assert.equal(flow().nodes.find(n => n.id === 'b').data.preview, true)
+    assert.equal(flow().nodes.find(n => n.id === 'a').data.preview, true)
     assert.deepEqual(flow().nodes.map(n => [n.id, n.position]), geometry)
     assert.deepEqual(selected, [])
     await act(async () => flow().onEdgeMouseLeave())

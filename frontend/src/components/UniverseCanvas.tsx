@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { Handle, Panel, Position, ReactFlow } from '@xyflow/react'
 import type { Edge, EdgeProps, Node, NodeProps, ReactFlowInstance } from '@xyflow/react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -53,13 +53,13 @@ const UniverseEdge = memo(function UniverseEdge({ id, source, sourceX, sourceY, 
   const path = `M ${sourceX},${sourceY} L ${targetX},${targetY}`
   const journey = data?.journey
   const travelPath = journey?.from === source ? path : `M ${targetX},${targetY} L ${sourceX},${sourceY}`
-  return <g className={`orbit-edge ${data?.incident ? 'incident' : ''} ${data?.preview ? 'route-preview' : ''}`}>
+  return <g style={{ '--edge-color': data?.primary ? 'var(--teal)' : 'var(--peach)' } as CSSProperties} className={`orbit-edge ${data?.incident ? 'incident' : ''} ${data?.preview ? 'route-preview' : ''}`}>
     <PointerEdge id={id} sourceX={sourceX} sourceY={sourceY} targetX={targetX} targetY={targetY} bend={!journey}
       label={data?.preview ? data.label : undefined}
-      style={{ stroke: data?.preview ? '#cba6f7' : data?.incident ? '#b4befe' : '#6c7086', strokeWidth: data?.preview ? 3 : data?.incident ? 1.5 : 1,
+      style={{ stroke: 'var(--edge-color)', strokeWidth: data?.preview ? 3 : data?.incident ? 1.5 : 1,
       strokeDasharray: data?.primary || data?.preview ? undefined : '4 9', opacity: data?.preview ? 1 : data?.incident ? .65 : .25 }} />
     {journey && !reduced && <g key={journey.serial} className="journey-trail" aria-hidden="true">
-      <motion.path d={travelPath} fill="none" stroke="#cba6f7" strokeWidth={4} initial={{ pathLength: 0, opacity: 1 }}
+      <motion.path d={travelPath} fill="none" stroke="var(--teal)" strokeWidth={4} initial={{ pathLength: 0, opacity: 1 }}
         animate={{ pathLength: 1, opacity: [1, 1, 0] }} transition={{ duration: 1.05, ease: [.65, 0, .35, 1] }} />
       <motion.circle r={4} fill="#f5e0dc" style={{ offsetPath: `path('${travelPath}')` }} initial={{ offsetDistance: '0%', opacity: 1 }}
         animate={{ offsetDistance: '100%', opacity: [1, 1, 0] }} transition={{ duration: 1.05, ease: [.65, 0, .35, 1] }} />
@@ -198,10 +198,10 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
       id: media.id, type: 'destination', focusable: false, position: positions[media.id], width: MEDIA_WIDTH, height: MEDIA_HEIGHT,
       zIndex: focusedId === media.id ? 3 : 1,
       data: { media, guide: guide[media.id], release, focused: focusedId === media.id, nearby: nearby.has(media.id), overview,
-        preview: previewId === media.id && media.id !== focusedId, onFocus: focus, onPreview: previewNode },
+        preview: previewId === media.id || previewLink?.source === media.id || previewLink?.target === media.id, onFocus: focus, onPreview: previewNode },
       ariaLabel: `${worldTitle(media, guide[media.id])}, ${guide[media.id].status}. Select to explore this world.`,
     })),
-  ], [model, positions, guide, release, focusedId, nearby, overview, focus, previewId, previewNode])
+  ], [model, positions, guide, release, focusedId, nearby, overview, focus, previewId, previewLink, previewNode])
 
   const edges = useMemo<OrbitEdge[]>(() => model.links.filter(link => link.source !== link.target).map(link => ({
     id: link.id, source: link.source, target: link.target, type: 'orbit', focusable: false,

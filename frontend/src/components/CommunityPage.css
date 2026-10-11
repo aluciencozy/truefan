@@ -34,7 +34,7 @@
 .community-controls { display: flex; gap: 12px; align-items: center; }
 .community-search { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; height: 44px; background: var(--mantle); border: 1px solid var(--border); border-radius: 12px; padding: 0 16px; }
 .community-search input { width: 100%; margin: 0; padding: 0; border: 0; min-width: 0; background: transparent; color: inherit; font-size: 13px; box-shadow: none; }
-.community-search:focus-within, .community-media-select:focus-within { border-color: var(--mauve); }
+.community-search:focus-within, .community-media-select:focus-within { border-color: var(--teal); }
 .community-sort { display: flex; gap: 4px; height: 44px; padding: 3px; background: var(--mantle); border: 1px solid var(--border); border-radius: 999px; }
 .community-sort button { height: 36px; padding: 0 14px; font: 14px var(--body); border: 0; color: var(--subtle); border-radius: 999px; background: transparent; }
 .community-sort button[aria-pressed="true"] { background: var(--surface); color: var(--mauve); }
@@ -46,14 +46,14 @@
 .community-spoiler-control small { font-size: 13px; color: var(--subtle); }
 .community-toggle { padding: 0; border: 0; width: 32px; height: 18px; border-radius: 10px; background: transparent; }
 .community-toggle:hover { background: transparent; }
-.community-toggle.is-on { background: var(--mauve); }
+.community-toggle.is-on { background: var(--teal); }
 .community-toggle.is-on span { display: block; width: 12px; height: 12px; margin-left: 17px; border-radius: 50%; background: var(--text); }
 .community-workspace { min-width: 0; }
 .community-feed { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .community-card { background: var(--mantle); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
 .post-card { display: flex; flex-direction: column; gap: 12px; }
 .post-category { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--subtext); }
-.post-category > strong { color: var(--mauve); font-weight: 600; }
+.post-category > strong { color: var(--peach); font-weight: 600; }
 .post-category > span:not(.spoiler-badge) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .community-icon-button { display: grid; place-items: center; padding: 5px; border: 0; background: transparent; margin-left: auto; }
 .post-open { padding: 0; border: 0; background: transparent; text-align: left; align-self: flex-start; color: inherit; }
@@ -66,7 +66,7 @@
 .post-age { flex: 1; color: var(--subtle); font-size: 13px; }
 .post-reaction { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0; border: 0; background: transparent; color: var(--subtext); font: 11px var(--body); }
 .post-reaction + .post-reaction { margin-left: 10px; }
-.post-reaction[aria-pressed="true"], .post-reaction:hover { background: transparent; color: var(--mauve); }
+.post-reaction[aria-pressed="true"], .post-reaction:hover { background: transparent; color: var(--pink); }
 .community-checkbox { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--subtext); font-weight: 400; }
 .community-checkbox input { width: 16px; height: 16px; padding: 0; margin: 0; accent-color: var(--mauve); }
 .community-reassurance { display: flex; justify-content: center; gap: 8px; align-items: center; padding-top: 8px; font-size: 13px; color: var(--subtle); }
@@ -82,7 +82,7 @@
 .community-pagination:empty { display: none; }
 .community-pagination button { font-size: 13px; }
 .spoiler-badge { font-size: 13px; border: 1px solid var(--mauve); border-radius: 4px; padding: 2px 5px; color: var(--subtext); }
-.community-page .post-rating { color: var(--mauve); }
+.community-page .post-rating { color: var(--yellow); }
 
 /* A quiet, readable dialog: fixed header and composer, independently scrolling conversation. */
 .community-modal { width: min(740px, calc(100vw - 40px)); max-height: min(850px, calc(100dvh - 64px)); margin: auto; padding: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 18px; background: var(--mantle); color: var(--text); box-shadow: 0 24px 80px #11111b80; font: 13px/1.6 var(--body); }
@@ -180,7 +180,7 @@
 .forum-rooms { display:flex; flex-direction:column; gap:8px; padding:12px; background:var(--mantle); border:1px solid var(--border); border-radius:12px; }
 .forum-rooms h2 { font:12px/1.45 Inter,sans-serif; text-transform:uppercase; color:var(--subtle); padding:4px 8px; }
 .forum-rooms button { text-align:left; padding:12px 10px; border:1px solid transparent; border-radius:10px; background:transparent; color:var(--text); font:15px var(--display); }
-.forum-rooms button[aria-pressed="true"] { background:var(--surface); border-color:var(--mauve); }
+.forum-rooms button[aria-pressed="true"] { background:var(--surface); border-color:var(--pink); }
 .forum-rooms p { color:var(--mauve); padding-top:18px; font:17px var(--display); }
 .forum-rooms small { color:var(--subtext); }
 .forum-room-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
@@ -239,7 +239,7 @@
 .community-page .community-header h1 { font:400 28px/1.45 var(--display); }
 .forum-thread { display:grid; gap:16px; min-width:0; }
 .community-page .forum-back { justify-self:start; padding:14px 16px; border:0; border-radius:12px; background:var(--mantle); color:var(--text); font:16px var(--display); }
-.forum-thread-room { color:var(--mauve); font:12px/1.45 Inter,sans-serif; text-transform:uppercase; }
+.forum-thread-room { color:var(--peach); font:12px/1.45 Inter,sans-serif; text-transform:uppercase; }
 .forum-thread .community-modal-scroll { overflow:visible; padding:0; }
 .forum-thread .conversation-post { padding:0 0 20px; }
 .forum-thread .conversation-post h3 { font:28px/1.45 var(--display); }
