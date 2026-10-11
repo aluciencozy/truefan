@@ -311,7 +311,6 @@ export function CommunityScreen({ viewer, service = communityApi }: { viewer: Co
           </div>
         </article>) : !offline ? <div className="community-card community-empty"><LittleUniverse /><h2>No signals yet ✦</h2><p>{query || media ? 'Try a different search or media filter.' : `Start the first ${category || 'conversation'} in this corner of the universe.`}</p></div> : null}
         {!loading && !offline && <div className="community-pagination">{offset > 0 && <button onClick={() => setOffset(value => Math.max(0,value-20))}>Previous</button>}{feed?.has_more && <button onClick={() => setOffset(value => value+20)}>Next conversations</button>}</div>}
-        {spoilers && <p className="community-reassurance"><CommunityIcon name="imgSparkles" />Spoiler posts are visible. Explore with care.</p>}
         </>}
       </section>
     </div>
