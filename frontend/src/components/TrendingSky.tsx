@@ -9,7 +9,7 @@ import type { TrendingConstellation, TrendingConstellations, TrendingStar } from
 import SurpriseLauncher from './SurprisePick'
 import './TrendingSky.css'
 
-export type TrendingService = { trendingConstellations: (limit?: number, signal?: AbortSignal) => Promise<TrendingConstellations> }
+export type TrendingService = { trendingConstellations: (limit?: number, signal?: AbortSignal) => Promise<TrendingConstellations>; prefetchUniverse?: (id: string) => Promise<void> }
 type State = { kind: 'loading' } | { kind: 'failed' } | { kind: 'ready'; data: TrendingConstellations }
 const DEFAULT_WIDTH = 1100, DEFAULT_HEIGHT = 560
 const exploreLink = (mediaId: string) => `/explore?media=${encodeURIComponent(mediaId)}`
@@ -31,7 +31,19 @@ export default function TrendingSky({ fallback, service = api, hideTitle = false
 
   useEffect(() => {
     const controller = new AbortController()
-    service.trendingConstellations(5, controller.signal).then(data => { if (!controller.signal.aborted) setState({ kind: 'ready', data }) })
+    service.trendingConstellations(5, controller.signal).then(data => {
+      if (controller.signal.aborted) return
+      setState({ kind: 'ready', data })
+      // Prepare two destinations at a time, each loading its metadata and map in parallel.
+      const ids = data.constellations.map(item => item.entry_media_id)
+      const warm = async () => {
+        while (ids.length && !controller.signal.aborted) {
+          const id = ids.shift()!
+          await service.prefetchUniverse?.(id).catch(() => undefined)
+        }
+      }
+      void warm(); void warm()
+    })
       .catch(() => { if (!controller.signal.aborted) setState({ kind: 'failed' }) })
     return () => controller.abort()
   }, [service])
@@ -97,7 +109,7 @@ export default function TrendingSky({ fallback, service = api, hideTitle = false
                 return <g key={point.id} ref={element => { const key = `${sky.id}:${point.id}`; if (element) stars.current.set(key, element); else stars.current.delete(key) }}
                   className={`sky-star${star.trending ? ' is-seed' : ''}${hover?.star === point.id ? ' is-hovered' : ''}`} role="button" tabIndex={tabbable === point.id ? 0 : -1} aria-label={text} aria-describedby={hover?.star === point.id ? 'sky-card' : undefined}
                   onClick={() => navigate(exploreLink(point.id))} onKeyDown={event => onKey(event, sky, star)}
-                  onPointerEnter={() => setHover({ constellation: sky.id, star: point.id })} onFocus={() => { setRoving(previous => ({ ...previous, [sky.id]: point.id })); setHover({ constellation: sky.id, star: point.id }) }}
+                  onPointerEnter={() => { void service.prefetchUniverse?.(point.id).catch(() => undefined); setHover({ constellation: sky.id, star: point.id }) }} onFocus={() => { void service.prefetchUniverse?.(point.id).catch(() => undefined); setRoving(previous => ({ ...previous, [sky.id]: point.id })); setHover({ constellation: sky.id, star: point.id }) }}
                   onBlur={() => setHover(previous => previous?.star === point.id ? { constellation: sky.id, star: null } : previous)}>
                   <circle className="sky-hit" cx={point.x} cy={point.y} r={point.r + 12} />
                   <circle className="sky-glow" cx={point.x} cy={point.y} r={point.glow} fill="url(#sky-glow)" opacity={point.opacity} />
