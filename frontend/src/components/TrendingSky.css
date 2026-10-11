@@ -1,5 +1,5 @@
-.trending-sky{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;color:var(--text)}
-.trending-heading{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:0 36px 4px}
+.trending-sky{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;color:var(--text);background:transparent !important}
+.trending-heading{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:0 36px 4px;background:transparent !important;background-image:none !important;box-shadow:none !important;border:0 !important}
 .trending-heading h2{margin:0 0 4px;font:400 clamp(22px,3vw,28px)/1.2 var(--display)}
 .trending-heading p{margin:0;color:var(--subtext);font-size:13px;line-height:1.5}
 .trending-sky .trending-note{margin-top:4px;color:var(--muted);font-size:12px;font-style:italic}

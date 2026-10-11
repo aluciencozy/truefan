@@ -255,6 +255,9 @@ export default function App() {
   usePageReady(!initialMedia || Boolean(error) || (!awaitingState && media?.id === initialMedia && Boolean(inUniverse ? universe : visibleGraph)))
   const headingMedia = inUniverse ? universe?.media.find(item => item.id === universe.root_id) ?? media : media
   const controls = <MediaControls initialQuery={initialQuery} />
+  // Trending explore (no story selected) renders TrendingSky with its own heading;
+  // the character/universe title block stays hidden until a story is selected.
+  const showHeadingCopy = Boolean(headingMedia || inUniverse)
 
   function closeCharacter() {
     setSelectedId(null)
@@ -268,9 +271,9 @@ export default function App() {
     <AppNavbar onIdentity={onIdentity} />
     <main className="workspace">
       <section className="graph-panel" aria-label="Graph explorer">
-        <div className="graph-heading"><div><span className="view-label">{inUniverse ? 'Your connected universe' : 'Character constellation'}</span>
+        <div className={`graph-heading${showHeadingCopy ? '' : ' is-trending'}`}>{showHeadingCopy ? <div><span className="view-label">{inUniverse ? 'Your connected universe' : 'Character constellation'}</span>
           <h1>{headingMedia ? worldTitle(headingMedia, inUniverse ? guide[headingMedia.id] : undefined) : 'Every story is a universe.'}</h1>
-          {inUniverse && <p>{awaitingState ? 'Loading your map…' : `${Object.values(guide).filter(item => item.visible).length} visible stories`}</p>}</div>
+          {inUniverse && <p>{awaitingState ? 'Loading your map…' : `${Object.values(guide).filter(item => item.visible).length} visible stories`}</p>}</div> : null}
           <div className="graph-actions">
             {media && (identity ? <button disabled={librarySaving || (inUniverse && !universe)} onClick={() => void saveUniverse()}>{librarySaving ? 'Saving…' : '＋ Save universe'}</button> : <Link to="/auth/sign-in">Sign in to save</Link>)}
             {universe && !inUniverse && <button onClick={() => { setView('universe'); setSelectedId(null); setError('') }}>← Universe</button>}
@@ -317,7 +320,7 @@ export default function App() {
         </div>
         <footer className="graph-footer">
           <div className="map-key">{inUniverse ? <><span><i className="available-dot" />Available</span><span><i className="locked-dot" />Locked</span><span><i className="completed-dot" />Completed</span></> : <span><i className="available-dot" />Revealed at your progress</span>}</div>
-          <span role="status">{!inUniverse && progressMessage ? <>{progressMessage}{progressMessage.startsWith('Could not') && <button onClick={() => changeProgress(progress)}>Retry</button>}</> : !inUniverse && stateMessage ? stateMessage : 'Your story. Your pace.'}</span><span>{inUniverse ? 'Arrow keys to travel · Overview to see your map' : 'Scroll to zoom · Drag to explore'}</span>
+          <span role="status">{!inUniverse && progressMessage ? <>{progressMessage}{progressMessage.startsWith('Could not') && <button onClick={() => changeProgress(progress)}>Retry</button>}</> : !inUniverse && stateMessage ? stateMessage : null}</span><span>{inUniverse ? 'Arrow keys to travel · Overview to see your map' : 'Scroll to zoom · Drag to explore'}</span>
         </footer>
       </section>
     </main>
