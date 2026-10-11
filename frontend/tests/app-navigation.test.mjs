@@ -142,7 +142,10 @@ for (const scenario of ['loading', 'failed', 'saving', 'ready', 'guest']) {
       if (scenario === 'saving') await act(async () => props('UniverseDetails').onComplete(first))
 
       // A failed saved-state load uses main's guest-style entry at progress zero.
-      if (['loading', 'saving'].includes(scenario)) {
+      if (scenario === 'loading') {
+        assert.equal(renderer.root.findAllByType('UniverseCanvas').length, 0)
+        assert.equal(graphCalls.length, 0)
+      } else if (scenario === 'saving') {
         await act(async () => props('UniverseDetails').onEnter(first))
         assert.equal(graphCalls.length, 0)
       } else {
@@ -391,4 +394,59 @@ test('a signed-in deep link overrides saved progress for this visit and never sa
     await act(async () => props('ProgressControl').onProgress(3)); await act(async () => {})
     assert.deepEqual(calls.saved, [3]); assert.equal(props('ProgressControl').progress, 3)
   } finally { await closeDeepLink(renderer) }
+})
+
+const third = { ...sequel, id: 'anilist-3', title: 'Third', anilist_id: 3, release_date: { year: 2002, month: 1, day: 1 } }
+const chain = { ...universe, media: [first, sequel, third], relationships: [...universe.relationships, { source: sequel.id, target: third.id, type: 'SEQUEL' }] }
+
+test('later-season search starts at the beginning and Start here preserves locked ancestor history', async () => {
+  globalThis.__navigationQuery = `media=${third.id}`
+  Object.assign(api, { media: async () => third, universe: async () => ({ ...chain, root_id: third.id }) })
+  let renderer
+  try {
+    await act(async () => { renderer = create(createElement(App)) })
+    const canvas = () => renderer.root.findByType('UniverseCanvas').props
+    assert.equal(canvas().focusedId, first.id)
+    assert.equal(canvas().guide[third.id].visible, false)
+    const start = renderer.root.findAllByType('button').find(b => b.children.includes('Start here instead · searched entry'))
+    assert.ok(start)
+    await act(async () => start.props.onClick())
+    assert.equal(canvas().focusedId, third.id)
+    assert.equal(canvas().guide[third.id].status, 'available')
+    assert.equal(canvas().guide[sequel.id].status, 'locked')
+    assert.equal(canvas().guide[first.id].status, 'available')
+  } finally {
+    if (renderer) await act(async () => renderer.unmount())
+    globalThis.__navigationQuery = 'q=anime'
+  }
+})
+
+test('failed completion keeps the frontier locked; saved-state loading and account switching hide stale maps', async () => {
+  globalThis.__navigationQuery = `media=${first.id}`
+  const saved = Promise.withResolvers()
+  let account = 0
+  Object.assign(api, {
+    media: async () => first, universe: async () => chain,
+    mediaState: async () => ++account === 1 ? saved.promise : [],
+    saveMediaState: async () => { throw new Error('Offline') },
+  })
+  let renderer
+  try {
+    await act(async () => { renderer = create(createElement(App)) })
+    const canvas = () => renderer.root.findByType('UniverseCanvas').props
+    await act(async () => renderer.root.findByType('AuthPanel').props.onIdentity('account-one'))
+    assert.equal(renderer.root.findAllByType('UniverseCanvas').length, 0)
+    await act(async () => saved.resolve([{ media_id: third.id, progress: { unit: 3 }, completed: false, manual_unlocked: false }]))
+    assert.equal(canvas().guide[third.id].visible, true)
+    await act(async () => renderer.root.findByType('AuthPanel').props.onIdentity('account-two'))
+    assert.equal(canvas().guide[third.id].visible, false)
+    assert.equal(canvas().focusedId, first.id)
+    await act(async () => renderer.root.findByType('UniverseDetails').props.onComplete(first))
+    assert.equal(canvas().guide[sequel.id].status, 'locked')
+    assert.equal(canvas().guide[third.id].visible, false)
+    assert.equal(renderer.root.findByType('UniverseDetails').props.message, 'Offline')
+  } finally {
+    if (renderer) await act(async () => renderer.unmount())
+    globalThis.__navigationQuery = 'q=anime'
+  }
 })

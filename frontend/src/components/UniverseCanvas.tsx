@@ -4,13 +4,13 @@ import { Handle, Panel, Position, ReactFlow } from '@xyflow/react'
 import type { Edge, EdgeProps, Node, NodeProps, ReactFlowInstance } from '@xyflow/react'
 import { motion, useReducedMotion } from 'motion/react'
 import type { Media, Universe } from '../lib/types'
-import { relationLabel } from '../lib/universeModel'
+import { displayLinks, relationLabel, visibleUniverse } from '../lib/universeModel'
 import type { UniverseModel } from '../lib/universeModel'
-import { groupBounds, fallbackPositions, layoutUniverse, preservePositions, MEDIA_HEIGHT, MEDIA_WIDTH } from '../lib/universeLayout'
+import { groupBounds, fallbackPositions, layoutUniverse, anchorLayout, MEDIA_HEIGHT, MEDIA_WIDTH } from '../lib/universeLayout'
 import type { Positions } from '../lib/universeLayout'
 import { connectedNeighbors, connectionDestination, directionalNeighbor, focusViewport } from '../lib/universeNavigation'
 import type { ReleaseGuide } from '../lib/universeProgression'
-import { worldTitle } from '../lib/universeProgression'
+import { unlocksAfter, worldTitle } from '../lib/universeProgression'
 import { CanvasPointerContext, useCanvasParallax } from '../lib/useCanvasParallax'
 import PointerEdge from './PointerEdge'
 
@@ -47,23 +47,27 @@ function RegionNode({ data }: NodeProps<Node<{ label: string }, 'region'>>) {
 }
 
 type Journey = { id: string; from: string; serial: number }
-type OrbitEdge = Edge<{ incident: boolean; primary: boolean; preview: boolean; label: string; journey: Journey | null }, 'orbit'>
+const connectionColors = ['#e2def5', '#e2def5', 'var(--teal)', 'var(--peach)', 'var(--pink)', 'var(--lavender)']
+type OrbitEdge = Edge<{ incident: boolean; primary: boolean; preview: boolean; label: string; unlockPreview: boolean; journey: Journey | null }, 'orbit'>
 const UniverseEdge = memo(function UniverseEdge({ id, source, sourceX, sourceY, targetX, targetY, data }: EdgeProps<OrbitEdge>) {
   const reduced = useReducedMotion()
+  if (!data) return null
   const path = `M ${sourceX},${sourceY} L ${targetX},${targetY}`
-  const journey = data?.journey
-  const travelPath = journey?.from === source ? path : `M ${targetX},${targetY} L ${sourceX},${sourceY}`
-  return <g style={{ '--edge-color': data?.primary ? 'var(--teal)' : 'var(--peach)' } as CSSProperties} className={`orbit-edge ${data?.incident ? 'incident' : ''} ${data?.preview ? 'route-preview' : ''}`}>
-    <PointerEdge id={id} sourceX={sourceX} sourceY={sourceY} targetX={targetX} targetY={targetY} bend={!journey}
-      label={data?.preview ? data.label : undefined}
-      style={{ stroke: 'var(--edge-color)', strokeWidth: data?.preview ? 3 : data?.incident ? 1.5 : 1,
-      strokeDasharray: data?.primary || data?.preview ? undefined : '4 9', opacity: data?.preview ? 1 : data?.incident ? .65 : .25 }} />
-    {journey && !reduced && <g key={journey.serial} className="journey-trail" aria-hidden="true">
-      <motion.path d={travelPath} fill="none" stroke="var(--teal)" strokeWidth={4} initial={{ pathLength: 0, opacity: 1 }}
-        animate={{ pathLength: 1, opacity: [1, 1, 0] }} transition={{ duration: 1.05, ease: [.65, 0, .35, 1] }} />
-      <motion.circle r={4} fill="#f5e0dc" style={{ offsetPath: `path('${travelPath}')` }} initial={{ offsetDistance: '0%', opacity: 1 }}
-        animate={{ offsetDistance: '100%', opacity: [1, 1, 0] }} transition={{ duration: 1.05, ease: [.65, 0, .35, 1] }} />
-    </g>}
+  const journey = data.journey
+  // Stable per connection so colors do not flicker when the map grows or focus changes.
+  let seed = 2166136261
+  for (const character of id) seed = Math.imul(seed ^ character.charCodeAt(0), 16777619)
+  const color = connectionColors[(seed >>> 0) % connectionColors.length]
+  return <g style={{ '--edge-color': color } as CSSProperties}
+    className={`orbit-edge ${data.incident ? 'incident' : ''} ${data.preview ? 'route-preview' : ''} ${data.unlockPreview ? 'unlock-preview' : ''}`}>
+    <PointerEdge id={id} sourceX={sourceX} sourceY={sourceY} targetX={targetX} targetY={targetY}
+      bend={!reduced} label={data.preview ? data.label : undefined}
+      style={{ stroke: 'var(--edge-color)', strokeWidth: data.preview ? 3 : data.unlockPreview ? 2 : 1.5,
+        strokeDasharray: data.primary ? undefined : '4 9', opacity: data.preview || data.unlockPreview ? 1 : data.incident ? .65 : .25 }} />
+    {journey && !reduced && <motion.circle key={journey.serial} r={4} fill="#f5e0dc" aria-hidden="true"
+      style={{ offsetPath: `path('${path}')` }} initial={{ offsetDistance: journey.from === source ? '0%' : '100%', opacity: 1 }}
+      animate={{ offsetDistance: journey.from === source ? '100%' : '0%', opacity: [1, 1, 0] }}
+      transition={{ duration: 1.05, ease: [.65, 0, .35, 1] }} />}
   </g>
 })
 const nodeTypes = { destination: DestinationNode, region: RegionNode }
@@ -77,8 +81,13 @@ interface Props {
   onEnter: (media: Media) => void; details: (enter: () => void) => ReactNode
 }
 
-export default function UniverseCanvas({ universe, model, guide, focusedId, active, release, onFocus, onEnter, details }: Props) {
+export default function UniverseCanvas({ model: fullModel, guide, focusedId, active, release, onFocus, onEnter, details }: Props) {
   const reduced = useReducedMotion()
+  const visibleKey = JSON.stringify(fullModel.media.filter(item => guide[item.id]?.visible).map(item => item.id))
+  const model = useMemo(() => visibleUniverse(fullModel, new Set<string>(JSON.parse(visibleKey))), [fullModel, visibleKey])
+  const [showRelated, setShowRelated] = useState(false)
+  const links = useMemo(() => displayLinks(model, showRelated), [model, showRelated])
+  const upcoming = useMemo(() => new Set(unlocksAfter(model, guide, focusedId)), [model, guide, focusedId])
   const [positions, setPositions] = useState<Positions>({})
   const [layoutState, setLayoutState] = useState<'loading' | 'ready' | 'fallback'>('loading')
   const [size, setSize] = useState({ width: 1000, height: 650 })
@@ -92,12 +101,14 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
   const container = useRef<HTMLDivElement | null>(null)
   const pointer = useCanvasParallax(container, active)
   const anchors = useRef<Positions>({})
+  const layoutFocus = useRef(focusedId)
+  layoutFocus.current = focusedId
   const previousFocus = useRef(focusedId)
   const travelSerial = useRef(0)
   const mediaById = useMemo(() => new Map(model.media.map(item => [item.id, item])), [model])
-  const neighbors = useMemo(() => connectedNeighbors(model, focusedId), [model, focusedId])
+  const neighbors = useMemo(() => connectedNeighbors({ links: model.progression }, focusedId), [model, focusedId])
   const nearby = useMemo(() => new Set([focusedId, ...neighbors]), [focusedId, neighbors])
-  const previewLink = model.links.find(link => link.id === hovered?.edgeId
+  const previewLink = links.find(link => link.id === hovered?.edgeId
     || (hovered?.nodeId !== focusedId && ((link.source === focusedId && link.target === hovered?.nodeId)
       || (link.target === focusedId && link.source === hovered?.nodeId))))
   const previewId = hovered?.nodeId ?? (previewLink ? connectionDestination(previewLink, focusedId) : null)
@@ -105,21 +116,22 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
   const illuminated = useMemo(() => {
     const origin = positions[focusedId]
     const distance = (id: string) => origin && positions[id] ? Math.hypot(positions[id].x - origin.x, positions[id].y - origin.y) : Infinity
-    return new Set(model.links.filter(link => link.source === focusedId || link.target === focusedId)
+    return new Set(links.filter(link => link.source === focusedId || link.target === focusedId)
       .sort((a, b) => Number(b.primary) - Number(a.primary)
         || distance(a.source === focusedId ? a.target : a.source) - distance(b.source === focusedId ? b.target : b.source))
       .slice(0, 4).map(link => link.id))
-  }, [model, focusedId, positions])
+  }, [links, focusedId, positions])
 
   useEffect(() => {
     let stale = false
-    setLayoutState('loading')
-    void layoutUniverse(model, anchors.current).then(next => {
+    if (!Object.keys(anchors.current).length) setLayoutState('loading')
+    void layoutUniverse(model).then(next => {
       if (stale) return
-      anchors.current = next; setPositions(next); setLayoutState('ready')
+      const aligned = anchorLayout(next, anchors.current, layoutFocus.current)
+      anchors.current = aligned; setPositions(aligned); setLayoutState('ready')
     }).catch(() => {
       if (stale) return
-      const next = preservePositions(model, fallbackPositions(model), anchors.current)
+      const next = anchorLayout(fallbackPositions(model), anchors.current, layoutFocus.current)
       anchors.current = next; setPositions(next); setLayoutState('fallback')
     })
     return () => { stale = true }
@@ -138,9 +150,9 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
     const from = previousFocus.current
     previousFocus.current = focusedId
     if (from === focusedId) return
-    const link = model.links.find(item => (item.source === from && item.target === focusedId) || (item.target === from && item.source === focusedId))
+    const link = links.find(item => (item.source === from && item.target === focusedId) || (item.target === from && item.source === focusedId))
     setJourney(link ? { id: link.id, from, serial: ++travelSerial.current } : null)
-  }, [model, focusedId])
+  }, [links, focusedId])
 
   useEffect(() => {
     if (!active || !flow || layoutState === 'loading') return
@@ -148,7 +160,7 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
     if (overview) {
       void flow.fitView({ nodes: model.media.map(item => ({ id: item.id })), padding: .18, minZoom: .01, maxZoom: .85, ...options })
     } else if (positions[focusedId]) {
-      // Linear viewport interpolation at a fixed focus zoom follows the straight connecting edge.
+      // Growth anchors this world in place; navigation still moves the camera between worlds.
       void flow.setViewport(focusViewport(positions[focusedId], size.width, size.height), options)
     }
   }, [active, flow, positions, layoutState, overview, focusedId, size, reduced, model])
@@ -167,11 +179,8 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
     onFocus(media)
   }, [mediaById, onFocus])
 
-  const previous = model.links.find(link => link.target === focusedId && link.primary)?.source
-    ?? directionalNeighbor(focusedId, neighbors, positions, directions.ArrowLeft)
-  const next = model.links.find(link => link.source === focusedId && link.primary)?.target
-    ?? directionalNeighbor(focusedId, neighbors, positions, directions.ArrowRight)
-    ?? neighbors.find(id => id !== previous)
+  const previous = model.progression.find(link => link.target === focusedId)?.source
+  const next = model.progression.find(link => link.source === focusedId)?.target
 
   useEffect(() => {
     if (!active || entering) return
@@ -196,21 +205,21 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
       selectable: false, focusable: false, zIndex: -1 })),
     ...model.media.filter(m => positions[m.id]).map(media => ({
       id: media.id, type: 'destination', focusable: false, position: positions[media.id], width: MEDIA_WIDTH, height: MEDIA_HEIGHT,
+      style: { transition: reduced ? 'none' : 'transform .65s cubic-bezier(.22,1,.36,1)' },
       zIndex: focusedId === media.id ? 3 : 1,
       data: { media, guide: guide[media.id], release, focused: focusedId === media.id, nearby: nearby.has(media.id), overview,
-        preview: previewId === media.id || previewLink?.source === media.id || previewLink?.target === media.id, onFocus: focus, onPreview: previewNode },
+        preview: upcoming.has(media.id) || previewId === media.id || previewLink?.source === media.id || previewLink?.target === media.id, onFocus: focus, onPreview: previewNode },
       ariaLabel: `${worldTitle(media, guide[media.id])}, ${guide[media.id].status}. Select to explore this world.`,
     })),
-  ], [model, positions, guide, release, focusedId, nearby, overview, focus, previewId, previewLink, previewNode])
+  ], [model, positions, guide, release, focusedId, nearby, overview, focus, previewId, previewLink, previewNode, upcoming, reduced])
 
-  const edges = useMemo<OrbitEdge[]>(() => model.links.filter(link => link.source !== link.target).map(link => ({
+  const edges = useMemo<OrbitEdge[]>(() => links.filter(link => positions[link.source] && positions[link.target]).map(link => ({
     id: link.id, source: link.source, target: link.target, type: 'orbit', focusable: false,
-    ariaLabel: `${relationLabel(link.kind)} connection. Travel to the connected world.`,
+    ariaLabel: link.primary ? 'Unlock path. Travel to the connected world.' : `${relationLabel(link.kind)} connection.`,
     data: { incident: overview || illuminated.has(link.id) || journey?.id === link.id, primary: link.primary,
-      preview: previewLink?.id === link.id,
-      label: overview ? '' : link.kind === 'SEQUEL' && link.relations.some(r => r.type.toUpperCase() === 'PREQUEL') ? 'prequel / sequel' : relationLabel(link.kind),
-      journey: journey?.id === link.id ? journey : null },
-  })), [model, overview, illuminated, journey, previewLink])
+      preview: previewLink?.id === link.id, unlockPreview: link.source === focusedId && upcoming.has(link.target),
+      label: link.primary ? 'Complete to unlock' : relationLabel(link.kind), journey: journey?.id === link.id ? journey : null },
+  })), [links, positions, overview, illuminated, journey, previewLink, focusedId, upcoming])
 
   return <div className={`universe-composition ${overview ? 'is-overview' : ''} ${entering ? 'is-entering' : ''}`}>
     <div ref={container} inert={entering} className={`universe-canvas celestial ${overview ? 'overview-mode' : 'focus-mode'}`} aria-label="Anime universe canvas" aria-busy={layoutState === 'loading'}>
@@ -223,13 +232,14 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
       onEdgeClick={(_, edge) => focus(connectionDestination(edge, focusedId))}
       onNodeClick={(_, node) => focus(node.id)} colorMode="dark">
       <Panel position="top-left" className="canvas-toolbar">
-        <button onClick={() => focus(universe.root_id)}>⌂ Home world</button>
+        <button onClick={() => model.startId && focus(model.startId)}>⌂ Home world</button>
+        <button aria-pressed={showRelated} onClick={() => setShowRelated(value => !value)}>Show related connections</button>
       </Panel>
 
       <Panel position="bottom-center" className="journey-navigation">
         <div className="journey-controls">
           <button disabled={!previous} onClick={() => previous && focus(previous)} title={previous ? worldTitle(mediaById.get(previous)!, guide[previous]) : 'No previous connection'}>← Previous</button>
-          <span>{overview ? 'The whole constellation' : 'Travel the connections'}<small>{overview ? `${model.media.length} connected worlds` : 'Arrow keys or select a nearby world'}</small></span>
+          <span>{overview ? 'Your constellation' : 'Follow your story'}<small>{overview ? `${model.media.length} visible worlds` : 'Arrow keys or select a nearby world'}</small></span>
           <button disabled={!next} onClick={() => next && focus(next)} title={next ? worldTitle(mediaById.get(next)!, guide[next]) : 'No next connection'}>Next →</button>
         </div>
       </Panel>
@@ -256,7 +266,7 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
     </motion.div>}
     {entering && <motion.div className="world-entry" role="status" initial={{ opacity: 0 }} animate={{ opacity: [0, .15, 1] }}
       transition={{ duration: reduced ? 0 : .9, times: [0, .55, 1] }}
-      onAnimationComplete={() => { setEntering(false); const item = mediaById.get(focusedId); if (item) onEnter(item) }}>
+      onAnimationComplete={() => { setEntering(false); const item = mediaById.get(focusedId); if (item && guide[item.id]?.status !== 'locked') onEnter(item) }}>
       <span>Entering your world</span>
     </motion.div>}
     <div className="journey-announcement" role="status" aria-live="polite">{mediaById.has(focusedId) ? worldTitle(mediaById.get(focusedId)!, guide[focusedId]) : ''}{overview ? ', Overview Mode' : ', Focus Mode'}</div>

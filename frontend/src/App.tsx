@@ -72,11 +72,21 @@ export default function App() {
   const stateKey = identity && stateIds.length ? `${identity}:${stateIds.join(',')}` : ''
   const awaitingState = Boolean(stateKey) && (stateLoading || loadedStateKey !== stateKey)
   const guide = useMemo(() => model ? buildReleaseGuide(model, states) : {}, [model, states])
+  const accessibleRoot = universe && guide[universe.root_id] && guide[universe.root_id].status !== 'locked' ? universe.root_id : null
+  const effectiveFocusedId = guide[focusedId]?.visible ? focusedId : accessibleRoot ?? model?.startId ?? ''
+  const searchedEntry = model?.media.find(item => item.id === universe?.root_id)
+  const canStartHere = Boolean(searchedEntry && guide[searchedEntry.id]?.status === 'locked' && searchedEntry.id !== model?.startId)
+  useEffect(() => {
+    if (!model || awaitingState) return
+    if (!guide[focusedId]?.visible) {
+      setFocusedId(accessibleRoot ?? model.startId ?? '')
+    }
+  }, [model, guide, focusedId, awaitingState, accessibleRoot])
 
   const onIdentity = useCallback((id: string | null) => {
     if (identityRef.current === id) return
     accountEpoch.current++; identityRef.current = id; setIdentity(id)
-    setStates({}); setStateMessage(''); setSaving(false); setStateLoading(false); setLoadedStateKey('')
+    setStates({}); setFocusedId(''); setStateMessage(''); setSaving(false); setStateLoading(false); setLoadedStateKey('')
     latestProgress.current = null; setProgressMessage('')
     setProgress(media ? overriddenUnit(media) ?? 0 : 0); setGraph(null); setSelectedId(null)
     // Returning to the universe applies the new account's entry rules before requesting character facts.
@@ -180,11 +190,11 @@ export default function App() {
     const controller = new AbortController(); universeController.current = controller
     latestProgress.current = null; setProgressMessage(''); setMedia(item); setProgress(0); setUniverse(null); setGraph(null); setSelectedId(null); setView('universe'); setError('')
     setFocusedId(item.id)
-    try { const data = await api.universe(item.id, controller.signal); if (!controller.signal.aborted) { setUniverse(data); setFocusedId(data.root_id) } }
+    try { const data = await api.universe(item.id, controller.signal); if (!controller.signal.aborted) { setUniverse(data); setFocusedId('') } }
     catch (error) { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Universe unavailable.') }
   }
 
-  async function changeFlags(item: Media, flags: { completed?: boolean; manual_unlocked?: boolean }) {
+  async function changeFlags(item: Media, flags: { completed?: boolean; manual_unlocked?: boolean }, focusAfter = false) {
     if (saving || awaitingState) return
     const epoch = accountEpoch.current
     setSaving(true); setStateMessage('')
@@ -199,6 +209,7 @@ export default function App() {
             manual_unlocked: previous[item.id]?.manual_unlocked ?? false, completed: true },
         })
       }
+      if (epoch === accountEpoch.current && focusAfter) setFocusedId(item.id)
       if (epoch === accountEpoch.current) setStateMessage(identity ? 'Viewing state saved.' : 'Viewing state kept for this guest session. Sign in to save it across visits.')
     } catch (error) { if (epoch === accountEpoch.current) setStateMessage(error instanceof Error ? error.message : 'Could not save viewing state. Try again.') }
     finally { if (epoch === accountEpoch.current) setSaving(false) }
@@ -258,7 +269,7 @@ export default function App() {
       <section className="graph-panel" aria-label="Graph explorer">
         <div className="graph-heading"><div><span className="view-label">{inUniverse ? 'Your connected universe' : 'Character constellation'}</span>
           <h1>{headingMedia ? worldTitle(headingMedia, inUniverse ? guide[headingMedia.id] : undefined) : 'Every story is a universe.'}</h1>
-          {inUniverse && <p>{model?.media.length ?? 0} stories</p>}</div>
+          {inUniverse && <p>{awaitingState ? 'Loading your map…' : `${Object.values(guide).filter(item => item.visible).length} visible stories`}</p>}</div>
           <div className="graph-actions">
             {media && (identity ? <button disabled={librarySaving || (inUniverse && !universe)} onClick={() => void saveUniverse()}>{librarySaving ? 'Saving…' : '＋ Save universe'}</button> : <Link to="/auth/sign-in">Sign in to save</Link>)}
             {universe && !inUniverse && <button onClick={() => { setView('universe'); setSelectedId(null); setError('') }}>← Universe</button>}
@@ -272,14 +283,18 @@ export default function App() {
         {deepLink.fromSurprise && !tipClosed && media && !inUniverse && <SurpriseTip onDismiss={() => setTipClosed(true)} />}
         {libraryMessage && <p className="generation-note" role="status">{libraryMessage}</p>}
         <div className="graph-stage">
-          {universe && model && <div className="universe-layer" hidden={!inUniverse}><UniverseCanvas key={universe.root_id} universe={universe} model={model} guide={guide}
-            focusedId={focusedId} active={inUniverse} onFocus={focusMedia} release={release}
+          {universe && model && !awaitingState && <div className="universe-layer" hidden={!inUniverse}><UniverseCanvas key={`${universe.root_id}:${identity ?? 'guest'}`} universe={universe} model={model} guide={guide}
+            focusedId={effectiveFocusedId} active={inUniverse} onFocus={focusMedia} release={release}
             onEnter={enter} details={beginEntry => <>
-              {stateLoading && <p className="state-notice" role="status">Retrieving saved viewing state…</p>}
-              <UniverseDetails media={model.media.find(item => item.id === focusedId)} universe={universe} model={model} guide={guide} release={release}
-                state={states[focusedId]} busy={saving || awaitingState} onFocus={focusMedia} onEnter={beginEntry}
+              {canStartHere && searchedEntry && <div className="start-here-notice">
+                <p>Your map starts at the beginning of the main storyline.</p>
+                <button disabled={saving} onClick={() => void changeFlags(searchedEntry, { manual_unlocked: true }, true)}>Start here instead · searched entry</button>
+              </div>}
+              <UniverseDetails media={model.media.find(item => item.id === effectiveFocusedId)} universe={universe} model={model} guide={guide} release={release}
+                state={states[effectiveFocusedId]} busy={saving || awaitingState} onFocus={focusMedia} onEnter={beginEntry}
                 onUnlock={item => void changeFlags(item, { manual_unlocked: true })} onComplete={item => void changeFlags(item, { completed: true })} message={stateMessage} />
             </>} /></div>}
+          {inUniverse && universe && awaitingState && <div className="empty celestial" role="status">Retrieving your viewing progress…</div>}
           {inUniverse && !universe && !error && <div className="empty celestial" role="status"><span className="empty-star">✧</span>Discovering connected stories…</div>}
           {error ? <div role="alert" className="error">{error} <button onClick={() => { if (inUniverse && media) void openUniverse(media); else if (!media) setLoadRevision(value => value + 1); else setRevision(value => value + 1) }}>Retry loading</button></div>
             : !inUniverse ? <motion.div className="character-layer" key={media?.id} initial={{ opacity: 0, scale: reduced ? 1 : .9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: reduced ? 0 : .65 }}>
@@ -300,7 +315,7 @@ export default function App() {
         </div>
         <footer className="graph-footer">
           <div className="map-key">{inUniverse ? <><span><i className="available-dot" />Available</span><span><i className="locked-dot" />Locked</span><span><i className="completed-dot" />Completed</span></> : <span><i className="available-dot" />Revealed at your progress</span>}</div>
-          <span role="status">{!inUniverse && progressMessage ? <>{progressMessage}{progressMessage.startsWith('Could not') && <button onClick={() => changeProgress(progress)}>Retry</button>}</> : !inUniverse && stateMessage ? stateMessage : 'Your story. Your pace.'}</span><span>{inUniverse ? 'Arrow keys to travel · Overview to see all worlds' : 'Scroll to zoom · Drag to explore'}</span>
+          <span role="status">{!inUniverse && progressMessage ? <>{progressMessage}{progressMessage.startsWith('Could not') && <button onClick={() => changeProgress(progress)}>Retry</button>}</> : !inUniverse && stateMessage ? stateMessage : 'Your story. Your pace.'}</span><span>{inUniverse ? 'Arrow keys to travel · Overview to see your map' : 'Scroll to zoom · Drag to explore'}</span>
         </footer>
       </section>
     </main>

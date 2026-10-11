@@ -33,3 +33,11 @@ test('focus camera anchors artwork in the dedicated graph area on desktop and mo
     assert.ok(view.zoom >= .95 && view.zoom <= 1.25)
   }
 })
+
+test('focus zoom shrinks for short canvases while keeping the selected world anchored', () => {
+  const short = focusViewport(positions.home, 900, 250)
+  const tall = focusViewport(positions.home, 900, 600)
+  assert.ok(short.zoom < tall.zoom)
+  assert.equal(short.x + (positions.home.x + 88) * short.zoom, 450)
+  assert.equal(short.y + (positions.home.y + 50) * short.zoom, 250 * .43)
+})

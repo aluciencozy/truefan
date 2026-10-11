@@ -3,114 +3,97 @@ import type { UniverseModel } from './universeModel.ts'
 
 export const MEDIA_WIDTH = 176
 export const MEDIA_HEIGHT = 174
+// Includes the 235px focused artwork, labels, and a little breathing room.
+export const WORLD_CLEARANCE = 300
 export interface Point { x: number; y: number }
 export type Positions = Record<string, Point>
 export interface GroupBounds { id: string; label: string; x: number; y: number; width: number; height: number }
-const options = {
-  'elk.algorithm': 'layered', 'elk.direction': 'RIGHT', 'elk.randomSeed': '17',
-  'elk.spacing.nodeNode': '100', 'elk.layered.spacing.nodeNodeBetweenLayers': '140',
-  'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-  'elk.padding': '[top=46,left=26,bottom=26,right=26]',
-}
-
-// Stable, bounded offsets soften the layout without closing the gaps between cards.
-function loosenPositions(positions: Positions): Positions {
-  return Object.fromEntries(Object.entries(positions).map(([id, point]) => {
-    let seed = 2166136261
-    for (const character of id) seed = Math.imul(seed ^ character.charCodeAt(0), 16777619)
-    seed = Math.imul(seed ^ (seed >>> 16), 0x85ebca6b)
-    return [id, { x: point.x + ((seed & 0xffff) / 65535 - .5) * 48,
-      y: point.y + ((seed >>> 16) / 65535 - .5) * 84 }]
-  }))
-}
 
 export function groupBounds(model: UniverseModel, positions: Positions): GroupBounds[] {
   return model.groups.flatMap(group => {
     const points = group.mediaIds.map(id => positions[id]).filter(Boolean)
     if (!points.length) return []
-    const x = Math.min(...points.map(p => p.x)) - 26, y = Math.min(...points.map(p => p.y)) - 82
+    const x = Math.min(...points.map(p => p.x)) - 60, y = Math.min(...points.map(p => p.y)) - 100
     return [{ id: group.id, label: group.label, x, y,
-      width: Math.max(...points.map(p => p.x)) + MEDIA_WIDTH + 26 - x,
-      height: Math.max(...points.map(p => p.y)) + MEDIA_HEIGHT + 26 - y }]
+      width: Math.max(...points.map(p => p.x)) + MEDIA_WIDTH + 60 - x,
+      height: Math.max(...points.map(p => p.y)) + MEDIA_HEIGHT + 100 - y }]
   })
 }
 
-/** Preserve existing media anchors on expansion and keep new cards inside their group's area. */
-export function preservePositions(model: UniverseModel, proposed: Positions, previous: Positions): Positions {
+function finishLayout(model: UniverseModel, proposed: Positions): Positions {
   const positions: Positions = {}
-  for (const item of model.media) if (previous[item.id]) positions[item.id] = previous[item.id]
-  const overlap = (p: Point, other: Point) => Math.abs(p.x - other.x) < MEDIA_WIDTH + 48 && Math.abs(p.y - other.y) < MEDIA_HEIGHT + 56
+  let bottom: number | null = null
   for (const group of model.groups) {
-    const groupAnchor = group.mediaIds.find(id => positions[id] && proposed[id])
-    const groupDx = groupAnchor ? positions[groupAnchor].x - proposed[groupAnchor].x : 0
-    const groupDy = groupAnchor ? positions[groupAnchor].y - proposed[groupAnchor].y : 0
-    for (const branch of model.branches.filter(branch => group.branchIds.includes(branch.id))) {
-      const anchor = branch.mediaIds.find(id => positions[id] && proposed[id])
-      const dx = anchor ? positions[anchor].x - proposed[anchor].x : groupDx
-      const dy = anchor ? positions[anchor].y - proposed[anchor].y : groupDy
-      for (const id of branch.mediaIds) {
-        if (positions[id]) continue
-        const point = { x: (proposed[id]?.x ?? 0) + dx, y: (proposed[id]?.y ?? 0) + dy }
-        const otherPoints = model.groups.filter(other => other.id !== group.id)
-          .flatMap(other => other.mediaIds.flatMap(id => positions[id] ? [positions[id]] : []))
-        if (otherPoints.length) point.y = group.id === 'group:main'
-          ? Math.min(point.y, Math.min(...otherPoints.map(p => p.y)) - MEDIA_HEIGHT - 180)
-          : Math.max(point.y, Math.max(...otherPoints.map(p => p.y)) + MEDIA_HEIGHT + 180)
-        if (Object.values(positions).some(p => overlap(point, p))) {
-          point.x = Math.max(0, ...Object.values(positions).map(p => p.x)) + MEDIA_WIDTH + 100
-        }
-        positions[id] = point
-      }
+    const placed: Point[] = []
+    for (const id of group.mediaIds) {
+      let seed = 2166136261
+      for (const character of id) seed = Math.imul(seed ^ character.charCodeAt(0), 16777619)
+      seed = Math.imul(seed ^ (seed >>> 16), 0x85ebca6b)
+      const point = { x: proposed[id].x + ((seed & 0xffff) / 65535 - .5) * 48,
+        y: proposed[id].y + ((seed >>> 16) / 65535 - .5) * 84 }
+      while (placed.some(p => Math.abs(p.x - point.x) < WORLD_CLEARANCE && Math.abs(p.y - point.y) < WORLD_CLEARANCE)) point.y += WORLD_CLEARANCE
+      positions[id] = point; placed.push(point)
     }
+    const bounds = groupBounds({ ...model, groups: [group] }, positions)[0]
+    if (!bounds) continue
+    const shift: number = bottom === null ? -bounds.y : bottom + 180 - bounds.y
+    for (const id of group.mediaIds) positions[id].y += shift
+    bottom = bounds.y + shift + bounds.height
   }
   return positions
 }
 
-export function fallbackPositions(model: UniverseModel): Positions {
-  const positions: Positions = {}
-  let top = 0
-  for (const group of model.groups) {
-    const rowWidth = Math.max(MEDIA_WIDTH + 100, Math.sqrt(group.mediaIds.length * (MEDIA_WIDTH + 100) * (MEDIA_HEIGHT + 140) * 2))
-    let left = 0, row = top
-    for (const branch of model.branches.filter(branch => group.branchIds.includes(branch.id))) {
-      const width = branch.mediaIds.length * (MEDIA_WIDTH + 100)
-      if (left && left + width > rowWidth) { left = 0; row += MEDIA_HEIGHT + 140 }
-      branch.mediaIds.forEach((id, column) => { positions[id] = { x: left + column * (MEDIA_WIDTH + 100), y: row } })
-      left += width
-    }
-    top = row + MEDIA_HEIGHT + 140 + 180
+function depths(model: UniverseModel): Map<string, number> {
+  const parents = new Map(model.progression.map(link => [link.target, link.source]))
+  const result = new Map<string, number>()
+  const depth = (id: string): number => {
+    if (result.has(id)) return result.get(id)!
+    const parent = parents.get(id)
+    const value = parent ? depth(parent) + 1 : 0
+    result.set(id, value); return value
   }
-  return loosenPositions(positions)
+  model.media.forEach(item => depth(item.id))
+  return result
 }
 
-export async function layoutUniverse(model: UniverseModel, previous: Positions = {}): Promise<Positions> {
-  if (!model.media.length) return {}
-  // Load ELK only when a universe is opened, away from home/search/auth startup.
-  const { default: ELK } = await import('elkjs/lib/elk.bundled.js')
-  const elk = new ELK()
-  const groups = await Promise.all(model.branches.map(branch => elk.layout<ElkNode>({
-    id: branch.id, layoutOptions: options,
-    children: branch.mediaIds.map(id => ({ id, width: MEDIA_WIDTH, height: MEDIA_HEIGHT })),
-    edges: model.links.filter(l => l.primary && model.branchByMedia[l.source] === branch.id && model.branchByMedia[l.target] === branch.id)
-      .map(l => ({ id: l.id, sources: [l.source], targets: [l.target] })),
-  })))
-  const byBranch = new Map(groups.map(g => [g.id, g]))
-  const positions: Positions = {}
-  let top = 0
-  // Keep the main series above related works; cross-links never decide which group a work belongs to.
+export function fallbackPositions(model: UniverseModel): Positions {
+  const ranks = depths(model), positions: Positions = {}
   for (const group of model.groups) {
-    const region = await elk.layout<ElkNode>({ id: group.id,
-      layoutOptions: { 'elk.algorithm': 'box', 'elk.spacing.nodeNode': '120', 'elk.aspectRatio': '2', 'elk.randomSeed': '17' },
-      children: group.branchIds.map(id => ({ id, width: byBranch.get(id)!.width, height: byBranch.get(id)!.height })),
-    })
-    for (const placement of region.children ?? []) {
-      const branch = byBranch.get(placement.id)!
-      for (const node of branch.children ?? []) positions[node.id] = {
-        x: (placement.x ?? 0) + (node.x ?? 0), y: top + (placement.y ?? 0) + (node.y ?? 0),
-      }
+    const rows = new Map<number, number>()
+    for (const id of group.mediaIds) {
+      const rank = ranks.get(id) ?? 0, row = rows.get(rank) ?? 0
+      positions[id] = { x: rank * 420, y: row * 400 }
+      rows.set(rank, row + 1)
     }
-    top += (region.height ?? 0) + 180
   }
-  const loosened = loosenPositions(positions)
-  return Object.keys(previous).length ? preservePositions(model, loosened, previous) : loosened
+  return finishLayout(model, positions)
+}
+
+export async function layoutUniverse(model: UniverseModel): Promise<Positions> {
+  if (!model.media.length) return {}
+  const { default: ELK } = await import('elkjs/lib/elk.bundled.js')
+  const elk = new ELK(), ranks = depths(model)
+  const layouts = await Promise.all(model.groups.map(group => elk.layout<ElkNode>({
+    id: group.id,
+    layoutOptions: {
+      'elk.algorithm': 'layered', 'elk.direction': 'RIGHT', 'elk.randomSeed': '17',
+      'elk.spacing.nodeNode': '220', 'elk.layered.spacing.nodeNodeBetweenLayers': '244',
+      'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+    },
+    children: group.mediaIds.map(id => ({ id, width: MEDIA_WIDTH, height: MEDIA_HEIGHT })),
+    edges: model.progression.filter(link => group.mediaIds.includes(link.source) && group.mediaIds.includes(link.target))
+      .map(link => ({ id: link.id, sources: [link.source], targets: [link.target] })),
+  })))
+  const positions: Positions = {}
+  for (const layout of layouts) for (const node of layout.children ?? []) {
+    positions[node.id] = { x: Math.max(node.x ?? 0, (ranks.get(node.id) ?? 0) * 420), y: node.y ?? 0 }
+  }
+  return finishLayout(model, positions)
+}
+
+/** Rebalance around the focused world so growth never moves it on screen. */
+export function anchorLayout(proposed: Positions, previous: Positions, focusedId: string): Positions {
+  if (!proposed[focusedId] || !previous[focusedId]) return proposed
+  const dx = previous[focusedId].x - proposed[focusedId].x, dy = previous[focusedId].y - proposed[focusedId].y
+  return Object.fromEntries(Object.entries(proposed).map(([id, p]) => [id, { x: p.x + dx, y: p.y + dy }]))
 }

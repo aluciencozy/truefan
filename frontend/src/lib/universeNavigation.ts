@@ -6,7 +6,7 @@ export function connectionDestination(link: { source: string; target: string }, 
   return link.target === focusedId ? link.source : link.target
 }
 
-export function connectedNeighbors(model: UniverseModel, id: string): string[] {
+export function connectedNeighbors(model: Pick<UniverseModel, 'links'>, id: string): string[] {
   return [...new Set(model.links.flatMap(link => link.source === id && link.target !== id ? [link.target]
     : link.target === id && link.source !== id ? [link.source] : []))]
 }
@@ -25,7 +25,8 @@ export function directionalNeighbor(id: string, neighbors: string[], positions: 
 
 export function focusViewport(point: Point, width: number, height: number) {
   const compact = width < 500
-  const zoom = compact ? .95 : Math.min(1.25, Math.max(1, width / 850))
+  const preferred = compact ? .95 : Math.min(1.25, Math.max(1, width / 850))
+  const zoom = Math.max(.4, Math.min(preferred, (height - 100) / 350))
   return { x: width * .5 - (point.x + MEDIA_WIDTH / 2) * zoom,
     y: height * .43 - (point.y + 50) * zoom, zoom }
 }

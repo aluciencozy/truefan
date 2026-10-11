@@ -8,8 +8,17 @@ export interface UniverseBranch { id: string; mediaIds: string[] }
 export interface UniverseGroup { id: string; label: string; branchIds: string[]; mediaIds: string[] }
 export interface UniverseModel {
   media: Media[]; links: UniverseLink[]; branches: UniverseBranch[]; branchByMedia: Record<string, string>; groups: UniverseGroup[]
+  progression: UniverseLink[]; startId: string | null
 }
 export const compareId = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0
+/** Missing date components sort last; IDs break ties without inventing dates. */
+export function compareRelease(a: Media, b: Media): number {
+  for (const part of ['year', 'month', 'day'] as const) {
+    const difference = (a.release_date?.[part] ?? Infinity) - (b.release_date?.[part] ?? Infinity)
+    if (!Number.isNaN(difference) && difference) return difference
+  }
+  return compareId(a.id, b.id)
+}
 const symmetric = new Set(['ALTERNATIVE', 'ADAPTATION', 'CHARACTER', 'OTHER', 'SAME_UNIVERSE'])
 const separate = new Set(['ALTERNATIVE', 'SPIN_OFF', 'SIDE_STORY', 'PARENT', 'ADAPTATION', 'SOURCE'])
 export const relationLabel = (type: string) => type.toLowerCase().replaceAll('_', ' ')
@@ -38,21 +47,12 @@ export function buildUniverseModel(universe: Universe): UniverseModel {
   }
   const links = [...linksById.values()].sort((a, b) => compareId(a.id, b.id))
   const continuations = links.filter(l => l.kind === 'SEQUEL' && l.source !== l.target)
-  const formatFamily = (m: Media) => ['TV', 'TV_SHORT', 'ONA'].includes(m.format ?? '') ? 'series' : m.format ?? m.type
+  const formatFamily = (m: Media) => ['TV', 'TV_SHORT', 'ONA', 'MOVIE'].includes(m.format ?? '') ? 'storyline' : m.format ?? m.type
   const sameFormat = (link: UniverseLink) => {
     const a = byId.get(link.source)!, b = byId.get(link.target)!
     return a.type === b.type && formatFamily(a) === formatFamily(b)
   }
   const eligible = continuations.filter(sameFormat)
-  const parents = new Map<string, string>()
-  // One primary incoming edge, no cycles. Remaining real connections stay visible as cross-links.
-  for (const link of [...eligible, ...continuations.filter(l => !sameFormat(l))]) {
-    if (parents.has(link.target)) continue
-    let ancestor: string | undefined = link.source
-    while (ancestor && ancestor !== link.target) ancestor = parents.get(ancestor)
-    if (ancestor === link.target) continue
-    parents.set(link.target, link.source); link.primary = true
-  }
   const group = new Map(media.map(m => [m.id, m.id]))
   const find = (id: string): string => {
     let next = id
@@ -85,17 +85,76 @@ export function buildUniverseModel(universe: Universe): UniverseModel {
     anchor = parent.kind === 'PARENT' ? parent.target : parent.source
   }
   let mainId = branchByMedia[anchor]
-  // An optional OVA/film entry should still lead to its directly connected TV-season group.
-  if (byId.has(anchor) && formatFamily(byId.get(anchor)!) !== 'series') {
+  // An optional OVA entry should still lead to its directly connected main storyline.
+  if (byId.has(anchor) && formatFamily(byId.get(anchor)!) !== 'storyline') {
     const series = continuations.flatMap(link => link.source === anchor ? [link.target] : link.target === anchor ? [link.source] : [])
-      .find(id => formatFamily(byId.get(id)!) === 'series')
+      .find(id => formatFamily(byId.get(id)!) === 'storyline')
     if (series) mainId = branchByMedia[series]
   }
   if (!mainId) mainId = branches[0]?.id
   const groups: UniverseGroup[] = [
-    { id: 'group:main', label: 'Main series', branchIds: branches.filter(b => b.id === mainId).map(b => b.id), mediaIds: [] },
-    { id: 'group:related', label: 'Spinoffs & related works', branchIds: branches.filter(b => b.id !== mainId).map(b => b.id), mediaIds: [] },
+    { id: 'group:main', label: 'Main storyline', branchIds: branches.filter(b => b.id === mainId).map(b => b.id), mediaIds: [] },
+    { id: 'group:related', label: 'Extras & spinoffs', branchIds: branches.filter(b => b.id !== mainId).map(b => b.id), mediaIds: [] },
   ].map(group => ({ ...group, mediaIds: branches.filter(b => group.branchIds.includes(b.id)).flatMap(b => b.mediaIds) }))
     .filter(group => group.mediaIds.length)
-  return { media, links, branches, branchByMedia, groups }
+  const mainIds = new Set(groups.find(g => g.id === 'group:main')?.mediaIds)
+  const candidates = links.flatMap(link => {
+    if (!['SEQUEL', 'PARENT', 'SPIN_OFF', 'SIDE_STORY'].includes(link.kind) || link.source === link.target) return []
+    const source = link.kind === 'PARENT' ? link.target : link.source
+    const target = link.kind === 'PARENT' ? link.source : link.target
+    // Optional works must never become a prerequisite for the main story.
+    if (mainIds.has(target) && !mainIds.has(source)) return []
+    return [{ ...link, source, target }]
+  })
+  const rank = (link: UniverseLink) => link.kind === 'SEQUEL' && branchByMedia[link.source] === branchByMedia[link.target] ? 0
+    : link.kind !== 'SEQUEL' ? 1 : 2
+  const earlier = (link: UniverseLink) => {
+    const source = byId.get(link.source)!, target = byId.get(link.target)!
+    return Boolean(source.release_date?.year && target.release_date?.year && compareRelease(source, target) < 0)
+  }
+  candidates.sort((a, b) => rank(a) - rank(b) || Number(earlier(b)) - Number(earlier(a))
+    || compareRelease(byId.get(a.target)!, byId.get(b.target)!)
+    || (earlier(a) && earlier(b) ? compareRelease(byId.get(b.source)!, byId.get(a.source)!) : 0)
+    || compareId(a.source, b.source) || compareId(a.id, b.id))
+  const parents = new Map<string, string>()
+  const progression: UniverseLink[] = []
+  for (const link of candidates) {
+    if (parents.has(link.target)) continue
+    let ancestor: string | undefined = link.source
+    while (ancestor && ancestor !== link.target) ancestor = parents.get(ancestor)
+    if (ancestor === link.target) continue
+    parents.set(link.target, link.source)
+    links.find(raw => raw.id === link.id)!.primary = true
+    progression.push({ ...link, id: JSON.stringify(['unlock', link.source, link.target]), primary: true, directional: true })
+  }
+  progression.sort((a, b) => compareId(a.id, b.id))
+  const startId = media.filter(m => mainIds.has(m.id) && !parents.has(m.id)).sort(compareRelease)[0]?.id ?? null
+  return { media, links, branches, branchByMedia, groups, progression, startId }
+}
+
+/** Only the visible frontier participates in layout, navigation, and optional cross-links. */
+export function visibleUniverse(model: UniverseModel, visibleIds: Set<string>): UniverseModel {
+  const branches = model.branches.map(b => ({ ...b, mediaIds: b.mediaIds.filter(id => visibleIds.has(id)) })).filter(b => b.mediaIds.length)
+  return { ...model, media: model.media.filter(m => visibleIds.has(m.id)), branches,
+    groups: model.groups.map(g => ({ ...g, mediaIds: g.mediaIds.filter(id => visibleIds.has(id)),
+      branchIds: g.branchIds.filter(id => branches.some(b => b.id === id)) })).filter(g => g.mediaIds.length),
+    links: model.links.filter(l => visibleIds.has(l.source) && visibleIds.has(l.target)),
+    progression: model.progression.filter(l => visibleIds.has(l.source) && visibleIds.has(l.target)),
+  }
+}
+
+export function displayLinks(model: UniverseModel, related: boolean): UniverseLink[] {
+  const pair = (a: string, b: string) => JSON.stringify([a, b].sort(compareId))
+  const taken = new Set(model.progression.map(l => pair(l.source, l.target)))
+  const secondary = new Map<string, UniverseLink>()
+  if (related) for (const link of model.links) {
+    const key = pair(link.source, link.target)
+    if (link.source === link.target || taken.has(key)) continue
+    const existing = secondary.get(key)
+    if (existing) {
+      existing.relations.push(...link.relations)
+      existing.kind = [...new Set(existing.relations.map(r => r.type.toUpperCase()))].sort(compareId).join(' / ')
+    } else secondary.set(key, { ...link, id: `related:${key}`, primary: false, directional: false, relations: [...link.relations] })
+  }
+  return [...model.progression, ...secondary.values()]
 }
