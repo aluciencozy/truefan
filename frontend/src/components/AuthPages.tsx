@@ -2,11 +2,13 @@ import { AccountView, AuthView } from '@neondatabase/auth-ui'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { authClient } from '../lib/auth'
 import AppNavbar from './AppNavbar'
+import GlitterStars from './GlitterStars'
 
 export default function AuthPages({ account = false }: { account?: boolean }) {
   const { path } = useParams()
   if (account && path !== 'settings') return <Navigate to="/account/settings" replace />
   return <><AppNavbar /><main className="auth-shell celestial">
+    <GlitterStars />
     <div className="auth-page">
       {authClient ? account
         ? <>

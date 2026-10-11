@@ -1,5 +1,11 @@
-.glitter-stars { position: absolute; inset: 0; overflow: hidden; z-index: -1; pointer-events: none; }
-.glitter-stars i { position: absolute; display: block; width: var(--star-size); height: var(--star-size); border-radius: 50%; background: #f2edff; box-shadow: 0 0 4px #dcc8ff80, 0 0 8px #cba6f726; opacity: .6; animation: glitter-star var(--star-duration) ease-in-out var(--star-delay) infinite; }
-.glitter-star-accent { position: absolute; color: #dec4ff; font-family: 'Inter', sans-serif; line-height: 1; text-shadow: 0 0 6px #cba6f766, 0 0 14px #cba6f726; opacity: .65; animation: glitter-star var(--star-duration) ease-in-out var(--star-delay) infinite; }
+.glitter-stars { position: fixed; inset: 0; overflow: hidden; z-index: -1; pointer-events: none; perspective: 120vmax; }
+.glitter-stars i, .glitter-star-accent { animation: glitter-star var(--star-duration) ease-in-out var(--star-delay) infinite, star-orbit 240s linear var(--orbit-delay) infinite; }
+.glitter-stars i { position: absolute; display: block; width: var(--star-size); height: var(--star-size); border-radius: 50%; background: #f2edff; box-shadow: 0 0 4px #dcc8ff80, 0 0 8px #cba6f726; opacity: .6; }
+.glitter-star-accent { position: absolute; color: #dec4ff; font-family: 'Inter', sans-serif; line-height: 1; text-shadow: 0 0 6px #cba6f766, 0 0 14px #cba6f726; opacity: .65; }
+/* Counter-rotation keeps stars facing the viewer as they orbit through depth. */
+@keyframes star-orbit {
+  from { transform: rotateY(0deg) translateZ(var(--orbit-radius)) rotateY(0deg); }
+  to { transform: rotateY(360deg) translateZ(var(--orbit-radius)) rotateY(-360deg); }
+}
 @keyframes glitter-star { 0%, 100% { opacity: .4; } 45% { opacity: .8; } 70% { opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { .glitter-stars i, .glitter-star-accent { animation: none; opacity: .65; } }

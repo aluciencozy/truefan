@@ -48,12 +48,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .auth-signout { display: inline-block; margin-top: 24px; color: var(--subtext); font-size: 14px; }
 .auth-form { display: grid; gap: 12px; }
 .brand { color: var(--mauve); }
-/* Sparse static starlight avoids frame-by-frame rendering and animated filters. */
 .celestial { position: relative; isolation: isolate; background: radial-gradient(ellipse at 51% 44%, #31324470, #1e1e2e30 42%, transparent 73%), var(--crust); }
-.celestial::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .6;
-  background-image: radial-gradient(circle at 17px 43px, #b4befe80 .65px, transparent 1px), radial-gradient(circle at 117px 91px, #cdd6f470 .6px, transparent 1px), radial-gradient(circle at 73px 163px, #cba6f750 .65px, transparent 1px);
-  background-size: 257px 239px, 389px 317px, 541px 457px;
-}
 /* Home retains the reference artwork placement and centered search. */
 .home-page { min-height: 100svh; display: flex; flex-direction: column; font-family: var(--body); background: var(--crust); }
 .home-footer { min-height: 88px; padding: 20px 48px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
@@ -86,7 +81,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 /* The map is the workspace. Search and details float above it. */
 .app-shell.celestial { min-height: 100svh; background: var(--crust); overflow: clip; }
 .app-shell .celestial { background: transparent; }
-.app-shell .celestial::before { display: none; }
 .account-panel { position: relative; font-size: 13px; }
 .account-trigger { width: 38px; height: 38px; padding: 0; display: grid; place-items: center; background: #18182560; border-color: #45475a70; backdrop-filter: blur(12px); }
 .account-trigger[aria-expanded="true"] { color: var(--lavender); border-color: var(--lavender); }

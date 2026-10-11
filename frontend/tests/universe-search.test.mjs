@@ -30,6 +30,7 @@ const Home = await loadComponent('HomePage', source => source
   .replace("import { api } from '../lib/api'", 'const api = globalThis.__searchApi')
   .replace("import { motion, useReducedMotion } from 'motion/react'", "const motion = { section: 'section' }; const useReducedMotion = () => true")
   .replace("import AppNavbar from './AppNavbar'", 'const AppNavbar = () => null')
+  .replace("import GlitterStars from './GlitterStars'", 'const GlitterStars = () => null')
   .replace("import UniverseSearch from './UniverseSearch'", 'const UniverseSearch = globalThis.__sharedSearch'))
 const Controls = await loadComponent('MediaControls', source => source
   .replace("import UniverseSearch from './UniverseSearch'", 'const UniverseSearch = globalThis.__sharedSearch'))
