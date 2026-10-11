@@ -262,4 +262,58 @@ class ForumDatabaseTests(CommunityDatabaseTests):
         self.assertTrue(community.entry_action(recommendation.id,'owner',EntryAction(action='tried')).tried)
 
 
+@unittest.skipUnless(os.getenv('TRUEFAN_COMMUNITY_DB_TESTS') == '1', 'Opt-in temporary-table Neon tests')
+class ThreadedCommentDatabaseTests(CommunityDatabaseTests):
+    def test_reply_chain_visibility_edit_and_parent_deletion(self):
+        post = self.post()
+        root = community.create_comment(post.id,'one',CommentCreate(body='Main'),False)
+        child = community.create_comment(post.id,'two',CommentCreate(body='Reply',parent_id=root.id),False)
+        nested = community.create_comment(post.id,'three',CommentCreate(body='Nested',parent_id=child.id),False)
+        self.assertEqual(nested.reply_to_author,child.author)
+        self.assertEqual(community.read_post(post.id,None,False).comments,3)
+        community.update_comment(root.id,'one',CommentCreate(body='Hidden main',contains_spoilers=True))
+        self.assertEqual(community.comments(post.id,None,False),[])
+        self.assertEqual(community.read_post(post.id,None,False).comments,0)
+        self.assertEqual(len(community.comments(post.id,None,True)),3)
+        with self.assertRaises(HTTPException):
+            community.create_comment(post.id,'other',CommentCreate(body='Hidden target',parent_id=nested.id),False)
+        community.update_comment(root.id,'one',CommentCreate(body='Main'))
+        community.delete_content('community_comments',root.id,'one')
+        remaining = community.comments(post.id,None,False)
+        self.assertEqual(len(remaining),2)
+        surviving_child = next(comment for comment in remaining if comment.id == child.id)
+        self.assertIsNone(surviving_child.parent_id)
+        self.assertIsNone(surviving_child.reply_to_author)
+
+    def test_cross_post_missing_and_spoiler_targets(self):
+        post, other = self.post(), self.post()
+        root = community.create_comment(post.id,'one',CommentCreate(body='Secret',contains_spoilers=True),True)
+        for target_post,target,show in ((other.id,root.id,True),(post.id,uuid4(),True),(post.id,root.id,False)):
+            with self.assertRaises(HTTPException):
+                community.create_comment(target_post,'two',CommentCreate(body='Reply',parent_id=target),show)
+        reply = community.create_comment(post.id,'two',CommentCreate(body='Reply',parent_id=root.id),True)
+        self.assertTrue(reply.contains_spoilers)
+        with self.assertRaises(HTTPException):
+            community.update_comment(reply.id,'attacker',CommentCreate(body='Stolen'))
+
+    def test_board_layout_persists_and_owner_cannot_be_spoofed(self):
+        from app.community_models import EntryCreate
+        post = self.post(category='theory',room='mystery')
+        clue = community.save_entry(post.id,'one',EntryCreate(kind='clue',body='Clue',shape='diamond',board_x=110,board_y=-50),False)
+        moved = community.save_entry(post.id,'one',EntryCreate(kind='clue',body='Clue',shape='circle',board_x=280,board_y=90),False,clue.id)
+        self.assertEqual((moved.shape,moved.board_x,moved.board_y),('circle',280,90))
+        self.assertEqual(community.entries(post.id,'one',False)[0].board_x,280)
+        with self.assertRaises(HTTPException):
+            community.save_entry(post.id,'other',EntryCreate(kind='clue',body='Stolen',board_x=0),False,clue.id)
+
+
+class BoardContractTests(unittest.TestCase):
+    def test_rejects_invalid_board_shapes_and_nonfinite_positions(self):
+        from app.community_models import EntryCreate
+        from pydantic import ValidationError
+        for values in ({'shape':'triangle'}, {'board_x':float('nan')}, {'board_y':float('inf')}, {'board_x':10001}):
+            with self.assertRaises(ValidationError):
+                EntryCreate(kind='clue',body='Clue',**values)
+
+
 if __name__ == '__main__': unittest.main()

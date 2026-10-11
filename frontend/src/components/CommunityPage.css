@@ -248,3 +248,30 @@
 .forum-jury { display:grid; gap:16px; }
 .forum-jury .forum-entry-actions button { min-height:44px; padding:12px 18px; border-radius:12px; font:16px var(--display); }
 @media(max-width:500px) { .forum-thread .conversation-post h3 { font-size:24px; } .forum-thread .conversation-reply-form { padding:16px; } }
+
+.community-workspace.forum-workspace { align-items:start; }
+.forum-rooms h2, .forum-room-heading h2 { margin-top:0; }
+.forum-room-option > button { width:100%; }
+.room-explanation, .spoiler-shield-notes { padding:6px 10px; color:var(--subtext); font:12px/1.6 Inter,sans-serif; }
+.room-explanation summary, .spoiler-shield-notes summary { cursor:pointer; }
+.forum-rooms .room-explanation p, .forum-rooms .spoiler-shield-notes p { display:block; padding:8px 0 0; margin:0; color:var(--subtext); font:12px/1.6 Inter,sans-serif; }
+.spoiler-shield-notes { margin-top:12px; border-top:1px solid var(--border); padding-top:14px; }
+.comment-content { min-width:0; flex:1; }
+.reply-mention { color:var(--mauve); }
+.comment-expand { margin:0 0 12px 52px; color:var(--mauve); background:transparent; border:0; cursor:pointer; }
+.comment-thread-replies { margin-left:40px; border-left:1px solid var(--border); padding-left:12px; }
+.conversation-body { overflow-wrap:anywhere; }
+.conversation-reply-actions { flex-wrap:wrap; }
+.detective-board { height:440px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--base); }
+.detective-board-wrapper > p { color:var(--subtext); font-size:13px; line-height:1.6; }
+.detective-clue { width:220px; min-height:110px; padding:20px; background:var(--surface); border:2px solid var(--mauve); color:var(--text); display:flex; flex-direction:column; justify-content:center; gap:8px; }
+.detective-clue strong { overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow-wrap:anywhere; }
+.detective-clue small { color:var(--subtext); overflow-wrap:anywhere; }
+.detective-circle { border-radius:50%; min-height:180px; padding:32px; }
+.detective-diamond { border-radius:8px; min-height:180px; background:linear-gradient(135deg,transparent 15%,var(--surface) 15%,var(--surface) 85%,transparent 85%); }
+.detective-board .react-flow__handle { width:12px; height:12px; background:var(--pink); }
+.detective-board .react-flow__edge-path { stroke:var(--mauve); stroke-width:2; }
+.detective-board .react-flow__controls-button { background:var(--surface); color:var(--text); border-color:var(--border); fill:currentColor; }
+@media(max-width:800px) { .forum-room-option { flex:1 1 160px; } .forum-rooms .spoiler-shield-notes { width:100%; } .comment-thread-replies { margin-left:16px; padding-left:8px; } }
+.detective-diamond { position:relative; isolation:isolate; background:transparent; border:0; min-height:180px; padding:34px; }
+.detective-diamond::before { content:''; position:absolute; inset:14px 35px; background:var(--surface); border:2px solid var(--mauve); transform:rotate(45deg); z-index:-1; }

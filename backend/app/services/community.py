@@ -37,20 +37,35 @@ def active_count(cur: Cursor[dict[str, Any]]) -> int:
     return cur.fetchone()['total']
 
 
+# A reply is visible only when its entire remaining ancestor chain is visible.
+# This also hides descendants if an author later marks a parent as a spoiler.
+COMMENT_TREE = """WITH RECURSIVE visible_comments AS (
+    SELECT c.*,0 AS depth FROM public.community_comments c
+    WHERE c.post_id=%s AND c.parent_id IS NULL AND (NOT c.contains_spoilers OR %s)
+    UNION ALL
+    SELECT c.*,v.depth+1 AS depth FROM public.community_comments c JOIN visible_comments v ON c.parent_id=v.id
+    WHERE c.post_id=v.post_id AND (NOT c.contains_spoilers OR %s)
+) """
+
+
 def post_select() -> str:
     return """SELECT p.id, p.author, p.category, p.media, p.title, p.body, p.contains_spoilers,
                      p.rating, p.example, p.created_at, p.room, p.side_a, p.side_b, p.target_episode,
                      COALESCE(p.user_id=%s,false) AS is_owner,
                (SELECT count(*) FROM public.community_likes l WHERE l.post_id=p.id) AS likes,
-               (SELECT count(*) FROM public.community_comments c WHERE c.post_id=p.id
-                    AND (NOT c.contains_spoilers OR %s)) AS comments,
+               (WITH RECURSIVE visible AS (
+                    SELECT c.id FROM public.community_comments c WHERE c.post_id=p.id
+                    AND c.parent_id IS NULL AND (NOT c.contains_spoilers OR %s)
+                    UNION ALL SELECT c.id FROM public.community_comments c JOIN visible v ON c.parent_id=v.id
+                    WHERE c.post_id=p.id AND (NOT c.contains_spoilers OR %s)
+                ) SELECT count(*) FROM visible) AS comments,
                EXISTS(SELECT 1 FROM public.community_likes l WHERE l.post_id=p.id AND l.user_id=%s) AS liked
                FROM public.community_posts p"""
 
 
 def find_post(cur: Cursor[dict[str, Any]], post_id: UUID, user_id: str | None, include_spoilers: bool) -> CommunityPost:
     cur.execute(post_select() + ' WHERE p.id=%s AND (NOT p.contains_spoilers OR %s)',
-                (user_id, include_spoilers, user_id, post_id, include_spoilers))
+                (user_id, include_spoilers, include_spoilers, user_id, post_id, include_spoilers))
     row = cur.fetchone()
     if not row:
         raise HTTPException(404, 'Post not found or spoiler content is hidden')
@@ -68,7 +83,7 @@ def feed(category: Category | None, media: str, query: str, sort: str,
                     AND (%s='' OR p.media=%s) AND (p.title ILIKE %s OR p.body ILIKE %s)
                     AND (%s::text IS NULL OR p.room=%s)
                     ORDER BY """ + ordering + ' LIMIT 21 OFFSET %s',
-                    (user_id, include_spoilers, user_id, category, category, include_spoilers, media, media, search, search, room, room, offset))
+                    (user_id, include_spoilers, include_spoilers, user_id, category, category, include_spoilers, media, media, search, search, room, room, offset))
         rows = cur.fetchall()
         cur.execute('SELECT DISTINCT media FROM public.community_posts WHERE NOT contains_spoilers OR %s ORDER BY media',
                     (include_spoilers,))
@@ -108,20 +123,38 @@ def set_like(post_id: UUID, user_id: str, liked: bool, include_spoilers: bool) -
 def comments(post_id: UUID, user_id: str | None, include_spoilers: bool) -> list[CommunityComment]:
     with storage() as cur:
         find_post(cur,post_id,user_id,include_spoilers)
-        cur.execute("""SELECT id,author,body,contains_spoilers,created_at,COALESCE(user_id=%s,false) AS is_owner FROM public.community_comments
-                       WHERE post_id=%s AND (NOT contains_spoilers OR %s) ORDER BY created_at DESC,id DESC LIMIT 100""",
-                    (user_id,post_id,include_spoilers))
-        return [CommunityComment.model_validate(row) for row in reversed(cur.fetchall())]
+        cur.execute(COMMENT_TREE + """SELECT c.id,c.author,c.body,c.contains_spoilers,c.created_at,
+                       c.parent_id,p.author AS reply_to_author,COALESCE(c.user_id=%s,false) AS is_owner
+                       FROM visible_comments c LEFT JOIN visible_comments p ON p.id=c.parent_id
+                       ORDER BY c.depth,c.created_at,c.id LIMIT 100""",
+                    (post_id,include_spoilers,include_spoilers,user_id))
+        return [CommunityComment.model_validate(row) for row in cur.fetchall()]
+
+
+def reply_parent(cur: Cursor[dict[str, Any]], post_id: UUID, parent_id: UUID | None,
+                 show: bool) -> dict[str, Any] | None:
+    if parent_id is None:
+        return None
+    cur.execute(COMMENT_TREE + 'SELECT * FROM visible_comments WHERE id=%s',
+                (post_id,show,show,parent_id))
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(404, 'Reply target not found or spoiler content is hidden')
+    return row
 
 
 def create_comment(post_id: UUID, user_id: str, request: CommentCreate, include_spoilers: bool) -> CommunityComment:
     with storage() as cur:
-        parent = find_post(cur,post_id,user_id,include_spoilers)
-        cur.execute("""INSERT INTO public.community_comments(id,post_id,user_id,author,body,contains_spoilers)
-                    VALUES (%s,%s,%s,%s,%s,%s) RETURNING id,author,body,contains_spoilers,created_at""",
+        # Lock the post while validating and inserting a reply.
+        cur.execute('SELECT id FROM public.community_posts WHERE id=%s FOR UPDATE', (post_id,))
+        post = find_post(cur,post_id,user_id,include_spoilers)
+        parent = reply_parent(cur,post_id,request.parent_id,include_spoilers)
+        cur.execute("""INSERT INTO public.community_comments(id,post_id,user_id,author,body,contains_spoilers,parent_id)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id,author,body,contains_spoilers,created_at,parent_id""",
                     (uuid4(),post_id,user_id,author_name(user_id),request.body,
-                     request.contains_spoilers or parent.contains_spoilers))
-        return CommunityComment.model_validate({**cur.fetchone(), "is_owner": True})
+                     request.contains_spoilers or post.contains_spoilers or bool(parent and parent['contains_spoilers']),request.parent_id))
+        return CommunityComment.model_validate({**cur.fetchone(), "is_owner": True,
+                                               "reply_to_author": parent['author'] if parent else None})
 
 
 def heartbeat(request: PresenceRequest, user_id: str | None) -> PresenceResponse:
@@ -145,7 +178,7 @@ def library(user_id: str) -> list[LibraryItem]:
         return [LibraryItem.model_validate(row) for row in cur.fetchall()]
 
 
-ENTRY_COLUMNS = "id,author,kind,body,side,source,artwork,connects_to,contains_spoilers,created_at,locked,revealed,tried,COALESCE(user_id=%s,false) AS is_owner"
+ENTRY_COLUMNS = "id,author,kind,body,side,source,artwork,board_x,board_y,shape,connects_to,contains_spoilers,created_at,locked,revealed,tried,COALESCE(user_id=%s,false) AS is_owner"
 
 
 def own_record(cur: Cursor[dict[str, Any]], table: str, record_id: UUID, user_id: str) -> dict[str, Any]:
@@ -186,9 +219,10 @@ def update_comment(comment_id: UUID, user_id: str, request: CommentCreate) -> Co
     with storage() as cur:
         row = own_record(cur, 'community_comments', comment_id, user_id)
         parent = find_post(cur, row['post_id'], user_id, True)
-        cur.execute('UPDATE public.community_comments SET body=%s,contains_spoilers=%s WHERE id=%s RETURNING id,author,body,contains_spoilers,created_at',
-                    (request.body,request.contains_spoilers or parent.contains_spoilers,comment_id))
-        return CommunityComment.model_validate({**cur.fetchone(), 'is_owner': True})
+        target = reply_parent(cur, row['post_id'], row['parent_id'], True)
+        cur.execute('UPDATE public.community_comments SET body=%s,contains_spoilers=%s WHERE id=%s RETURNING id,author,body,contains_spoilers,created_at,parent_id',
+                    (request.body,request.contains_spoilers or parent.contains_spoilers or bool(target and target['contains_spoilers']),comment_id))
+        return CommunityComment.model_validate({**cur.fetchone(), 'is_owner': True, 'reply_to_author': target['author'] if target else None})
 
 
 def entries(post_id: UUID, user_id: str | None, show: bool) -> list[ForumEntry]:
@@ -238,12 +272,12 @@ def save_entry(post_id: UUID, user_id: str, request: EntryCreate, show: bool, en
                 raise HTTPException(422, 'Keep the original contribution type')
             if old['locked']:
                 raise HTTPException(409, 'Locked predictions cannot be edited')
-            cur.execute('UPDATE public.community_entries SET body=%s,side=%s,source=%s,artwork=%s,connects_to=%s,contains_spoilers=%s WHERE id=%s',
-                        (request.body,request.side,request.source,request.artwork,request.connects_to,request.contains_spoilers or parent.contains_spoilers,entry_id))
+            cur.execute('UPDATE public.community_entries SET body=%s,side=%s,source=%s,artwork=%s,connects_to=%s,contains_spoilers=%s,board_x=%s,board_y=%s,shape=%s WHERE id=%s',
+                        (request.body,request.side,request.source,request.artwork,request.connects_to,request.contains_spoilers or parent.contains_spoilers,request.board_x,request.board_y,request.shape,entry_id))
         else:
             entry_id = uuid4()
-            cur.execute('INSERT INTO public.community_entries(id,post_id,user_id,author,kind,body,side,source,artwork,connects_to,contains_spoilers) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
-                        (entry_id,post_id,user_id,author_name(user_id),request.kind,request.body,request.side,request.source,request.artwork,request.connects_to,request.contains_spoilers or parent.contains_spoilers))
+            cur.execute('INSERT INTO public.community_entries(id,post_id,user_id,author,kind,body,side,source,artwork,connects_to,contains_spoilers,board_x,board_y,shape) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+                        (entry_id,post_id,user_id,author_name(user_id),request.kind,request.body,request.side,request.source,request.artwork,request.connects_to,request.contains_spoilers or parent.contains_spoilers,request.board_x,request.board_y,request.shape))
         cur.execute(f'SELECT {ENTRY_COLUMNS} FROM public.community_entries WHERE id=%s', (user_id,entry_id))
         return ForumEntry.model_validate(cur.fetchone())
 

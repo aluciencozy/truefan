@@ -62,3 +62,10 @@ CREATE TABLE IF NOT EXISTS public.community_entries (
 CREATE UNIQUE INDEX IF NOT EXISTS community_single_participation ON public.community_entries(post_id,user_id,kind)
     WHERE kind IN ('join','vote','prediction');
 CREATE INDEX IF NOT EXISTS community_entries_post ON public.community_entries(post_id,created_at);
+
+-- Reply parents are validated against the same post by the service.
+ALTER TABLE public.community_comments ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES public.community_comments(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS community_comments_parent ON public.community_comments(parent_id);
+ALTER TABLE public.community_entries ADD COLUMN IF NOT EXISTS board_x DOUBLE PRECISION;
+ALTER TABLE public.community_entries ADD COLUMN IF NOT EXISTS board_y DOUBLE PRECISION;
+ALTER TABLE public.community_entries ADD COLUMN IF NOT EXISTS shape TEXT NOT NULL DEFAULT 'rectangle';

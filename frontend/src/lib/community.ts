@@ -16,7 +16,7 @@ export const forumRooms: ForumRoom[] = [
   {id:'hot-take',category:'review',name:'Hot-take courtroom',description:'Argue for or against a take, then vote.',title:'Charlotte hot take: the characters make the show',prompt:'Make a case for or against this take. Add scene evidence from the episodes you have watched and let the community vote.'},
   {id:'matchmaking',category:'review',name:'Watchlist matchmaking',description:'Ask for recommendations and mark what you tried.',title:'What should I watch alongside Charlotte?',prompt:'Tell fans what mood, characters, or themes you want. Nominate a show and explain your pick without spoilers. The requester can mark recommendations they tried.'},
 ]
-export interface EntryDraft { kind: 'contribution' | 'join' | 'vote' | 'prediction' | 'clue' | 'art' | 'recommendation' | 'impression'; body: string; side: 'a' | 'b' | 'believable' | 'devastating' | 'neutral'; source: string; artwork: string; connects_to: string | null; contains_spoilers: boolean }
+export interface EntryDraft { board_x?: number | null; board_y?: number | null; shape?: 'rectangle' | 'circle' | 'diamond'; kind: 'contribution' | 'join' | 'vote' | 'prediction' | 'clue' | 'art' | 'recommendation' | 'impression'; body: string; side: 'a' | 'b' | 'believable' | 'devastating' | 'neutral'; source: string; artwork: string; connects_to: string | null; contains_spoilers: boolean }
 export interface ForumEntry extends EntryDraft { id: string; author: string; created_at: string; is_owner: boolean; locked: boolean; revealed: boolean; tried: boolean }
 export interface CommunityPost {
   id: string; category: PostCategory; media: string; title: string; body: string
@@ -25,6 +25,7 @@ export interface CommunityPost {
   room?: RoomId | null; side_a?: string; side_b?: string; target_episode?: number; is_owner?: boolean
 }
 export interface CommunityComment {
+  parent_id?: string | null; reply_to_author?: string | null;
   is_owner?: boolean; id: string; author: string; body: string; contains_spoilers: boolean; created_at: string
 }
 export interface CommunityFeed { posts: CommunityPost[]; media: string[]; active_fans: number; has_more: boolean }
@@ -50,7 +51,7 @@ export const communityApi = {
   post: (id: string, spoilers: boolean, signedIn: boolean, signal?: AbortSignal) => request<CommunityPost>(`/api/community/posts/${encodeURIComponent(id)}${spoilerQuery(spoilers)}`, signal, signedIn),
   like: (id: string, liked: boolean, spoilers: boolean) => request<CommunityPost>(`/api/community/posts/${id}/like${spoilerQuery(spoilers)}`, undefined, true, json({ liked }, 'PUT')),
   comments: (id: string, spoilers: boolean, signal?: AbortSignal, signedIn=false) => request<CommunityComment[]>(`/api/community/posts/${id}/comments${spoilerQuery(spoilers)}`, signal, signedIn),
-  comment: (id: string, body: string, contains_spoilers: boolean, show: boolean) => request<CommunityComment>(`/api/community/posts/${id}/comments${spoilerQuery(show)}`, undefined, true, json({ body, contains_spoilers })),
+  comment: (id: string, body: string, contains_spoilers: boolean, show: boolean, parent_id: string | null = null) => request<CommunityComment>(`/api/community/posts/${id}/comments${spoilerQuery(show)}`, undefined, true, json({ body, contains_spoilers, parent_id })),
   update: (id: string, post: PostCreate) => request<CommunityPost>(`/api/community/posts/${id}`, undefined, true, json(post, 'PUT')),
   remove: (id: string) => request<{deleted: boolean}>(`/api/community/posts/${id}`, undefined, true, {method:'DELETE'}),
   editComment: (id: string, body: string, contains_spoilers: boolean) => request<CommunityComment>(`/api/community/comments/${id}`, undefined, true, json({body,contains_spoilers}, 'PUT')),

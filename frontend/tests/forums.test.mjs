@@ -11,7 +11,9 @@ globalThis.IS_REACT_ACT_ENVIRONMENT=true
 function compile(source){let {outputText}=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}});outputText=outputText.replace(/from (["'])([^"']+)\1/g,(_,q,name)=>`from ${JSON.stringify(pathToFileURL(require.resolve(name)).href)}`);return 'data:text/javascript;base64,'+Buffer.from(outputText).toString('base64')}
 const helpers=(await readFile(new URL('../src/lib/community.ts',import.meta.url),'utf8')).replace("import { request } from './api'",'const request=()=>{}')
 globalThis.__forumHelpers=await import(compile(helpers))
-const source=(await readFile(new URL('../src/components/ForumParticipation.tsx',import.meta.url),'utf8')).replace("import { Link } from 'react-router-dom'","const Link='a'").replace("import { communityApi, forumRooms } from '../lib/community'",'const {communityApi,forumRooms}=globalThis.__forumHelpers')
+globalThis.__boardModule=(await import(compile((await readFile(new URL('../src/components/DetectiveBoard.tsx',import.meta.url),'utf8')).replace("import '@xyflow/react/dist/style.css'", '').replace("import { ReactFlow, Background, Controls, Handle, Position, applyNodeChanges } from '@xyflow/react'", "const applyNodeChanges=(_,nodes)=>nodes;const ReactFlow='flow';const Background='background';const Controls='controls';const Handle='handle';const Position={Left:'left',Right:'right'}"))))
+globalThis.__clueDraft=globalThis.__boardModule.clueDraft
+const source=(await readFile(new URL('../src/components/ForumParticipation.tsx',import.meta.url),'utf8')).replace("import DetectiveBoard, { clueDraft } from './DetectiveBoard'", 'const DetectiveBoard=()=>null;const clueDraft=globalThis.__clueDraft').replace("import { Link } from 'react-router-dom'","const Link='a'").replace("import { communityApi, forumRooms } from '../lib/community'",'const {communityApi,forumRooms}=globalThis.__forumHelpers')
 const Forum=(await import(compile(source))).default
 const post={...globalThis.__forumHelpers.examplePosts.find(p=>p.room==='capsule'),example:false,is_owner:true}
 const entry={id:'guess',author:'Fan',created_at:post.created_at,is_owner:true,kind:'prediction',body:'My guess',side:'neutral',source:'',artwork:'',connects_to:null,contains_spoilers:false,locked:true,revealed:false,tried:false}
@@ -26,4 +28,19 @@ test('Charlotte watchlist saving resolves the actual ID and preserves completion
  const original=await readFile(new URL('../src/lib/community.ts',import.meta.url),'utf8')
  const module=await import(compile(original.replace("import { request } from './api'",'const request=(...args)=>globalThis.__watchlistRequest(...args)')))
  await module.communityApi.saveCharlotte();assert.equal(calls[2].path,'/api/me/media-state/anilist-20997');assert.equal(calls[2].auth,true);assert.deepEqual(JSON.parse(calls[2].options.body),{completed:true});assert.equal(calls[2].options.method,'PUT')
+})
+
+test('detective board saves owned positions and connections and excludes hidden endpoints',async()=>{
+ const clue={...entry,kind:'clue',id:'one',locked:false,board_x:10,board_y:20,shape:'diamond'}
+ const other={...clue,id:'two',is_owner:false,connects_to:'hidden'}
+ const saves=[];let r;await act(async()=>{r=create(createElement(globalThis.__boardModule.default,{clues:[clue,other],busy:false,onSave:async(...args)=>saves.push(args)}))})
+ try {
+  const flow=()=>r.root.findByType('flow')
+  assert.equal(flow().props.nodes.find(n=>n.id==='two').draggable,false)
+  assert.equal(flow().props.edges.length,0)
+  await act(async()=>flow().props.onNodeDragStop(null,{id:'one',position:{x:160,y:90}}))
+  assert.equal(saves[0][1].board_x,160);assert.equal(saves[0][1].shape,'diamond')
+  await act(async()=>flow().props.onConnect({source:'one',target:'two'}));assert.equal(saves[1][1].connects_to,'two')
+  await act(async()=>flow().props.onConnect({source:'two',target:'one'}));assert.equal(saves.length,2)
+ }finally{await act(async()=>r.unmount())}
 })

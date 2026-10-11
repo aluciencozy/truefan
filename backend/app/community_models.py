@@ -46,6 +46,7 @@ class CommentCreate(BaseModel):
     model_config = ConfigDict(extra='forbid')
     body: str = Field(min_length=1, max_length=2000)
     contains_spoilers: bool = False
+    parent_id: UUID | None = None
     _nonblank = field_validator('body')(PostCreate.nonblank.__func__)
 
 
@@ -66,6 +67,8 @@ class CommunityPost(PostCreate):
 
 
 class CommunityComment(BaseModel):
+    parent_id: UUID | None = None
+    reply_to_author: str | None = None
     is_owner: bool = False
     id: UUID
     author: str
@@ -105,6 +108,9 @@ class EntryCreate(BaseModel):
     side: Literal['a', 'b', 'believable', 'devastating', 'neutral'] = 'neutral'
     source: str = Field(default='', max_length=200)
     artwork: str = Field(default='', max_length=700000)
+    board_x: float | None = Field(default=None, ge=-10000, le=10000, allow_inf_nan=False)
+    board_y: float | None = Field(default=None, ge=-10000, le=10000, allow_inf_nan=False)
+    shape: Literal['rectangle', 'circle', 'diamond'] = 'rectangle'
     connects_to: UUID | None = None
     contains_spoilers: bool = False
 
