@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
+import { useReducedMotion } from 'motion/react'
 import './GlitterStars.css'
 
 // Deterministic positions and orbital phases keep navigation and hydration stable.
@@ -25,7 +27,28 @@ const accentStars = [
 ]
 
 export default function GlitterStars() {
-  return <div className="glitter-stars" aria-hidden="true">
+  const container = useRef<HTMLDivElement>(null)
+  const reduced = useReducedMotion()
+  useEffect(() => {
+    if (reduced || !container.current) return
+    const points = Array.from(container.current.querySelectorAll('i'))
+    const accents = ['--teal', '--peach', '--pink', '--blue', '--yellow', '--mauve']
+    let flicker: Animation | undefined
+    const timer = window.setInterval(() => {
+      if (document.hidden) return
+      const star = points[Math.floor(Math.random() * points.length)]
+      const color = getComputedStyle(star).getPropertyValue(accents[Math.floor(Math.random() * accents.length)]).trim()
+      flicker = star.animate([
+        { background: '#cdd6f4', opacity: .4, boxShadow: '0 0 4px #cba6f726' },
+        { background: color, opacity: .9, boxShadow: `0 0 7px ${color}`, offset: .3 },
+        { background: color, opacity: .45, boxShadow: `0 0 3px ${color}`, offset: .5 },
+        { background: color, opacity: .75, boxShadow: `0 0 5px ${color}`, offset: .65 },
+        { background: '#cdd6f4', opacity: .4, boxShadow: '0 0 4px #cba6f726' },
+      ], { duration: 1800, easing: 'ease-in-out' })
+    }, 20_000)
+    return () => { window.clearInterval(timer); flicker?.cancel() }
+  }, [reduced])
+  return <div ref={container} className="glitter-stars" aria-hidden="true">
     {stars.map((style, index) => <i key={index} style={style} />)}
     {accentStars.map((star, index) => <span key={index} className="glitter-star-accent" style={{
       left: star.left, top: star.top, fontSize: star.size,

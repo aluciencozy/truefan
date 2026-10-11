@@ -8,4 +8,10 @@
 .opening-star-spin { transform-origin: 0 0; }
 .opening-dot, .opening-particle { opacity: 0; }
 .opening-trail { position: absolute; inset: 0; pointer-events: none; }
-.opening-trail-star { position: absolute; top: -6px; left: -6px; width: 12px; height: 12px; opacity: 0; color: #f5f5ff; font: 12px/1 sans-serif; text-shadow: 0 0 7px var(--mauve); }
+.opening-trail-star { position: absolute; top: -6px; left: -6px; width: 12px; height: 12px; opacity: 0; color: var(--teal); font: 12px/1 sans-serif; text-shadow: 0 0 7px currentColor; }
+.opening-trail-star:nth-child(3n + 2) { color: var(--peach); }
+.opening-trail-star:nth-child(3n) { color: var(--pink); }
+@media (prefers-reduced-motion: reduce) {
+  .opening-star-spin path { fill: var(--mauve) !important; }
+  .opening-arc { stroke: var(--mauve) !important; }
+}

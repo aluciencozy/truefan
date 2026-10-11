@@ -25,7 +25,7 @@
 .library-primary:hover{background:#ddc4fc;box-shadow:0 0 24px #cba6f725}
 .library-stats{display:flex;align-items:center;flex-wrap:wrap;gap:16px 24px;font-size: 13px;color:#a6adc8;padding-bottom:20px;border-bottom:1px solid #313244;margin-bottom:22px}
 .library-watch-time{display:inline-flex;align-items:center;gap:8px}
-.library-watch-time>.library-symbol{color:#cba6f7;flex-shrink:0}
+.library-watch-time>.library-symbol{color:var(--peach);flex-shrink:0}
 .library-symbol{display:inline-block;flex-shrink:0;vertical-align:middle}
 .library-stats b{font-size:15px;font-weight:400;color:#cdd6f4;margin-right:6px}
 .library-stats i{height:14px;width:1px;background:#45475a}
@@ -33,6 +33,7 @@
 .last-universe img{flex-shrink:0}
 .library-tools{display:flex;align-items:center;gap:10px;margin-bottom:16px}
 .library-search{height:40px;display:flex;align-items:center;gap:10px;flex:1;padding:0 14px;border:1px solid #45475a;border-radius:10px;background:#181825}
+.library-search:focus-within{border-color:var(--teal)}
 .library-search input{color:#cdd6f4;background:transparent;border:0;outline:none;flex:1;min-width:0;font-size: 13px}
 .library-search input::placeholder{color:#9399b2}
 .library-search kbd{font:10px 'Pixelify Sans',monospace;color:#9399b2;border:1px solid #313244;border-radius:4px;padding:3px 5px}
@@ -48,7 +49,7 @@
 .library-tabs{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:25px}
 .library-tabs>div:first-child{display:flex;gap:8px;flex-wrap:wrap}
 .library-tabs button{border:1px solid transparent;background:transparent;color:#a6adc8;padding:8px 12px;border-radius:20px;font-size: 13px}
-.library-tabs button[aria-pressed=true]{background:#313244;color:#cba6f7;border-color:#45475a}
+.library-tabs button[aria-pressed=true]{background:#313244;color:var(--peach);border-color:#45475a}
 .library-tabs button span{margin-left:6px;font-size: 13px}
 .library-view{display:flex;border:1px solid #45475a;border-radius:8px;padding:3px;flex-shrink:0}
 .library-view button{padding:6px;border-radius:5px;min-width:28px;min-height:28px;display:flex;justify-content:center;align-items:center}
@@ -57,7 +58,7 @@
 .library-universes{display:flex;flex-direction:column;gap:12px}
 .universe-row{display:flex;align-items:center;gap:18px;min-height:132px;box-sizing:border-box;padding:16px;border:1px solid #313244;border-radius:12px;background:#181825;position:relative}
 .universe-row:has(.universe-menu){z-index:5}
-.universe-row:hover{border-color:#45475a}
+.universe-row:hover{border-color:color-mix(in srgb,var(--peach) 35%,var(--border))}
 .universe-cover{width:64px;height:64px;flex-shrink:0;border-radius:50%;overflow:hidden;position:relative;background:#313244;display:flex;align-items:center;justify-content:center}
 .universe-cover img{width:64px;height:64px;object-fit:cover;position:absolute;inset:0;z-index:1}
 .universe-cover span{color:#cba6f7;font-size:28px}
@@ -67,7 +68,7 @@
 .universe-title-line h2{font-size:21px;font-weight:400;line-height:1.2;margin:0;overflow-wrap:anywhere}
 .universe-title-line a:hover,.universe-titles a:hover{text-decoration:underline;color:#cba6f7}
 .universe-title-line>span{font-size: 13px;flex-shrink:0}
-.universe-pin{display:inline-flex;color:#cba6f7}
+.universe-pin{display:inline-flex;color:var(--peach)}
 .universe-meta{font-size: 13px;color:#a6adc8;margin:7px 0}
 .universe-titles{font-size: 13px;color:#bac2de}
 .universe-titles summary{cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;list-style:none}
@@ -85,18 +86,18 @@
 .universe-rating b{font-size:18px;font-weight:600}
 .universe-rating small{font-size: 13px;font-weight:400;margin-left:3px}
 .universe-map{flex:0 0 154px;font-size: 13px;color:#a6adc8!important;text-align:center}
-.universe-map:hover span{color:#cba6f7}
+.universe-map:hover span{color:var(--teal)}
 .universe-map>span{display:inline-flex;align-items:center;gap:4px}
 .universe-map .library-symbol{width:12px;height:12px}
 .constellation{width:154px;height:86px;position:relative}
 .constellation img{position:absolute;left:-7px;top:0;max-width:none}
 .constellation-2 img{left:-9px;top:-4px}
 .universe-progress{flex:0 0 124px;display:flex;flex-direction:column;align-items:flex-start;gap:14px;font-size: 13px;color:#bac2de}
-.universe-badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;background:#cba6f710;color:#cba6f7;font-size: 13px;padding:4px 8px;line-height:1}
+.universe-badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;background:#94e2d510;color:var(--teal);font-size: 13px;padding:4px 8px;line-height:1}
 .universe-badge svg,.universe-badge img{width:12px;height:12px}
 .universe-badge.complete{color:#a6e3a1;background:#a6e3a110}
 .universe-progress-track{width:124px;height:3px;border-radius:4px;overflow:hidden;background:#313244;margin-top:-7px}
-.universe-progress-track>div{height:100%;background:#cba6f7;border-radius:4px;transition:width .4s}
+.universe-progress-track>div{height:100%;background:var(--teal);border-radius:4px;transition:width .4s}
 .universe-progress small{font-size: 13px;color:#9399b2;margin-top:-3px}
 .universe-menu-anchor{flex:0 0 16px;align-self:center;position:relative}
 .universe-menu-trigger{padding:6px 0}

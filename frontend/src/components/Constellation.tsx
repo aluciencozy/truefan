@@ -7,9 +7,9 @@ import { CanvasPointerContext, useCanvasParallax } from '../lib/useCanvasParalla
 import CharacterPortrait from './CharacterPortrait'
 import PointerEdge from './PointerEdge'
 
-export type StarNode = Node<{ label: string; subtitle: string; kind?: string; portraitUrl?: string | null; active?: boolean; onActivate?: (id: string) => void }, 'star'>
+export type StarNode = Node<{ label: string; subtitle: string; kind?: string; portraitUrl?: string | null; active?: boolean; preview?: boolean; onActivate?: (id: string) => void }, 'star'>
 const Star = memo(function Star({ id, data }: NodeProps<StarNode>) {
-  return <div className={`star-node ${data.kind || ''} ${data.active ? 'is-selected' : ''}`} role="button" tabIndex={0}
+  return <div className={`star-node ${data.kind || ''} ${data.active ? 'is-selected' : ''} ${data.preview ? 'route-preview' : ''}`} role="button" tabIndex={0}
     aria-label={`Explore ${data.label}`} aria-pressed={data.active}
     onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); data.onActivate?.(id) } }}>
     <Handle type="target" position={Position.Top} />
@@ -54,6 +54,8 @@ export default function Constellation({ nodes, edges, selectedId, onSelect, labe
 }) {
   const container = useRef<HTMLDivElement>(null)
   const pointer = useCanvasParallax(container)
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null)
+  const hoveredEdge = edges.find(edge => edge.id === hoveredEdgeId)
   const [size, setSize] = useState({ width: 1000, height: 650 })
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) => {
@@ -64,11 +66,12 @@ export default function Constellation({ nodes, edges, selectedId, onSelect, labe
   }, [])
   const limits = useMemo(() => canvasLimits(nodes.map(node => node.position), 170, 160, size.width, size.height), [nodes, size])
   const interactiveNodes = useMemo(() => nodes.map(node => ({ ...node, width: 170, height: 160, focusable: false,
-    data: { ...node.data, active: node.id === selectedId, onActivate: onSelect } })), [nodes, selectedId, onSelect])
+    data: { ...node.data, active: node.id === selectedId, preview: node.id === hoveredEdge?.source || node.id === hoveredEdge?.target, onActivate: onSelect } })), [nodes, selectedId, onSelect, hoveredEdge])
   return <div ref={container} className="graph-canvas celestial" aria-label={label}>
     <CanvasPointerContext.Provider value={pointer}><ReactFlowProvider><ReactFlow nodes={interactiveNodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} proOptions={{ hideAttribution: true }}
       minZoom={limits.minZoom} maxZoom={1.8} translateExtent={limits.extent} fitViewOptions={{ padding: .3, maxZoom: 1.1 }}
       nodesDraggable={false} nodesConnectable={false} zoomOnDoubleClick={false}
+      onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)}
       onNodeClick={(_, node) => onSelect(node.id)}>
       <Camera nodes={nodes} selectedId={selectedId} />
       <Controls showInteractive={false} orientation="horizontal" position="bottom-left" fitViewOptions={{ padding: .3, maxZoom: 1.1 }} />

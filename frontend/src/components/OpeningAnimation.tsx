@@ -5,7 +5,8 @@ import type { AnimationPlaybackControls } from 'motion/react'
 import './OpeningAnimation.css'
 
 const lavender = '#cba6f7'
-const white = '#f5f5ff'
+const white = '#cdd6f4'
+const accents = ['#94e2d5', '#fab387', '#f5c2e7']
 const sweep = [.76, 0, .24, 1] as const
 
 type Point = { x: number; y: number }
@@ -86,6 +87,9 @@ export default function OpeningAnimation({ children }: { children: ReactNode }) 
     }
 
     try {
+      controls.push(animate('.opening-star-spin path', { fill: [lavender, accents[0], accents[1], lavender] }, {
+        delay: .35, duration: 1.05, ease: 'easeInOut',
+      }))
       controls.push(animate('.opening-star-fall', { y: [-window.innerHeight * 300 / stage.offsetWidth, 8, 0] }, {
         duration: .45, times: [0, .85, 1], ease: [[.55, 0, .25, 1], [.2, .7, .3, 1]],
       }))
@@ -113,7 +117,7 @@ export default function OpeningAnimation({ children }: { children: ReactNode }) 
           particle.style.opacity = String(Math.min(1, progress / .08, (1 - progress) / .08))
           path.style.strokeDashoffset = String(1 - arcProgress)
         } }))
-        controls.push(animate(`.opening-arc-${index}`, { stroke: [lavender, white, lavender] }, {
+        controls.push(animate(`.opening-arc-${index}`, { stroke: [lavender, accents[index], lavender] }, {
           delay: delay + .2, duration: .42, times: [0, .45, 1], ease: 'easeInOut',
         }))
         controls.push(animate(`.opening-dot-${index}`, { opacity: [0, 1] }, { delay: delay + .45, duration: .16 }))
