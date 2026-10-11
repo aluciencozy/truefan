@@ -21,12 +21,13 @@ globalThis.__communityModal=(await import(compile(await readFile(new URL('../src
 const source=(await readFile(new URL('../src/components/CommunityPage.tsx',import.meta.url),'utf8'))
  .replace("import { Link, useNavigate, useSearchParams } from 'react-router-dom'", "const Link='a'; const useNavigate=()=>()=>{}; const useSearchParams=()=>[new URLSearchParams()]")
  .replace("import { authClient } from '../lib/auth'",'const authClient=null')
- .replace("import { communityApi, examplePosts, timeAgo, visitorId } from '../lib/community'",'const {communityApi,examplePosts,timeAgo,visitorId}=globalThis.__communityHelpers')
+ .replace("import { communityApi, examplePosts, timeAgo, visitorId, forumRooms } from '../lib/community'",'const {communityApi,examplePosts,timeAgo,visitorId,forumRooms}=globalThis.__communityHelpers')
  .replace("import CommunityShell, { CommunityIcon, LittleUniverse } from './CommunityShell'",'const CommunityShell=({children})=>children; const CommunityIcon=()=>null; const LittleUniverse=()=>null')
  .replace("import CommunityModal from './CommunityModal'",'const CommunityModal=globalThis.__communityModal')
+ .replace("import ForumParticipation from './ForumParticipation'",'const ForumParticipation=()=>null')
  .replace("import './CommunityPage.css'",'')
 const {CommunityScreen}=await import(compile(source))
-const posts=globalThis.__communityHelpers.examplePosts.map(post=>({...post,example:false}))
+const posts=globalThis.__communityHelpers.examplePosts.map(post=>({...post,example:false,room:null}))
 const event={preventDefault(){}}
 const title=(r,i=0)=>r.root.findAllByProps({className:'post-open'})[i]
 const form=r=>r.root.findByProps({className:'conversation-reply-form'})
@@ -36,13 +37,27 @@ async function mount(overrides={},viewer={id:'user',name:'Fan'}) {
  await act(async()=>{r=create(createElement(CommunityScreen,{viewer,service}),{createNodeMock:()=>({showModal(){},close(){}})})})
  await act(async()=>{await new Promise(resolve=>setTimeout(resolve,230))});return r
 }
-test('Any tag requests all categories; selecting a tag resets pagination and filters on the server',async()=>{
+test('Discussions opens with its own feed; category tabs reset pagination and filter on the server',async()=>{
  const calls=[];const r=await mount({feed:async filters=>{calls.push(filters);return {posts,media:[],active_fans:0,has_more:false}}})
- try {assert.equal(calls[0].category,'');await act(async()=>r.root.findByProps({id:'community-tag'}).props.onChange({target:{value:'theory'}}));await act(async()=>{await new Promise(resolve=>setTimeout(resolve,230))});assert.equal(calls.at(-1).category,'theory');assert.equal(calls.at(-1).offset,0)} finally {await act(async()=>r.unmount())}
+ try {assert.equal(calls[0].category,'discussion');await act(async()=>r.root.findByProps({'aria-label':'Forum categories'}).findAllByType('button')[1].props.onClick());await act(async()=>{await new Promise(resolve=>setTimeout(resolve,230))});assert.equal(calls.at(-1).category,'theory');assert.equal(calls.at(-1).offset,0)} finally {await act(async()=>r.unmount())}
 })
 test('guests read structured replies with a sign-in action; Escape dismisses the conversation',async()=>{
  const comment={id:'reply',author:'Reader',body:'First paragraph.\nSecond paragraph.',created_at:posts[0].created_at,contains_spoilers:false};const r=await mount({comments:async()=>[comment]},null)
  try {await act(async()=>title(r).props.onClick());assert.equal(body(r).props.disabled,true);assert.ok(r.root.findAllByType('a').some(node=>node.children.join('')==='Sign in to reply'));assert.equal(r.root.findByProps({className:'conversation-comment'}).findByProps({className:'conversation-body'}).children.join(''),comment.body);await act(async()=>r.root.findByType('dialog').props.onCancel(event));assert.equal(r.root.findAllByType('dialog').length,0)} finally {await act(async()=>r.unmount())}
+})
+test('forum conversations open beside their room navigation and return to the feed',async()=>{
+ const post={...posts[0],room:'courtroom'}
+ const r=await mount({feed:async()=>({posts:[post],media:[],active_fans:0,has_more:false})},null)
+ try {
+  await act(async()=>title(r).props.onClick())
+  assert.equal(r.root.findAllByType('dialog').length,0)
+  assert.equal(r.root.findByProps({className:'forum-thread'}).props['aria-label'],`${post.title} conversation`)
+  assert.ok(r.root.findByProps({'aria-label':'Forum rooms'}))
+  assert.equal(body(r).props.disabled,true)
+  await act(async()=>r.root.findByProps({className:'forum-back'}).props.onClick())
+  assert.equal(r.root.findAllByProps({className:'forum-thread'}).length,0)
+  assert.equal(title(r).findByType('h2').children.join(''),post.title)
+ } finally {await act(async()=>r.unmount())}
 })
 test('failed replies preserve drafts, spoiler replies stay hidden, and stale errors do not affect a new thread',async()=>{
  let fail=true,payload;const late=Promise.withResolvers();const r=await mount({comment:async(id,text,spoiler)=>{payload={id,text,spoiler};if(fail)throw Error('Could not send');return {id:'reply',author:'Fan',body:text,contains_spoilers:spoiler,created_at:posts[0].created_at}}})

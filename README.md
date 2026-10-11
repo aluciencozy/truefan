@@ -852,7 +852,7 @@ python -m app.init_community
 ```
 
 The initializer does not populate the live feed. Optionally use
-`python -m app.init_community --seed-demo` for three clearly marked example posts;
+`python -m app.init_community --seed-demo` for eleven clearly marked Charlotte starter topics;
 these have zero likes/comments. If storage is unavailable, the UI shows a labelled
 design preview and disables publishing/reactions rather than inventing activity.
 Deploy the updated backend and frontend to make these changes available online;
@@ -956,3 +956,53 @@ episodes 1/5/10/15/20 and 24 edges up to episode 25). It is idempotent. Seed rev
 unreviewed (`verified = false`); they err late, never early. Without the seed, or when
 Neon is unreachable, the extract endpoint falls back to the same data compiled into
 `app/services/seed_catalog.py`.
+
+
+### Interactive Community rooms
+
+Community keeps the existing TrueFan navbar, typography, colors, and `GlitterStars` pointer effects.
+The compact category tabs and room sidebar cover discussions (courtroom, fanfiction, drawing),
+theories (battles, prediction capsules, alternate endings, mystery boards), and reviews
+(pitches, first impressions/final verdicts, hot takes, matchmaking). Charlotte starter prompts
+are customizable templates, not real fan activity. Anime context was checked against the
+[official Charlotte site](https://www.charlotteanime.com/); templates do not disclose later plot events.
+Discussions is selected on arrival and filters the server feed to match the active tab.
+Each category and room keeps its starter cards available alongside existing conversations;
+clicking a card opens an editable draft with its category, room, and Charlotte prompt filled in.
+Published room topics open beside the category tabs and room sidebar; the back button returns
+to the feed. Courtrooms include separate prosecution/defense boards and a community jury
+with one changeable verdict per fan. General conversations retain their reply dialog.
+
+Apply the additive migration with `cd backend && python -m app.init_community`.
+Existing posts are preserved. Optional `--seed-demo` adds eleven explicitly labeled Charlotte starters.
+New posts accept `room`, editable `side_a`/`side_b`, and `target_episode`. Room/category must match.
+Owners can PUT/DELETE `/api/community/posts/{id}` and `/api/community/comments/{id}`;
+responses expose `is_owner` rather than JWT subjects. New GET/POST
+`/api/community/posts/{id}/entries` and PUT `/api/community/posts/{id}/entries/{entry_id}`
+accept typed contributions, side joins, votes, predictions, clues, artwork, recommendations,
+and impressions. DELETE `/api/community/entries/{id}` removes an owner's unlocked contribution.
+POST `/api/community/entries/{id}/action` accepts `lock`, `reveal`, or `tried`.
+All mutations require a verified Neon identity; ownership is checked in the database.
+No separate TypeScript backend or password store is added: the existing FastAPI backend persists
+these interactions and the React frontend remains strict TypeScript.
+
+Predictions are private to their author until revealed. Locking is enforced under row locks;
+locked predictions cannot be edited/deleted, and the topic's target episode cannot change after locking.
+Reveal requires the fan's explicit confirmation that they watched the target episode; this is
+self-attested, not automatically verified viewing history. A requester alone can mark recommendations tried.
+Each fan has one side selection, one vote, and one prediction per thread; submitting again updates
+an unlocked choice. Three-sentence pitches are validated server-side. Drawing uploads accept PNG,
+JPEG, or WebP up to 500 KB and are stored as validated data URLs. This is bounded demo storage,
+not a production image-hosting service. Mystery clues connect only within the same thread;
+references to filtered clues are removed before returning a response.
+
+`include_spoilers=false` filters posts/contributions before search, metadata, counts, and display.
+Spoiler labels remain author supplied, not guaranteed episode-verified reveal points. Participation
+shows up to 200 visible contributions per thread, with side totals for those loaded contributions.
+Charlotte watchlist saving resolves its media ID through existing discovery and saves without
+changing an existing progress value or manually unlocking future graph content.
+
+Validation: `cd frontend && npm test && npm run build`; `cd backend && python -m unittest discover -s tests`.
+Use `TRUEFAN_COMMUNITY_DB_TESTS=1 python -m unittest discover -s tests -p test_community.py`
+for PostgreSQL ownership, immutability, voting, and clue-filtering checks in temporary tables.
+These database tests do not verify a live Neon login.

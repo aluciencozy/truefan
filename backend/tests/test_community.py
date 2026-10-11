@@ -171,4 +171,95 @@ class CommunityDatabaseTests(unittest.TestCase):
         self.assertEqual(community.feed('theory','Demo','','latest',False,None,0).posts,[])
 
 
+
+class ForumContractTests(unittest.TestCase):
+    def tearDown(self):
+        app.dependency_overrides.clear()
+
+    def test_every_forum_mutation_requires_verified_identity(self):
+        post, entry = uuid4(), uuid4()
+        for path, method, body in [
+            (f'/api/community/posts/{post}', 'PUT', {'media':'Charlotte','title':'Topic','body':'Hello'}),
+            (f'/api/community/posts/{post}', 'DELETE', None),
+            (f'/api/community/comments/{entry}', 'PUT', {'body':'Reply'}),
+            (f'/api/community/comments/{entry}', 'DELETE', None),
+            (f'/api/community/posts/{post}/entries', 'POST', {'body':'Evidence'}),
+            (f'/api/community/posts/{post}/entries/{entry}', 'PUT', {'body':'Evidence'}),
+            (f'/api/community/entries/{entry}', 'DELETE', None),
+            (f'/api/community/entries/{entry}/action', 'POST', {'action':'lock'}),
+        ]:
+            self.assertEqual(asyncio.run(request(path,method,body))[0],401)
+
+    def test_room_validation_and_artwork_boundary(self):
+        from app.community_models import EntryCreate
+        from pydantic import ValidationError
+        for bad in ({'category':'discussion','room':'capsule'}, {'category':'review','room':'pitch','body':'One. Two. Three. Four.'}):
+            with self.assertRaises(ValidationError):
+                PostCreate(media='Charlotte',title='Hello',body=bad.pop('body','Prompt'),**bad)
+        for artwork in ('javascript:alert(1)', 'data:image/svg+xml;base64,PHN2Zz4=', 'data:image/png;base64,YmFk'):
+            with self.assertRaises(ValidationError): EntryCreate(kind='art',body='Drawing',artwork=artwork)
+        with self.assertRaises(ValidationError): EntryCreate(body='Hi',user_id='spoof')
+
+
+@unittest.skipUnless(os.getenv('TRUEFAN_COMMUNITY_DB_TESTS') == '1', 'Opt-in temporary-table Neon tests')
+class ForumDatabaseTests(CommunityDatabaseTests):
+    def test_only_owner_can_modify_topics_replies_and_entries(self):
+        from app.community_models import EntryCreate
+        post=self.post(room='courtroom')
+        self.assertTrue(post.is_owner)
+        self.assertFalse(community.read_post(post.id,None,False).is_owner)
+        with self.assertRaises(HTTPException): community.update_post(post.id,'other',PostCreate(media='Charlotte',title='Stolen',body='No'))
+        reply=community.create_comment(post.id,'owner',CommentCreate(body='Reply'),False)
+        with self.assertRaises(HTTPException): community.update_comment(reply.id,'other',CommentCreate(body='Stolen'))
+        contribution=community.save_entry(post.id,'owner',EntryCreate(body='Episode evidence',side='a'),False)
+        with self.assertRaises(HTTPException): community.save_entry(post.id,'other',EntryCreate(body='Stolen'),False,contribution.id)
+        edited=community.save_entry(post.id,'owner',EntryCreate(body='Better evidence',side='b'),False,contribution.id)
+        self.assertEqual(edited.body,'Better evidence')
+        community.delete_content('community_entries',edited.id,'owner')
+        self.assertEqual(community.entries(post.id,None,False),[])
+
+    def test_prediction_drafts_are_private_and_locked_content_is_immutable(self):
+        from app.community_models import EntryCreate, EntryAction
+        post=self.post(category='theory',room='capsule')
+        draft=community.save_entry(post.id,'one',EntryCreate(kind='prediction',body='My guess'),False)
+        self.assertEqual(community.entries(post.id,None,False),[])
+        self.assertEqual(len(community.entries(post.id,'one',False)),1)
+        with self.assertRaises(HTTPException): community.entry_action(draft.id,'one',EntryAction(action='reveal'))
+        locked=community.entry_action(draft.id,'one',EntryAction(action='lock'))
+        self.assertTrue(locked.locked)
+        with self.assertRaises(HTTPException): community.save_entry(post.id,'one',EntryCreate(kind='prediction',body='Changed guess'),False)
+        with self.assertRaises(HTTPException): community.delete_content('community_entries',draft.id,'one')
+        community.entry_action(draft.id,'one',EntryAction(action='reveal'))
+        self.assertEqual(community.entries(post.id,None,False)[0].body,'My guess')
+
+    def test_switching_sides_and_votes_does_not_duplicate_participation(self):
+        from app.community_models import EntryCreate
+        post=self.post(room='courtroom')
+        first=community.save_entry(post.id,'one',EntryCreate(kind='join',side='a'),False)
+        second=community.save_entry(post.id,'one',EntryCreate(kind='join',side='b'),False)
+        self.assertEqual(first.id,second.id)
+        self.assertEqual(len(community.entries(post.id,None,False)),1)
+        community.save_entry(post.id,'one',EntryCreate(kind='vote',side='a'),False)
+        community.save_entry(post.id,'one',EntryCreate(kind='vote',side='b'),False)
+        self.assertEqual([e.side for e in community.entries(post.id,None,False)],['b','b'])
+
+    def test_board_connections_cannot_cross_threads_or_expose_hidden_clues(self):
+        from app.community_models import EntryCreate
+        post=self.post(category='theory',room='mystery')
+        another=self.post(category='theory',room='mystery')
+        secret=community.save_entry(post.id,'owner',EntryCreate(kind='clue',body='Hidden',contains_spoilers=True),True)
+        public=community.save_entry(post.id,'owner',EntryCreate(kind='clue',body='Visible',connects_to=secret.id),True)
+        visible=community.entries(post.id,None,False)
+        self.assertEqual([e.body for e in visible],['Visible'])
+        self.assertIsNone(visible[0].connects_to)
+        with self.assertRaises(HTTPException): community.save_entry(another.id,'owner',EntryCreate(kind='clue',body='Cross board',connects_to=public.id),True)
+
+    def test_only_requester_can_mark_recommendations_tried(self):
+        from app.community_models import EntryCreate, EntryAction
+        post=self.post(category='review',room='matchmaking')
+        recommendation=community.save_entry(post.id,'fan',EntryCreate(kind='recommendation',body='Try this show'),False)
+        with self.assertRaises(HTTPException): community.entry_action(recommendation.id,'fan',EntryAction(action='tried'))
+        self.assertTrue(community.entry_action(recommendation.id,'owner',EntryAction(action='tried')).tried)
+
+
 if __name__ == '__main__': unittest.main()

@@ -36,3 +36,29 @@ CREATE TABLE IF NOT EXISTS public.community_presence (
     last_seen TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS community_presence_recent ON public.community_presence(last_seen);
+
+-- Additive forum migration. Existing conversations retain their original content.
+ALTER TABLE public.community_posts ADD COLUMN IF NOT EXISTS room TEXT;
+ALTER TABLE public.community_posts ADD COLUMN IF NOT EXISTS side_a TEXT NOT NULL DEFAULT 'Prosecution';
+ALTER TABLE public.community_posts ADD COLUMN IF NOT EXISTS side_b TEXT NOT NULL DEFAULT 'Defense';
+ALTER TABLE public.community_posts ADD COLUMN IF NOT EXISTS target_episode INTEGER NOT NULL DEFAULT 1;
+CREATE TABLE IF NOT EXISTS public.community_entries (
+    id UUID PRIMARY KEY,
+    post_id UUID NOT NULL REFERENCES public.community_posts(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
+    author TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    body TEXT NOT NULL DEFAULT '',
+    side TEXT NOT NULL DEFAULT 'neutral',
+    source TEXT NOT NULL DEFAULT '',
+    artwork TEXT NOT NULL DEFAULT '',
+    connects_to UUID REFERENCES public.community_entries(id) ON DELETE SET NULL,
+    contains_spoilers BOOLEAN NOT NULL DEFAULT false,
+    locked BOOLEAN NOT NULL DEFAULT false,
+    revealed BOOLEAN NOT NULL DEFAULT false,
+    tried BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS community_single_participation ON public.community_entries(post_id,user_id,kind)
+    WHERE kind IN ('join','vote','prediction');
+CREATE INDEX IF NOT EXISTS community_entries_post ON public.community_entries(post_id,created_at);
