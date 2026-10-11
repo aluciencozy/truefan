@@ -107,9 +107,10 @@ export default function PageTransition({ children }: { children: ReactNode }) {
       const position = next.type === 'POP' ? positions.current.get(next.location.key) ?? { x: 0, y: 0 } : { x: 0, y: 0 }
       pendingScroll.current = { key: next.location.key, ...position, restore: next.type === 'POP', waiting: false }
       setDisplayed(next.location)
-      setPhase(reduced ? 'idle' : 'orbiting')
+      setPhase(reduced || location.pathname === '/explore' ? 'idle' : 'orbiting')
     }
-    if (reduced) {
+    // Open Explore destinations directly without the timed constellation interstitial.
+    if (reduced || location.pathname === '/explore') {
       mount()
       finish(next)
       return

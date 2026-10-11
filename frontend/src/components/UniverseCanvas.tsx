@@ -88,8 +88,8 @@ export default function UniverseCanvas({ model: fullModel, guide, focusedId, act
   const [showRelated, setShowRelated] = useState(false)
   const links = useMemo(() => displayLinks(model, showRelated), [model, showRelated])
   const upcoming = useMemo(() => new Set(unlocksAfter(model, guide, focusedId)), [model, guide, focusedId])
-  const [positions, setPositions] = useState<Positions>({})
-  const [layoutState, setLayoutState] = useState<'loading' | 'ready' | 'fallback'>('loading')
+  const [positions, setPositions] = useState<Positions>(() => fallbackPositions(model))
+  const [layoutState, setLayoutState] = useState<'loading' | 'ready' | 'fallback'>('ready')
   const [size, setSize] = useState({ width: 1000, height: 650 })
   const [overview, setOverview] = useState(false)
   const [entering, setEntering] = useState(false)
@@ -101,6 +101,7 @@ export default function UniverseCanvas({ model: fullModel, guide, focusedId, act
   const container = useRef<HTMLDivElement | null>(null)
   const pointer = useCanvasParallax(container, active)
   const anchors = useRef<Positions>({})
+  const cameraPlaced = useRef(false)
   const layoutFocus = useRef(focusedId)
   layoutFocus.current = focusedId
   const previousFocus = useRef(focusedId)
@@ -124,7 +125,7 @@ export default function UniverseCanvas({ model: fullModel, guide, focusedId, act
 
   useEffect(() => {
     let stale = false
-    if (!Object.keys(anchors.current).length) setLayoutState('loading')
+    // Show the deterministic map immediately while the automatic layout refines it.
     void layoutUniverse(model).then(next => {
       if (stale) return
       const aligned = anchorLayout(next, anchors.current, layoutFocus.current)
@@ -156,11 +157,13 @@ export default function UniverseCanvas({ model: fullModel, guide, focusedId, act
 
   useEffect(() => {
     if (!active || !flow || layoutState === 'loading') return
-    const options = { duration: reduced ? 0 : 1050, ease: cameraEase, interpolate: 'linear' as const }
+    const options = { duration: reduced || !cameraPlaced.current ? 0 : 1050, ease: cameraEase, interpolate: 'linear' as const }
     if (overview) {
+      cameraPlaced.current = true
       void flow.fitView({ nodes: model.media.map(item => ({ id: item.id })), padding: .18, minZoom: .01, maxZoom: .85, ...options })
     } else if (positions[focusedId]) {
       // Growth anchors this world in place; navigation still moves the camera between worlds.
+      cameraPlaced.current = true
       void flow.setViewport(focusViewport(positions[focusedId], size.width, size.height), options)
     }
   }, [active, flow, positions, layoutState, overview, focusedId, size, reduced, model])

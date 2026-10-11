@@ -86,9 +86,9 @@ test('initial render is immediate; outgoing hooks stay on departure; fetching st
   assert.equal(app.renderer.root.findByProps({ className: 'page-transition-content' }).props.inert, false)
 })
 
-test('slow initial data holds the orbit then releases on readiness', async t => {
+test('slow library data holds the orbit then releases on readiness', async t => {
   const app = await setup(t, { ready: false })
-  await app.go('/explore?media=one')
+  await app.go('/library')
   await app.tick(140)
   await app.tick(290)
   assert.equal(app.phase(), 'orbiting')
@@ -169,7 +169,7 @@ test('Back to a previous history entry rejects readiness from its earlier visit'
   assert.equal(app.phase(), 'orbiting')
 })
 
-test('dialog and search query edits preserve the page without motion; story links animate', async t => {
+test('dialog and search query edits preserve the page without motion; story links open directly', async t => {
   const app = await setup(t, { initial: '/community' })
   await app.go('/community?post=one')
   assert.equal(app.phase(), 'idle')
@@ -182,7 +182,8 @@ test('dialog and search query edits preserve the page without motion; story link
   await app.go('/explore?universe=one&q=hello')
   assert.equal(app.phase(), 'idle')
   await app.go('/explore?media=two')
-  assert.equal(app.phase(), 'departing')
+  assert.equal(app.phase(), 'idle')
+  assert.equal(app.location(), '/explore?media=two')
 })
 
 test('reduced motion mounts immediately without a hold or overlay', async t => {
@@ -239,4 +240,18 @@ test('Back waits for returning page data before restoring a scroll position', as
   assert.equal(window.scrollY, 100)
   await app.ready(true)
   assert.equal(window.scrollY, 450)
+})
+
+
+test('Explore nodes open their destination immediately even while data is loading', async t => {
+  const app = await setup(t, { initial: '/explore', ready: false })
+  await app.go('/explore?media=one')
+  assert.equal(app.location(), '/explore?media=one')
+  assert.equal(app.phase(), 'idle')
+  assert.equal(app.renderer.root.findByProps({ className: 'page-transition-content' }).props.inert, false)
+  assert.equal(app.renderer.root.findAllByProps({ className: 'page-transition-sky' }).length, 0)
+  await app.go('/explore?media=two')
+  assert.equal(app.location(), '/explore?media=two')
+  await app.tick(2000)
+  assert.equal(app.phase(), 'idle')
 })

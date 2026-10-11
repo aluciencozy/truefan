@@ -23,6 +23,26 @@ export async function request<T>(path: string, signal?: AbortSignal, authenticat
   return response.json() as Promise<T>
 }
 
+// Cache only public media metadata and universe maps, never account state or character facts.
+const publicMaps = new Map<string, { expires: number; promise: Promise<unknown> }>()
+function publicMap<T>(path: string, signal?: AbortSignal): Promise<T> {
+  if (signal?.aborted) return Promise.reject(new DOMException('Request cancelled', 'AbortError'))
+  let entry = publicMaps.get(path)
+  if (!entry || entry.expires < Date.now()) {
+    const promise = request<T>(path)
+    entry = { expires: Date.now() + 300_000, promise }
+    publicMaps.set(path, entry)
+    if (publicMaps.size > 20) publicMaps.delete(publicMaps.keys().next().value!)
+    void promise.catch(() => { if (publicMaps.get(path)?.promise === promise) publicMaps.delete(path) })
+  }
+  // A cancelled visit must not cancel a shared prefetch for the next visit.
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(new DOMException('Request cancelled', 'AbortError'))
+    signal?.addEventListener('abort', abort, { once: true })
+    entry.promise.then(value => { signal?.removeEventListener('abort', abort); if (!signal?.aborted) resolve(value as T) }, error => { signal?.removeEventListener('abort', abort); reject(error) })
+  })
+}
+
 export const api = {
   health: (signal?: AbortSignal) => request<HealthResponse>('/health', signal),
   trendingConstellations: (limit = 5, signal?: AbortSignal) => request<TrendingConstellations>(`/api/trending/constellations?limit=${limit}`, signal),
@@ -31,18 +51,23 @@ export const api = {
   search: (q: string, signal?: AbortSignal) => request<Media[]>(`/api/media/search?q=${encodeURIComponent(q)}`, signal),
   searchUniverses: (q: string, discover = false, signal?: AbortSignal) =>
     request<UniverseSearchResponse>(`/api/universes/search?q=${encodeURIComponent(q)}&discover=${discover}`, signal),
-  media: (id: string, signal?: AbortSignal) => request<Media>(`/api/media/${encodeURIComponent(id)}`, signal),
+  media: (id: string, signal?: AbortSignal) => publicMap<Media>(`/api/media/${encodeURIComponent(id)}`, signal),
   graph: (id: string, progress: number, signal?: AbortSignal) =>
     request<GraphResponse>(`/api/media/${encodeURIComponent(id)}/graph?progress=${progress}`, signal),
   extractGraph: (id: string, body: GraphExtractRequest, signal?: AbortSignal) =>
     request<FlowGraphResponse>(`/api/media/${encodeURIComponent(id)}/extract`, signal, true, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     }),
-  universe: (id: string, signal?: AbortSignal) => request<Universe>(`/api/media/${encodeURIComponent(id)}/universe`, signal),
-  expandUniverse: (id: string, revision: number, signal?: AbortSignal) =>
-    request<Universe>(`/api/media/${encodeURIComponent(id)}/universe/expand`, signal, false, {
+  universe: (id: string, signal?: AbortSignal) => publicMap<Universe>(`/api/media/${encodeURIComponent(id)}/universe`, signal),
+  prefetchUniverse: async (id: string): Promise<void> => {
+    await Promise.all([api.media(id), api.universe(id)]).catch(() => undefined)
+  },
+  expandUniverse: (id: string, revision: number, signal?: AbortSignal) => {
+    publicMaps.delete(`/api/media/${encodeURIComponent(id)}/universe`)
+    return request<Universe>(`/api/media/${encodeURIComponent(id)}/universe/expand`, signal, false, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expected_revision: revision }),
-    }),
+    })
+  },
   mediaState: async (ids: string[], signal?: AbortSignal): Promise<UserMediaState[]> => {
     const unique = [...new Set(ids)].sort()
     const batches: string[][] = []
