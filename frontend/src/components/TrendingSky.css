@@ -16,6 +16,9 @@
 .sky-hit{fill:transparent}
 .sky-glow{pointer-events:none;transition:opacity .3s}
 .sky-core{fill:#f2edff;pointer-events:none;animation:sky-twinkle 4.5s ease-in-out infinite}
+.sky-seed-ring{fill:none;stroke:#e8defb;stroke-width:1;opacity:.6;pointer-events:none}
+.sky-star.is-seed .sky-core{fill:#fff;animation-duration:6s}
+.sky-star.is-seed .sky-glow{filter:drop-shadow(0 0 6px #b4befe)}
 .sky-ring{fill:none;stroke:var(--mauve);stroke-width:1.5;opacity:0;pointer-events:none}
 .sky-star:focus-visible .sky-ring,.sky-star.is-hovered .sky-ring{opacity:.9}
 .sky-star.is-hovered .sky-core,.sky-constellation.is-active .sky-core{fill:#fff}
@@ -31,6 +34,7 @@
 .sky-card-copy{display:grid;align-content:center;gap:3px;min-width:0}
 .sky-card-copy b{font:500 14px/1.3 var(--display);overflow-wrap:anywhere}
 .sky-card-copy small{color:var(--muted);font-size:12px}
+.sky-card-copy strong{color:var(--mauve);font:500 12px var(--display)}
 .sky-card-copy em{color:var(--teal,#94e2d5);font-size:12px;font-style:normal}
 @keyframes sky-twinkle{0%,100%{opacity:1}50%{opacity:.55}}
 @keyframes sky-fade{to{opacity:.5}}

@@ -252,8 +252,10 @@ class TrendingStar(BaseModel):
     cover_url: str | None = None
     format: str | None = None
     year: int | None = None
-    completions: int = Field(ge=1)
+    completions: int = Field(default=0, ge=0)  # TrueFan completions in the window; 0 when unknown or none
     magnitude: float = Field(ge=0.25, le=1.0)
+    trending: bool = False  # a seed: one of AniList's trending titles
+    trending_rank: int | None = Field(default=None, ge=1)
 
 
 class TrendingLink(BaseModel):
@@ -266,13 +268,14 @@ class TrendingConstellation(BaseModel):
     franchise_id: str
     title: str
     entry_media_id: str
-    score: int = Field(ge=1)
+    score: int = Field(ge=0)  # sum of the stars' TrueFan completions
+    trending_rank: int | None = Field(default=None, ge=1)  # rank of its best trending seed
     stars: list[TrendingStar] = Field(min_length=3, max_length=8)
     links: list[TrendingLink]
 
 
 class TrendingConstellations(BaseModel):
-    """Aggregate counts only: no user ids or per-user data."""
+    """Titles, covers, format/year and counts only: no synopses and no user data."""
+    source: Literal['anilist_trending', 'truefan_completions']
     window_days: int
-    demo_signal: bool
     constellations: list[TrendingConstellation]

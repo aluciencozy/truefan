@@ -3,7 +3,7 @@ import type { KeyboardEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { api } from '../lib/api'
-import { completionsLabel, hashString, neighbourInDirection, seededRandom, skyLayout, starSubtitle } from '../lib/trendingSky'
+import { completionsLabel, constellationCaption, hashString, neighbourInDirection, seededRandom, trendingLabel, skyLayout, starSubtitle } from '../lib/trendingSky'
 import type { SkyConstellation } from '../lib/trendingSky'
 import type { TrendingConstellation, TrendingConstellations, TrendingStar } from '../lib/types'
 import SurpriseLauncher from './SurprisePick'
@@ -47,6 +47,7 @@ export default function TrendingSky({ fallback, service = api }: { fallback: Rea
   }, [state.kind])
 
   const data = state.kind === 'ready' ? state.data : null
+  const trendingMode = data?.source === 'anilist_trending'
   const layout = useMemo(() => data ? skyLayout(data.constellations, size.width, size.height) : null, [data, size])
   if (state.kind === 'failed' || (data && !data.constellations.length)) return <>{fallback}</>
 
@@ -70,8 +71,8 @@ export default function TrendingSky({ fallback, service = api }: { fallback: Rea
     <header className="trending-heading">
       <div>
         <h2 id="trending-title">Trending constellations</h2>
-        <p>The stories fans are finishing right now. Brighter stars, more fans.</p>
-        {data?.demo_signal && <Hint>Includes sample activity for this demo.</Hint>}
+        <p>What anime fans are watching right now, and the stories connected to them.</p>
+        {data?.source === 'truefan_completions' && <Hint>Based on TrueFan completions this month</Hint>}
       </div>
       <SurpriseLauncher />
     </header>
@@ -91,15 +92,17 @@ export default function TrendingSky({ fallback, service = api }: { fallback: Rea
                 : <motion.path key={`${link.source}-${link.target}`} className="sky-link" d={`M${link.x1} ${link.y1}L${link.x2} ${link.y2}`} initial={reduced ? false : { pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: .65 }} transition={{ duration: .9, delay: .2 + index * .12 }} />)}
               {sky.stars.map(point => {
                 const star = source.stars.find(item => item.media_id === point.id)!
-                const text = `${star.title}${starSubtitle(star) ? `, ${starSubtitle(star)}` : ''}, ${completionsLabel(star.completions)}`
+                const text = [star.title, starSubtitle(star), star.trending && star.trending_rank ? trendingLabel(star.trending_rank) : '',
+                  star.completions > 0 ? completionsLabel(star.completions, trendingMode) : ''].filter(Boolean).join(', ')
                 return <g key={point.id} ref={element => { const key = `${sky.id}:${point.id}`; if (element) stars.current.set(key, element); else stars.current.delete(key) }}
-                  className={`sky-star${hover?.star === point.id ? ' is-hovered' : ''}`} role="button" tabIndex={tabbable === point.id ? 0 : -1} aria-label={text} aria-describedby={hover?.star === point.id ? 'sky-card' : undefined}
+                  className={`sky-star${star.trending ? ' is-seed' : ''}${hover?.star === point.id ? ' is-hovered' : ''}`} role="button" tabIndex={tabbable === point.id ? 0 : -1} aria-label={text} aria-describedby={hover?.star === point.id ? 'sky-card' : undefined}
                   onClick={() => navigate(exploreLink(point.id))} onKeyDown={event => onKey(event, sky, star)}
                   onPointerEnter={() => setHover({ constellation: sky.id, star: point.id })} onFocus={() => { setRoving(previous => ({ ...previous, [sky.id]: point.id })); setHover({ constellation: sky.id, star: point.id }) }}
                   onBlur={() => setHover(previous => previous?.star === point.id ? { constellation: sky.id, star: null } : previous)}>
                   <circle className="sky-hit" cx={point.x} cy={point.y} r={point.r + 12} />
                   <circle className="sky-glow" cx={point.x} cy={point.y} r={point.glow} fill="url(#sky-glow)" opacity={point.opacity} />
                   <circle className="sky-core" cx={point.x} cy={point.y} r={point.r} style={{ opacity: point.opacity, animationDelay: `${point.delay}s` }} />
+ {star.trending && <circle className="sky-seed-ring" cx={point.x} cy={point.y} r={point.r + 3.5} />}
                   <circle className="sky-ring" cx={point.x} cy={point.y} r={point.r + 5} />
                 </g>
               })}
@@ -111,12 +114,12 @@ export default function TrendingSky({ fallback, service = api }: { fallback: Rea
           return <div key={sky.id} className={`sky-label${active === sky.id ? ' is-active' : ''}${active && active !== sky.id ? ' is-dim' : ''}`} style={{ left: sky.label.x, top: sky.label.y, width: sky.label.w }}
             onPointerEnter={() => setHover({ constellation: sky.id, star: null })}>
             <Link to={exploreLink(source.entry_media_id)}>{source.title}</Link>
-            <small>{completionsLabel(source.score)}</small>
+            <small>{constellationCaption(source.trending_rank, source.score, trendingMode)}</small>
           </div>
         })}
         {card && <div id="sky-card" className="sky-card" role="tooltip" style={{ left: card.left, top: card.top, width: card.width }}>
           <span className="sky-card-cover">{card.star.cover_url ? <img src={card.star.cover_url} alt="" width="48" height="68" loading="lazy" onError={event => { event.currentTarget.hidden = true }} /> : null}<i aria-hidden="true">✦</i></span>
-          <span className="sky-card-copy"><b>{card.star.title}</b>{starSubtitle(card.star) && <small>{starSubtitle(card.star)}</small>}<em>{completionsLabel(card.star.completions)}</em></span>
+          <span className="sky-card-copy"><b>{card.star.title}</b>{starSubtitle(card.star) && <small>{starSubtitle(card.star)}</small>}{card.star.trending && card.star.trending_rank && <strong>{trendingLabel(card.star.trending_rank)}</strong>}{card.star.completions > 0 && <em>{completionsLabel(card.star.completions, trendingMode)}</em>}</span>
         </div>}
       </div>}
     </div>

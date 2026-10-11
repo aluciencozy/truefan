@@ -129,6 +129,10 @@ export function neighbourInDirection(stars: { id: string; x: number; y: number }
 }
 
 const plural = (count: number, one: string, many: string) => count === 1 ? one : many
-/** One wording everywhere (labels, cards, aria): a constellation's score and a star's count are both completions. */
-export const completionsLabel = (count: number) => `${count} ${plural(count, 'completion', 'completions')} this month`
+/** One wording everywhere (labels, cards, aria). `trueFan` names the source when the sky is driven by AniList trending. */
+export const completionsLabel = (count: number, trueFan = false) => `${count} ${trueFan ? 'TrueFan ' : ''}${plural(count, 'completion', 'completions')} this month`
+export const trendingLabel = (rank: number) => `Trending #${rank}`
+/** Under a constellation's name: its best trending rank, then TrueFan completions only when there are any. */
+export const constellationCaption = (rank: number | null, score: number, trending: boolean): string =>
+  trending && rank ? [trendingLabel(rank), score > 0 ? completionsLabel(score, true) : ''].filter(Boolean).join(' · ') : completionsLabel(score)
 export const starSubtitle = (star: { format: string | null; year: number | null }) => [star.format?.replaceAll('_', ' '), star.year].filter(Boolean).join(' · ')
