@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
@@ -6,8 +7,8 @@ import { authClient } from '../lib/auth'
 import { usePageReady } from '../lib/pageTransition'
 import { libraryApi, libraryStats } from '../lib/library'
 import type { LibraryService, SavedUniverse } from '../lib/library'
-import { browserStorage, celebrationKey, defaultAvatar, markCelebrated, pendingCelebration, pointRules, profileApi, rankProgress, readCelebrated } from '../lib/profile'
-import type { Badge, Profile, ProfileService } from '../lib/profile'
+import { badgeTrack, browserStorage, celebrationCopy, celebrationFor, celebrationKey, defaultAvatar, highestBadge, markCelebrated, pointRules, profileApi, rankProgress, readCelebrated, trackValueText } from '../lib/profile'
+import type { BadgeTrack as Track, Celebration, Profile, ProfileService, TrackNode } from '../lib/profile'
 import AppNavbar from './AppNavbar'
 import GlitterStars from './GlitterStars'
 import './ProfilePage.css'
@@ -40,7 +41,49 @@ function BadgeArt({ src, earned, size }: { src: string | null; earned: boolean; 
     : <span className="profile-badge-empty" style={{ width: size, height: size }} aria-hidden="true">✦</span>
 }
 
-function RankUp({ badge, onClose }: { badge: Badge; onClose: () => void }) {
+function LockIcon() {
+  return <svg className="track-lock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+}
+
+function TrackNodeView({ node, open, onToggle }: { node: TrackNode; open: boolean; onToggle: (id: string | null) => void }) {
+  return <li className={`track-node ${node.state}`} data-open={open || undefined} style={{ '--pos': `${node.position}%`, '--eq-pos': `${node.equalPosition}%` } as CSSProperties}>
+    <button type="button" className="track-node-button" aria-describedby={`tip-${node.id}`} aria-label={`${node.title} badge, ${node.state === 'earned' ? 'earned' : 'locked'}`}
+      onClick={() => onToggle(open ? null : node.id)} onBlur={() => onToggle(null)} onKeyDown={event => { if (event.key === 'Escape') onToggle(null) }}>
+      <span className="track-badge"><BadgeArt src={node.badge} earned={node.state === 'earned'} size={52} />{node.state !== 'earned' && <LockIcon />}</span>
+      <b>{node.title}</b><small>{node.minPoints} pts</small>
+    </button>
+    <span role="tooltip" id={`tip-${node.id}`} className="track-tip">{node.tooltip}</span>
+  </li>
+}
+
+/** One scale from 0 to the top threshold: a segment per milestone gap, a badge node at each badge milestone. */
+function BadgeTrackView({ profile, track }: { profile: Profile; track: Track }) {
+  const reduced = useReducedMotion()
+  const [grown, setGrown] = useState(false)
+  const [open, setOpen] = useState<string | null>(null)
+  useEffect(() => {
+    if (reduced) return
+    const timer = setTimeout(() => setGrown(true), 60)
+    return () => clearTimeout(timer)
+  }, [reduced])
+  const show = grown || reduced
+  return <div className="badge-track">
+    <div className="track-bar" role="progressbar" aria-label="Badge progress" aria-valuemin={0} aria-valuemax={track.max}
+      aria-valuenow={Math.min(profile.points, track.max)} aria-valuetext={trackValueText(profile.points, track.max, profile.rank, profile.next_rank)}>
+      {track.segments.map((segment, index) => <span key={segment.to} className="track-segment" style={{
+        '--start': `${segment.start}%`, '--end': `${segment.end}%`, '--eq-start': `${segment.equalStart}%`, '--eq-end': `${segment.equalEnd}%`,
+      } as CSSProperties}><span className="track-rail"><i className={segment.fill >= 100 ? 'full' : ''} style={{ width: `${show ? segment.fill : 0}%`, transitionDelay: `${index * .35}s` }} /></span></span>)}
+    </div>
+    <ul className="track-nodes" aria-label="Badges">
+      {track.nodes.map(node => <TrackNodeView key={node.id} node={node} open={open === node.id} onToggle={setOpen} />)}
+    </ul>
+  </div>
+}
+
+function RankUp({ celebration, onClose }: { celebration: Celebration; onClose: () => void }) {
+  const { badge } = celebration
+  const copy = celebrationCopy(celebration)
   const ref = useRef<HTMLDialogElement>(null)
   const reduced = useReducedMotion()
   useEffect(() => {
@@ -55,8 +98,8 @@ function RankUp({ badge, onClose }: { badge: Badge; onClose: () => void }) {
         transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 220, damping: 14, delay: .1 }}>
         <BadgeArt src={badge.image} earned size={150} />
       </motion.div>
-      <h2 id="rank-up-title">You’re now a {badge.title}</h2>
-      <p>Your first rank badge is yours to keep, even if your progress changes.</p>
+      <h2 id="rank-up-title">{copy.heading}</h2>
+      <p>{copy.body}</p>
       <button className="profile-button primary" onClick={onClose}>Continue</button>
     </div>
   </dialog>
@@ -71,7 +114,7 @@ export function ProfileScreen({ viewer, pending = false, profileService = profil
   const [picking, setPicking] = useState(false)
   const [busy, setBusy] = useState(false)
   const [favoriteError, setFavoriteError] = useState('')
-  const [celebrate, setCelebrate] = useState<Badge | null>(null)
+  const [celebrate, setCelebrate] = useState<Celebration | null>(null)
   const mutation = useRef<AbortController | null>(null)
   usePageReady(!pending && !loading)
   useEffect(() => {
@@ -82,7 +125,7 @@ export function ProfileScreen({ viewer, pending = false, profileService = profil
     if (viewer) Promise.all([profileService.get(controller.signal), libraryService.list(controller.signal)]).then(([profile, items]) => {
       if (controller.signal.aborted) return
       setData({ owner: viewer.id, profile, items })
-      setCelebrate(pendingCelebration(profile.badges, readCelebrated(browserStorage(), celebrationKey(viewer.id))))
+      setCelebrate(celebrationFor(profile.badges, readCelebrated(browserStorage(), celebrationKey(viewer.id)), profile.ranks))
     }).catch(failure => { if (!controller.signal.aborted) setError(message(failure)) })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => { controller.abort(); mutation.current?.abort() }
@@ -101,7 +144,7 @@ export function ProfileScreen({ viewer, pending = false, profileService = profil
     finally { if (!controller.signal.aborted) setBusy(false) }
   }
   function dismiss() {
-    if (viewer && celebrate) markCelebrated(browserStorage(), celebrationKey(viewer.id), celebrate.id)
+    if (viewer && celebrate) for (const id of celebrate.unseen) markCelebrated(browserStorage(), celebrationKey(viewer.id), id)
     setCelebrate(null)
   }
 
@@ -115,7 +158,8 @@ export function ProfileScreen({ viewer, pending = false, profileService = profil
   const { profile, items } = data
   const stats = libraryStats(items)
   const progress = rankProgress(profile)
-  const earnedBadge = profile.badges.find(badge => badge.id === profile.rank.id) ?? null
+  const track = badgeTrack(profile.points, profile.ranks, profile.badges)
+  const earnedBadge = highestBadge(profile.badges, profile.ranks)
   const earnedIds = new Set(profile.badges.map(badge => badge.id))
   const shelf = profile.ranks.filter(rank => rank.badge)
   const tiles = [
@@ -142,9 +186,8 @@ export function ProfileScreen({ viewer, pending = false, profileService = profil
       </Section>
 
       <Section title="Rank progress" index={1} className="profile-rank">
-        <div className="profile-points"><b>{profile.points}</b><span>{profile.points === 1 ? 'point' : 'points'}</span></div>
-        <div className="profile-progress" role="progressbar" aria-label="Progress to next rank" aria-valuemin={0} aria-valuemax={100}
-          aria-valuenow={Math.round(progress.percent)} aria-valuetext={progress.label}><div style={{ width: `${progress.percent}%` }} /></div>
+        <div className="profile-points"><b>{profile.points}</b><span>{profile.points === 1 ? 'point' : 'points'}</span><em>{profile.rank.title}</em></div>
+        <BadgeTrackView profile={profile} track={track} />
         <p className="profile-progress-label">{progress.label}</p>
         <details className="profile-how">
           <summary>How points work</summary>
@@ -182,6 +225,7 @@ export function ProfileScreen({ viewer, pending = false, profileService = profil
 
       <Section title="Badges" index={3} className="profile-badges">
         <h2>Badges</h2>
+        <p className="profile-muted">Your collection</p>
         <ul className="badge-shelf">{shelf.map(rank => {
           const earned = profile.badges.find(badge => badge.id === rank.id)
           return <li key={rank.id} className={earnedIds.has(rank.id) ? 'earned' : 'locked'}>
@@ -192,6 +236,6 @@ export function ProfileScreen({ viewer, pending = false, profileService = profil
         })}</ul>
       </Section>
     </div>
-    {celebrate && <RankUp badge={celebrate} onClose={dismiss} />}
+    {celebrate && <RankUp celebration={celebrate} onClose={dismiss} />}
   </main>
 }

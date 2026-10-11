@@ -26,7 +26,7 @@ const screenSource = (await read('../src/components/ProfilePage.tsx'))
   .replace("import { motion, useReducedMotion } from 'motion/react'", "const motion = {section:'section', div:'div'}; const useReducedMotion = () => true")
   .replace("import { authClient } from '../lib/auth'", 'const authClient = null')
   .replace("import { libraryApi, libraryStats } from '../lib/library'", 'const {libraryApi, libraryStats} = globalThis.__library')
-  .replace(/import \{ browserStorage[^\n]+\n/, 'const {browserStorage, celebrationKey, defaultAvatar, markCelebrated, pendingCelebration, pointRules, profileApi, rankProgress, readCelebrated} = globalThis.__profile\n')
+  .replace(/import \{ badgeTrack[^\n]+\n/, 'const {badgeTrack, browserStorage, celebrationCopy, celebrationFor, celebrationKey, defaultAvatar, highestBadge, markCelebrated, pointRules, profileApi, rankProgress, readCelebrated, trackValueText} = globalThis.__profile\n')
   .replace("import AppNavbar from './AppNavbar'", 'const AppNavbar = () => null')
   .replace("import GlitterStars from './GlitterStars'", 'const GlitterStars = () => null')
   .replace("import './ProfilePage.css'", '')
@@ -109,4 +109,102 @@ test('a freshly earned badge opens the celebration', async () => {
   const renderer = await render(createElement(ProfileScreen, {viewer: {id: 'celebrated-test', name: 'Ada'},
     profileService: {get: async () => profile({rank: voyager, next_rank: null, points_to_next: 0, points: 50, badges: earned})}, libraryService: {list: async () => []}}))
   assert.match(text(renderer.toJSON()), /You’re now a\s+Voyager/)
+})
+
+const comet = {id: 'comet', title: 'Comet', min_points: 150, badge: '/badges/comet.svg'}
+const solaris = {id: 'solaris', title: 'Solaris', min_points: 300, badge: '/badges/solaris.svg'}
+const ranks = [stargazer, voyager, comet, solaris]
+const earnedFor = points => ranks.filter(rank => rank.badge && points >= rank.min_points).map(rank => ({id: rank.id, title: rank.title, image: rank.badge, earned_at: '2026-10-11T12:00:00Z'}))
+const track = points => profileLib.badgeTrack(points, ranks, earnedFor(points), () => 'DATE')
+const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} !== ${expected}`)
+
+test('badgeTrack: segment fills at every checkpoint', () => {
+  const expected = {0: [0, 0, 0], 25: [50, 0, 0], 50: [100, 0, 0], 100: [100, 50, 0], 150: [100, 100, 0], 225: [100, 100, 50], 300: [100, 100, 100], 400: [100, 100, 100]}
+  for (const [points, fills] of Object.entries(expected)) {
+    const result = track(Number(points))
+    assert.equal(result.max, 300); assert.equal(result.segments.length, 3)
+    result.segments.forEach((segment, index) => near(segment.fill, fills[index]))
+  }
+  assert.deepEqual(track(0).segments.map(segment => [segment.from, segment.to]), [['stargazer', 'voyager'], ['voyager', 'comet'], ['comet', 'solaris']])
+})
+
+test('badgeTrack: nodes are earned, next or locked, and only the next goal pulses', () => {
+  const states = points => track(points).nodes.map(node => node.state).join(',')
+  assert.equal(states(0), 'next,locked,locked'); assert.equal(states(25), 'next,locked,locked'); assert.equal(states(49), 'next,locked,locked')
+  assert.equal(states(50), 'earned,next,locked'); assert.equal(states(100), 'earned,next,locked'); assert.equal(states(149), 'earned,next,locked')
+  assert.equal(states(150), 'earned,earned,next'); assert.equal(states(225), 'earned,earned,next')
+  assert.equal(states(300), 'earned,earned,earned'); assert.equal(states(400), 'earned,earned,earned')
+  assert.equal(track(100).next.id, 'comet'); assert.equal(track(225).next.id, 'solaris'); assert.equal(track(300).next, null); assert.equal(track(0).next.id, 'voyager')
+  // A node stays gray until it is actually earned, even if the points are enough (earned state comes from the server's badges).
+  assert.equal(profileLib.badgeTrack(60, ranks, []).nodes[0].state, 'next')
+})
+
+test('badgeTrack: positions are proportional by points with an equal-spacing alternative', () => {
+  const result = track(0)
+  assert.deepEqual(result.nodes.map(node => node.id), ['voyager', 'comet', 'solaris'])
+  near(result.nodes[0].position, 50 / 300 * 100); near(result.nodes[1].position, 50); near(result.nodes[2].position, 100)
+  near(result.nodes[0].equalPosition, 100 / 3); near(result.nodes[1].equalPosition, 200 / 3); near(result.nodes[2].equalPosition, 100)
+  near(result.segments[0].start, 0); near(result.segments[0].end, 50 / 3); near(result.segments[2].end, 100)
+  near(result.segments[1].equalStart, 100 / 3); near(result.segments[1].equalEnd, 200 / 3)
+  for (const [index, segment] of result.segments.entries()) { if (index) near(segment.start, result.segments[index - 1].end); if (index) near(segment.equalStart, result.segments[index - 1].equalEnd) }
+})
+
+test('badgeTrack: tooltips say how far to go or when the badge was earned', () => {
+  const result = track(118)
+  assert.equal(result.nodes[0].tooltip, 'Voyager · Earned DATE')
+  assert.equal(result.nodes[1].tooltip, 'Comet · 150 points · 32 points to go'); assert.equal(result.nodes[1].pointsToGo, 32)
+  assert.equal(result.nodes[2].tooltip, 'Solaris · 300 points · 182 points to go')
+  assert.equal(track(149).nodes[1].tooltip, 'Comet · 150 points · 1 point to go')
+})
+
+test('progress text: valuetext and the label under the track', () => {
+  assert.equal(profileLib.trackValueText(120, 300, voyager, comet), '120 of 300 points, Voyager, 30 points to Comet')
+  assert.equal(profileLib.trackValueText(1, 300, stargazer, voyager), '1 of 300 points, Stargazer, 49 points to Voyager')
+  assert.equal(profileLib.trackValueText(300, 300, solaris, null), '300 of 300 points, Solaris, top rank reached')
+  assert.equal(profileLib.trackValueText(412, 300, solaris, null), '412 points, Solaris, top rank reached')
+  assert.equal(profileLib.rankProgress({rank: solaris, next_rank: null, points: 320, points_to_next: 0}).label, 'Top rank reached')
+})
+
+test('the celebration names the highest new badge, however the badges are ordered', () => {
+  const all = earnedFor(320)
+  const shuffled = [all[2], all[0], all[1]]  // storage order must not matter
+  assert.equal(profileLib.highestBadge(shuffled, ranks).id, 'solaris')
+  assert.equal(profileLib.pendingCelebration(shuffled, [], ranks).id, 'solaris')
+  assert.equal(profileLib.pendingCelebration(shuffled, ['solaris'], ranks).id, 'comet')
+  const celebration = profileLib.celebrationFor(shuffled, [], ranks)
+  assert.deepEqual([celebration.badge.id, celebration.more, celebration.unseen], ['solaris', 2, ['voyager', 'comet', 'solaris']])
+  assert.deepEqual(profileLib.celebrationFor(all, ['voyager'], ranks).unseen, ['comet', 'solaris'])
+  assert.equal(profileLib.celebrationFor(all, ['voyager', 'comet', 'solaris'], ranks), null)
+  assert.equal(profileLib.celebrationFor([], [], ranks), null)
+})
+test('celebration copy works for any tier and mentions extra badges', () => {
+  const badge = title => ({id: title.toLowerCase(), title, image: '/x.svg', earned_at: 'x'})
+  assert.deepEqual(profileLib.celebrationCopy({badge: badge('Voyager'), more: 0}), {heading: 'You’re now a Voyager', body: 'Your Voyager badge stays yours, even if your progress changes.'})
+  assert.equal(profileLib.celebrationCopy({badge: badge('Comet'), more: 0}).heading, 'You’re now a Comet')
+  assert.match(profileLib.celebrationCopy({badge: badge('Solaris'), more: 2}).body, /also earned 2 more badges/)
+  assert.match(profileLib.celebrationCopy({badge: badge('Comet'), more: 1}).body, /also earned 1 more badge on/)
+  for (const tier of ['Voyager', 'Comet', 'Solaris']) assert.doesNotMatch(profileLib.celebrationCopy({badge: badge(tier), more: 0}).body, /first/i)
+})
+
+test('profile page: accessible badge track, three shelf badges and a multi-badge celebration', async () => {
+  const badges = earnedFor(320)
+  const renderer = await render(createElement(ProfileScreen, {viewer: {id: 'tiers-test', name: 'Ada'},
+    profileService: {get: async () => profile({points: 320, rank: solaris, next_rank: null, points_to_next: 0, badges, ranks})}, libraryService: {list: async () => []}}))
+  const content = text(renderer.toJSON())
+  assert.match(content, /You’re now a\s+Solaris/); assert.match(content, /also earned 2 more badges/)
+  const bar = renderer.root.findAll(node => node.props.role === 'progressbar')[0]
+  assert.deepEqual([bar.props['aria-valuemin'], bar.props['aria-valuemax'], bar.props['aria-valuenow']], [0, 300, 300])
+  assert.equal(bar.props['aria-valuetext'], '320 points, Solaris, top rank reached')
+  assert.equal(renderer.root.findAll(node => node.type === 'li' && /track-node/.test(node.props.className ?? '')).length, 3)
+  assert.equal(renderer.root.findAll(node => node.type === 'span' && node.props.role === 'tooltip').length, 3)
+  assert.match(content, /Top rank reached/)
+})
+test('profile page: mid-way points show the goal and pending tooltips', async () => {
+  const renderer = await render(createElement(ProfileScreen, {viewer: {id: 'mid-test', name: 'Ada'},
+    profileService: {get: async () => profile({points: 120, rank: voyager, next_rank: comet, points_to_next: 30, badges: earnedFor(120), ranks})}, libraryService: {list: async () => []}}))
+  const bar = renderer.root.findAll(node => node.props.role === 'progressbar')[0]
+  assert.equal(bar.props['aria-valuetext'], '120 of 300 points, Voyager, 30 points to Comet')
+  const classes = renderer.root.findAll(node => node.type === 'li' && /track-node/.test(node.props.className ?? '')).map(node => node.props.className)
+  assert.deepEqual(classes, ['track-node earned', 'track-node next', 'track-node locked'])
+  assert.match(text(renderer.toJSON()), /Comet · 150 points · 30 points to go/)
 })

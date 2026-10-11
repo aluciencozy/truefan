@@ -17,14 +17,13 @@
 .profile-current-badge{display:grid;justify-items:center;gap:6px;color:var(--muted);text-align:center}
 .profile-current-badge small{font-size:11px;max-width:110px}
 .profile-badge-art{display:block;filter:drop-shadow(0 0 14px #cba6f755)}
-.profile-badge-art.locked{filter:brightness(0) invert(1) opacity(.16)}
+.profile-badge-art.locked{filter:grayscale(1) brightness(.6);opacity:.55}
 .profile-badge-empty{display:grid;place-items:center;border:2px dashed #585b70;border-radius:50%;color:#585b70;font-size:26px}
 .profile-rank{display:flex;flex-direction:column;gap:12px}
 .profile-points{display:flex;align-items:baseline;gap:10px}
 .profile-points b{font:400 48px/1 var(--display);color:var(--yellow)}
 .profile-points span{color:var(--muted)}
-.profile-progress{height:12px;border-radius:99px;background:#313244;overflow:hidden}
-.profile-progress div{height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--teal),var(--green));box-shadow:0 0 16px #94e2d530;transition:width .6s ease}
+.profile-points em{margin-left:auto;font:500 20px var(--display);font-style:normal;color:var(--mauve)}
 .profile-progress-label{margin:0;font-size:14px;color:var(--subtext)}
 .profile-how{border-top:1px solid #45475a60;padding-top:12px;font-size:13px}
 .profile-how summary{cursor:pointer;color:var(--mauve);width:fit-content}
@@ -76,4 +75,32 @@
   .profile-identity{gap:14px}.profile-avatar{width:88px;height:88px}.profile-identity-copy h2{font-size:24px}
   .favorite-cover{width:80px;height:112px}.profile-points b{font-size:40px}
 }
-@media (prefers-reduced-motion:reduce){.profile-progress div{transition:none}}
+/* Segmented badge track: one scale from 0 to the top threshold. */
+.badge-track{position:relative;padding:34px 34px 0;margin:0 0 2px}
+.track-bar{position:relative;height:12px}
+.track-segment{position:absolute;top:0;bottom:0;left:var(--start);width:calc(var(--end) - var(--start));padding-inline:2px}
+.track-rail{display:block;height:100%;overflow:hidden;border-radius:99px;background:#313244}
+.track-rail i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--mauve),var(--lavender));box-shadow:0 0 14px #cba6f770;transition:width .8s cubic-bezier(.2,.7,.2,1)}
+.track-nodes{position:relative;list-style:none;margin:0;padding:0;height:72px}
+.track-node{position:absolute;left:var(--pos);top:0;transform:translateX(-50%)}
+.track-node-button{position:relative;display:grid;justify-items:center;gap:2px;width:84px;margin-top:-34px;padding:0;border:0;background:none;color:var(--text);text-align:center}
+.track-badge{position:relative;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:#181825;box-shadow:0 0 0 3px #181825}
+.track-node.earned .track-badge{box-shadow:0 0 0 3px #181825,0 0 22px 2px #cba6f77a}
+.track-node.earned .profile-badge-art{filter:drop-shadow(0 0 8px #cba6f7aa)}
+.track-lock{position:absolute;right:-2px;bottom:-2px;padding:3px;box-sizing:content-box;border-radius:50%;background:#313244;color:var(--subtext)}
+.track-node.next .track-badge::after{content:"";position:absolute;inset:-6px;border:2px solid var(--mauve);border-radius:50%;opacity:.8;animation:track-pulse 2s ease-out infinite}
+.track-node-button b{margin-top:6px;font:500 14px var(--display)}
+.track-node.locked b,.track-node.next b{color:var(--muted)}
+.track-node.earned b{color:var(--lavender)}
+.track-node-button small{color:var(--muted);font-size:11px}
+.track-tip{position:absolute;left:50%;bottom:calc(100% - 4px);z-index:3;transform:translateX(-50%);width:max-content;max-width:210px;padding:7px 10px;border:1px solid #585b70;border-radius:10px;background:#11111bf2;color:var(--text);font-size:12px;line-height:1.4;text-align:center;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .15s}
+.track-node:hover .track-tip,.track-node:focus-within .track-tip,.track-node[data-open] .track-tip{opacity:1;visibility:visible}
+.track-node:first-child .track-tip{left:0;transform:none;text-align:left}
+.track-node:last-child .track-tip{left:auto;right:0;transform:none;text-align:right}
+@keyframes track-pulse{0%{transform:scale(.92);opacity:.85}100%{transform:scale(1.28);opacity:0}}
+@media (max-width:480px){
+  .badge-track{padding-inline:30px}
+  .track-segment{left:var(--eq-start);width:calc(var(--eq-end) - var(--eq-start))}
+  .track-node{left:var(--eq-pos)}
+}
+@media (prefers-reduced-motion:reduce){.track-rail i{transition:none}.track-node.next .track-badge::after{animation:none;opacity:.7;inset:-5px}}

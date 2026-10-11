@@ -976,8 +976,14 @@ and the favorite are stored. All rules live in `backend/app/services/profile.py`
 | --- | --- | --- |
 | Stargazer | 0 | none |
 | Voyager | 50 | `/badges/voyager.svg` |
+| Comet | 150 | `/badges/comet.svg` |
+| Solaris | 300 | `/badges/solaris.svg` |
 
-Add a tier by appending to `RANKS`. Earned badges are inserted once (`ON CONFLICT DO NOTHING`) the first time a
+The profile's rank card is a segmented track from 0 to the top threshold with a badge node at each milestone
+(earned = full colour, not earned = gray with a lock, the next goal pulses); its maths is `badgeTrack` in
+`frontend/src/lib/profile.ts`. A user can skip tiers: one profile read inserts every qualifying badge with a shared
+`earned_at`, and the rank-up celebration names the highest new one. Add a tier by appending to `RANKS` (and its art
+to `frontend/public/badges/`). Earned badges are inserted once (`ON CONFLICT DO NOTHING`) the first time a
 profile read sees the user qualify, keep their `earned_at`, and are never revoked. A browser-local flag controls
 the one-time rank-up celebration.
 

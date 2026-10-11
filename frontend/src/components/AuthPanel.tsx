@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { authClient } from '../lib/auth'
-import { defaultAvatar, profileApi } from '../lib/profile'
+import { defaultAvatar, highestBadge, profileApi } from '../lib/profile'
 import type { Profile } from '../lib/profile'
 
 interface Props { onIdentity?: (id: string | null) => void }
@@ -27,7 +27,7 @@ function ConfiguredAuth({ onIdentity }: Props) {
     if (!open || !identity || standing?.owner === identity) return
     const controller = new AbortController()
     profileApi.get(controller.signal).then(profile => {
-      if (!controller.signal.aborted) setStanding({ owner: identity, rank: profile.rank, badge: profile.badges.length ? profile.rank.badge : null })
+      if (!controller.signal.aborted) setStanding({ owner: identity, rank: profile.rank, badge: highestBadge(profile.badges, profile.ranks)?.image ?? null })
     }).catch(() => undefined)
     return () => controller.abort()
   }, [open, identity, standing?.owner])
