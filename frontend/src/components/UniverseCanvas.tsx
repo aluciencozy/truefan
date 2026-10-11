@@ -227,13 +227,7 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
         <button aria-pressed={release} onClick={onRelease}>Release guidance {release ? 'on' : 'off'}</button>
         {universe.cache?.can_expand && <button disabled={expanding} onClick={onExpand}>{expanding ? 'Exploring…' : 'Expand universe'}</button>}
       </Panel>
-      <Panel position="top-right" className="overview-control">
-        <button aria-label={overview ? 'Return to Focus Mode' : 'Show constellation overview'} aria-pressed={overview} onClick={() => setOverview(value => !value)}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-            <path d={overview ? 'M3 9h6V3m6 0v6h6M3 15h6v6m6 0v-6h6' : 'M9 3H3v6m12-6h6v6M3 15v6h6m6 0h6v-6'} />
-          </svg>{overview ? 'Back to focus' : 'Overview'}
-        </button>
-      </Panel>
+
       <Panel position="bottom-center" className="journey-navigation">
         <div className="journey-controls">
           <button disabled={!previous} onClick={() => previous && focus(previous)} title={previous ? worldTitle(mediaById.get(previous)!, guide[previous]) : 'No previous connection'}>← Previous</button>
@@ -243,6 +237,13 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
       </Panel>
     </ReactFlow></CanvasPointerContext.Provider>
     </div>
+      <div className="overview-control" inert={entering}>
+        <button aria-label={overview ? 'Return to Focus Mode' : 'Show constellation overview'} aria-pressed={overview} onClick={() => setOverview(value => !value)}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+            <path d={overview ? 'M3 9h6V3m6 0v6h6M3 15h6v6m6 0v-6h6' : 'M9 3H3v6m12-6h6v6M3 15v6h6m6 0h6v-6'} />
+          </svg>{overview ? 'Back to focus' : 'Overview'}
+        </button>
+      </div>
     {!overview && layoutState !== 'loading' && <motion.div inert={entering} key={focusedId} className={`universe-inspector ${detailsMinimized ? 'details-minimized' : ''}`}
       initial={{ opacity: 0, x: reduced ? 0 : 18 }} animate={{ opacity: 1, x: 0 }}
       transition={{ duration: reduced ? 0 : .45, delay: reduced ? 0 : .35 }}>
