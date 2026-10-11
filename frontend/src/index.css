@@ -325,11 +325,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 
 .app-community-link { display: inline-block; font-family: var(--display); font-size: 16px; }
 
-/* Shared night sky with a soft, diffuse nebula glow. */
-.home-page, .app-shell.celestial, .library-page, .community-page, .auth-shell {
-  background-color: var(--crust);
-  background-image: radial-gradient(ellipse at 18% 28%, #f0629215, transparent 68%), radial-gradient(ellipse at 82% 72%, #cba6f712, transparent 72%), radial-gradient(ellipse at 50% 38%, #31324430, transparent 72%);
-}
+
 .home-hero { background: transparent; }
 .home-introduction h1 { font-size: clamp(60px, 7vw, 84px); color: #e8defb; text-shadow: 0 0 48px #cba6f733; }
 .home-introduction p { font-size: 16px; }
