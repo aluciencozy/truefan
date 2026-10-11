@@ -485,15 +485,16 @@ versions. Do not replace an early description with a full-story biography.
 ## Universe exploration and release guidance
 
 Search results keep their exact AniList media ID and your typed query. Selecting
-an anime opens a spacious React Flow canvas at a readable zoom near the selected
-work. Pan and zoom to explore; **Fit View** shows the complete discovered graph.
-Pan bounds and minimum zoom are derived from its layout. Select a destination
-to smoothly focus it, inspect its connections, and use **Enter anime** (or
-double-click an accessible node) to open the existing episode-filtered character
-graph. **Return home** focuses the original selection. Returning from characters
-keeps the universe canvas and camera mounted. The map uses the homepage's dark
-Catppuccin Mocha palette and locally hosted Pixelify Sans typography, with cover
-art, thin connections, and distinct locked/available/completed states.
+an anime opens the growing React Flow universe map described below. **Overview**
+fits its visible frontier; **Home world** returns to the main starting entry.
+**Enter World** opens the episode-filtered character graph. Returning from
+characters keeps the universe canvas mounted. The map uses the homepage's dark
+Catppuccin Mocha palette, cover art, and locked/available/completed states.
+
+Explore fits the viewport without a page scrollbar. The graph fills the space
+between its header and footer; details scroll inside their own panel. On narrow
+screens, the map and details share the remaining height, and minimizing details
+gives that space back to the map.
 
 Selecting a character focuses its node and opens a Motion detail panel on the
 right half of the desktop canvas (a bottom panel on mobile). Closing restores
@@ -503,85 +504,83 @@ so characters use monograms. Changing progress immediately removes old graphs
 and details. Motion respects reduced-motion settings; layouts do not recalculate
 while panning or zooming.
 
-`universeModel.ts` normalizes stable typed connections while preserving the
-original directed AniList evidence. PREQUEL reverses placement direction;
-reciprocal SEQUEL/PREQUEL evidence shares one connection. Alternatives are
-symmetric cross-links, never fabricated sequels. A deterministic, cycle-safe
-primary sequel forest retains other connections as dashed links. Connected
-sequels of the same format family share an inferred branch, including
-forks and multiple parents. Explicit alternatives, spinoffs, side stories and
-adaptations prevent transitive branch merging. Different format families
-(TV/TV_SHORT/ONA versus films, OVAs or specials) remain separate, so an optional
-OVA prequel does not become a TV-season viewing prerequisite.
+`universeModel.ts` normalizes AniList connections and preserves the original evidence.
+PREQUEL reverses progression direction; reciprocal SEQUEL/PREQUEL evidence shares
+one connection. A deterministic, cycle-safe progression forest supplies the
+prerequisites, unlock arrows, completion previews, and Previous/Next navigation.
+Each work has at most one prerequisite. Sequel forks unlock together; they are
+not forced into a single release sequence.
 
-The map has two labeled clusters: **Main series** and **Spinoffs & related works**,
-separated by spacing, without borders or shaded containers. Muted gray labels
-keep the worlds as the visual focus.
-The main series is the selected entry's continuation branch; explicit parent,
-spinoff or side-story evidence leads back to its parent branch. An optional
-film/OVA entry uses a directly sequel/prequel-connected TV branch when one is
-available. All remaining branches share the related-works area while retaining
-independent release sequences. These are metadata heuristics, not canonical
-continuity facts; missing or conflicting provider relationships can misgroup works.
+The **Main storyline** includes connected TV/TV_SHORT/ONA entries and sequel
+movies. **Extras & spinoffs** occupy a separate area below it. OVAs, specials,
+and explicitly separate side stories/spinoffs do not become main prerequisites;
+sequel descendants of a side-story branch stay in that branch. Alternative,
+adaptation, source, and side-story evidence prevents inappropriate branch
+merging. Selecting a spinoff follows explicit parent evidence back to the main
+story; an optional entry can use its directly connected main-story branch.
+These are metadata heuristics, not canonical continuity or spoiler-safe watch
+order guarantees.
 
-`universeLayout.ts` lazily loads ELK.js and places fixed-size nodes inside inferred
-branches, with the main-series area above the related-works area. Branches in the
-related area are packed together. Cross-links remain visible but no longer decide
-the placement of the two areas. IDs/edges are sorted and layout uses a fixed seed.
-Small ID-based position offsets give connections gentle upward/downward angles
-without moving worlds on rerender or reload.
-Release dates, watched state and overlays are absent from geometry inputs.
-Expansion preserves existing media anchors, aligns new members to branch anchors
-when possible and appends colliding cards. This favors spatial memory over a
-perfect refreshed layout; spacing/cross-links can become less tidy after
-several expansions. Layout failure packs branches across rows with the same
-position offsets, avoiding a single vertical column of related works.
+Prerequisites prefer sequel evidence inside the same storyline, then explicit
+parent/side-story/spinoff attachment, then other eligible sequel connections.
+Multiple candidate parents prefer the latest dated release preceding the child,
+with stable IDs resolving ties; cycles are rejected. Unconnected entries no
+longer fall back to the first main release. Other AniList associations never
+create automatic unlocks. Missing dates remain unknown.
 
-**Release guidance** numbers entries *within each branch*, rather than
-interleaving unrelated continuities by global release date. Sorting compares
-known year/month/day, puts missing components after known components at the same
-year/month, then uses stable media ID. Partial dates stay labeled partial and
-undated entries sort last. Nothing invents a date or treats a release sequence as
-story chronology or guaranteed spoiler-free viewing.
+A fresh viewer starts with the earliest released main entry having no
+prerequisite, plus its immediate locked children. Completing an entry makes its
+children available and reveals their immediate children as locked previews.
+Deeper descendants are absent from the rendered canvas, edge lists, and keyboard
+navigation. Completing one entry never automatically completes or unlocks its
+entire subtree. Existing completion, positive watched progress, and manual
+unlocks preserve access. Their ancestors remain visible as context, but locked
+ancestors do not reveal their other children. Unknown episode totals require
+explicit completion; rewinding the character spoiler lens does not erase
+confirmed viewing history.
 
-The universe opens in **Focus Mode**, with an enlarged glowing world near the
-middle-left and a compact details panel beside it (below it on small screens).
-The camera frames a local neighborhood; remote worlds recede until visited.
-Arrow keys follow spatially aligned connected neighbors. **Previous/Next** prefer
-primary prequel/sequel connections, with other actual connections as fallbacks.
-Click a world or a connection to travel. **Overview** smoothly fits all discovered
-worlds; toggle it again to return to the same selection, or select a world to
-focus it. Free panning, wheel/pinch zoom, and automatic focus panning are disabled
-in both modes. Character graph camera controls remain independent.
+Searches for a later locked entry start at the beginning of the main path and
+offer **Start here instead** for the searched work. This uses the existing manual
+unlock flag without completing ancestors. **Home world** returns to the main
+starting entry. Signed-in viewers' state is loaded before the map appears;
+account changes reset visibility and focus.
 
-React Flow interpolates the camera along straight connections; Motion animates
-node scale, arrival rings, traveling light trails and the details panel. Layout
-only runs when the discovered model changes, never during camera movement or
-progress updates. Reduced-motion preferences disable the cinematic transitions.
-The panel's short summary uses relationship/format metadata rather than provider
-plot synopses, which have no spoiler-safe reveal boundary. Recorded progress is
-shown as saved; explicit completion does not fabricate watched episode numbers.
-**Enter World** opens the existing progress-filtered character graph.
+The details panel explains **Available after completing…** and offers a collapsed
+**Unlocks after finishing** section with counts for main entries and extras. The corresponding
+unlock paths are highlighted. Locked entries use **Undiscovered** instead of
+titles throughout the map, panel, tooltips, and accessibility labels; covers
+remain blurred. This is a presentation preference: the public universe metadata
+API still contains discovered titles and cover URLs. Character facts continue
+to be filtered by episode progress in the backend.
 
-All discovered nodes remain in the map. **Locked** uses **Undiscovered** in place
-of the title across the map, details, connections, tooltips and screen-reader
-announcements. Covers have a strong blur and muted Catppuccin Mocha overlay,
-including on hover/focus. Actual connections remain visible, with no episode
-metadata/story details or character entry. This is a presentation preference;
-the public universe metadata API still returns titles and cover URLs.
-**Available** can be entered; **Completed** remains accessible and has a watched
-marker. Incomplete covers are dimmed. Only the earliest release in the
-main-series branch is available
-for a fresh viewer. Later entries require completion of the preceding release in
-their own branch. The first entry in a related branch requires a connected
-main-series entry to be completed, preferring explicit spinoff/side-story/parent
-relations; without a direct main-series link, it requires the main-series starting
-entry. Unknown release dates sort last and do not bypass these prerequisites;
-partial-date suggestions are approximate. Existing positive watched progress,
-confirmed completion or a manual override preserves access regardless of guidance.
-**Unlock anyway** changes availability only, preserving saved units/completions.
-**I finished this anime** explicitly confirms completion, including uncertain
-counts, without fabricating watched episode numbers.
+Only prerequisite connecting lines appear by default. **Show related connections** adds
+relationships between already visible entries, combining multiple types between
+the same pair and omitting duplicate prerequisite connections. These dashed
+connections do not affect unlocks. Arrow keys follow spatially aligned visible
+prerequisites; Previous/Next follow their direction. Click a world or connection
+to focus it. **Overview** fits only the visible map and reports its visible count.
+
+`universeLayout.ts` lazily loads ELK and lays out the visible progression forest.
+The main storyline sits above extras, separated by at least 180 graph pixels
+between padded group bounds. Stable ID-based staggering preserves a constellation
+appearance. Spacing accounts for enlarged focused artwork. Growth rebalances the
+visible layout around the selected world's existing position, animating the
+other worlds without shifting that selection on screen. Hover, watched-unit
+changes without new visibility, and relationship overlays do not rerun layout.
+Failed layouts use a deterministic spaced fallback; stale layout results are
+ignored. Reduced motion applies final positions immediately.
+
+Lines without arrowheads connect directly to node handles and bend subtly toward
+the cursor using the original PointerEdge effect. Connection
+colors are stable per edge, mixing soft accents with roughly one third pale lavender. Secondary relationships use dashed lines; multiple relationship labels share a
+single line. Node movement
+and edge shapes animate during rebalancing. **Enter World** retains the cinematic
+transition into the existing episode-filtered character graph. The panel uses
+relationship metadata rather than provider plot synopses.
+
+Completion does not fetch more provider metadata or run inference. The map grows
+within the bounded franchise snapshot already loaded. Backend APIs, discovery
+limits, authentication, and saved viewing-state schemas are unchanged.
 
 Guest confirmations/overrides last for the current app session. Signed-in users
 load all discovered works' state through deterministic bulk batches of at most
@@ -603,9 +602,9 @@ access and backend reveal filtering remain unchanged.
 `Universe` retains `root_id`, `media`, raw `relationships` and `truncated`, and
 adds nullable `franchise_id` and `cache` (`refreshed_at`, `stale`, `incomplete`,
 `revision`, `can_expand`, `limitations`). A cached franchise can be reused through
-different entry works while preserving the selected root. **Expand universe**
-uses the cached revision, respects configured discovery bounds, and retains the
-map on errors. Saved frontier expansion is not guaranteed complete discovery or
+different entry works while preserving the selected root. The universe expansion API
+uses the cached revision and respects configured discovery bounds. Saved frontier
+expansion is not guaranteed complete discovery or
 a full stale-metadata refresh. Names alone never establish membership.
 
 Deploy the companion backend/cache migration before this frontend: apply its
@@ -617,8 +616,9 @@ on demand; AniList public API access is not a license to mirror its catalog.
 Character extraction, Auth/JWT verification and episode reveal rules are unchanged.
 
 Run `npm test` in `frontend/` (Node 24 recommended) for pure normalization,
-release/progression/override, deterministic ELK, expansion-anchor, safe locked
-panel and Auth API checks. Backend tests remain in `backend/tests`.
+release/progression/override, visible-frontier growth, deterministic ELK,
+focused-world anchoring, cursor bending, safe locked panels, failed saves,
+account switching, and Auth API checks. Backend tests remain in `backend/tests`.
 
 ## AniList integration
 

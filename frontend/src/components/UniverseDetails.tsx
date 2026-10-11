@@ -1,7 +1,7 @@
 import type { Media, Universe, UserMediaState } from '../lib/types'
 import type { UniverseModel } from '../lib/universeModel'
 import { relationLabel } from '../lib/universeModel'
-import { releaseLabel, worldTitle } from '../lib/universeProgression'
+import { releaseLabel, unlocksAfter, worldTitle } from '../lib/universeProgression'
 import type { ReleaseGuide } from '../lib/universeProgression'
 
 interface Props {
@@ -16,7 +16,11 @@ export default function UniverseDetails({ media, universe, model, guide, release
   const group = model.groups.find(group => group.mediaIds.includes(media.id))
   const previous = model.media.find(item => item.id === currentGuide.previousId)
   const root = model.media.find(item => item.id === universe.root_id)
-  const connections = model.links.filter(link => link.source === media.id || link.target === media.id)
+  const connections = model.links.filter(link => guide[link.source]?.visible && guide[link.target]?.visible && (link.source === media.id || link.target === media.id))
+  const upcoming = unlocksAfter(model, guide, media.id)
+  const mainIds = new Set(model.groups.find(item => item.id === 'group:main')?.mediaIds)
+  const mainCount = upcoming.filter(id => mainIds.has(id)).length
+  const extraCount = upcoming.length - mainCount
   const kinds = [...new Set(connections.map(link => relationLabel(link.kind)))].slice(0, 3)
   const unit = state?.progress?.unit ?? 0
   const progressText = media.has_prologue ? unit === 0 ? 'Not started' : unit === 1 ? 'Prologue watched' : `Through episode ${unit - 1}`
@@ -28,7 +32,7 @@ export default function UniverseDetails({ media, universe, model, guide, release
     <div className="world-panel-heading"><span className={`watch-state ${currentGuide.status}`}>{locked ? 'Locked' : currentGuide.status === 'completed' ? 'Completed' : 'Available'}</span></div>
     <h2>{worldTitle(media, currentGuide)}</h2>
     <p className="world-focus-label">{group?.label}</p>
-    {locked ? <><p>Continue from the previous entry, or choose your own starting point.</p>
+    {locked ? <><p>{previous ? `Available after completing ${worldTitle(previous, guide[previous.id])}.` : 'No viewing prerequisite is known. You can choose this as a starting point.'}</p>
       {previous && <button className="relation-jump" onClick={() => onFocus(previous)}>Previous: {worldTitle(previous, guide[previous.id])}</button>}
       <button className="primary" disabled={busy} onClick={() => onUnlock(media)}>Unlock anyway</button></> : <>
       <p className="world-summary">{summary}</p>
@@ -37,11 +41,15 @@ export default function UniverseDetails({ media, universe, model, guide, release
         {media.total_units_known && <progress aria-label={`${media.title} viewing progress`} max={media.total_units} value={Math.min(unit, media.total_units)} />}
       </div>
       {release && <p>Release {currentGuide.number}{currentGuide.approximateDate ? ' · approximate date' : ''}</p>}
+      {upcoming.length > 0 && <details key={media.id} className="unlock-summary">
+        <summary>Unlocks after finishing</summary>
+        <p>{[mainCount ? `${mainCount} main ${mainCount === 1 ? 'entry' : 'entries'}` : '', extraCount ? `${extraCount} ${extraCount === 1 ? 'extra' : 'extras'}` : ''].filter(Boolean).join(' · ')}</p>
+        <span>The highlighted paths show your next steps.</span>
+      </details>}
       <button className="primary enter-world" disabled={busy} onClick={() => onEnter(media)}>Enter World <span aria-hidden="true">↗</span></button>
       {currentGuide.status !== 'completed' && <button className="complete-world" disabled={busy} onClick={() => onComplete(media)}>I finished this anime</button>}
     </>}
     {message && <p role="status">{message}</p>}
-    {(universe.truncated || universe.cache?.incomplete) && <p className="guidance-note">This is a bounded, incomplete map. More connections may exist.</p>}
     {universe.cache?.stale && <p className="guidance-note">Cached metadata may be out of date.</p>}
   </aside>
 }
