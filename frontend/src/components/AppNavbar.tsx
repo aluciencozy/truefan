@@ -20,7 +20,7 @@ export default function AppNavbar({ onIdentity }: { onIdentity?: (id: string | n
 
   return <header className="app-navbar">
     <Link className="navbar-brand" to="/" aria-label="TrueFan home">
-      <img src="/home/brand.svg" width="30" height="30" alt="" />TrueFan
+      <img src="/home/truefan-logo.svg" width="76" height="76" alt="" />TrueFan
     </Link>
     <nav className="navbar-links" aria-label="Main navigation">
       {destinations.map(({ to, label }) => {

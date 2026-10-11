@@ -1,6 +1,6 @@
 .app-navbar { position: relative; z-index: 30; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 24px; min-height: 88px; padding: 20px clamp(20px, 3.4vw, 48px); font-family: var(--display); }
-.app-navbar :where(.navbar-brand, .navbar-link, .navbar-account > a, .account-trigger) { background: #11111b18; backdrop-filter: blur(12px); box-shadow: 0 6px 18px #11111b30, inset 0 1px 0 #cdd6f40a; }
-.navbar-brand { justify-self: start; display: inline-flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 999px; font-size: 20px; color: var(--text); text-decoration: none; white-space: nowrap; }
+.app-navbar :where(.navbar-link, .navbar-account > a, .account-trigger) { background: #11111b18; backdrop-filter: blur(12px); box-shadow: 0 6px 18px #11111b30, inset 0 1px 0 #cdd6f40a; }
+.navbar-brand { justify-self: start; display: inline-flex; align-items: center; gap: 12px; padding: 0; border-radius: 0; font-size: 20px; color: var(--text); text-decoration: none; white-space: nowrap; }
 .navbar-links { display: flex; align-items: center; gap: 4px; padding: 4px; }
 .navbar-link { position: relative; display: grid; place-items: center; min-height: 40px; padding: 0 18px; border-radius: 999px; color: var(--subtext); font-size: 16px; text-decoration: none; white-space: nowrap; transition: color .2s, background .2s; }
 .navbar-link:hover { color: var(--text); background: #31324480; }
