@@ -18,6 +18,8 @@ returns only facts at or before the user's exact progress.
 - Persistent per-user media progress through authenticated FastAPI endpoints.
 - Lazy Neon Postgres connection helper; no database or external credentials needed to boot.
 - Dynamic AniList search and reusable Neon franchise caches with bounded discovery and explicit expansion.
+  Search and universe maps currently show only anime, including TV, movies, specials, ONA, and OVA;
+  related manga and novels are excluded from new discovery and cached map responses.
   See [franchise discovery and API details](docs/IMPLEMENTATION.md#search-and-universe-discovery);
   unlock presentation remains a dependency on `fm/truefan-universe-explorer`.
 - Automatic experimental character extraction from Kitsu/TVmaze through configurable HF inference.
@@ -59,7 +61,7 @@ Spoiler-safe profiles and Q&A will share the same progress boundary.
 ```text
 Vite + React browser app (Vercel)
   ├─ Neon Auth: managed users, credentials, sessions
-  └─ HTTP / JSON → FastAPI (Railway)
+  └─ Same-origin HTTP / JSON → Vercel API proxy → FastAPI (Railway)
                     ├─ reveal-point filtering
                     ├─ JWT verification for user-owned APIs
                     ├─ Neon Postgres (progress and shared caches)
@@ -88,7 +90,7 @@ and PyJWT with cryptography for signed identity verification.
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── vite.config.ts
-│   └── vercel.json          # SPA route rewrites
+│   └── vercel.json          # API proxy and SPA route rewrites
 ├── backend/
 │   ├── app/
 │   │   ├── main.py           # Endpoints and CORS
@@ -216,10 +218,10 @@ to verify the graph and details update. Stop FastAPI and reload to check the err
 | Variable | Location | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | Backend | Neon Postgres connection string, with TLS parameters from Console |
-| `HF_TOKEN` | Backend | Secret Inference Providers token for graph generation and local probes |
+| `HF_TOKEN` | Backend | Secret Inference Providers token for graph generation, local probes, and `POST /api/media/{id}/extract` |
 | `ANILIST_API_URL` | Backend | Defaults to `https://graphql.anilist.co` |
 | `FRONTEND_URL` | Backend | Exact allowed browser origin; defaults to `http://localhost:3000` |
-| `VITE_API_URL` | Frontend | Public FastAPI origin; defaults to `http://localhost:8000` |
+| `VITE_API_URL` | Frontend | Development FastAPI origin; defaults to `http://localhost:8000`. Production uses the Vercel API proxy. |
 | `VITE_NEON_AUTH_URL` | Frontend | Public branch-specific Neon Auth endpoint; blank disables account UI |
 | `NEON_AUTH_BASE_URL` | Backend | Full branch Auth URL, identical to `VITE_NEON_AUTH_URL`; required for protected APIs |
 | `NEON_AUTH_JWKS_URL` | Backend, optional | Trusted Neon-supplied JWKS URL override; normally derived from the base URL |
@@ -316,11 +318,11 @@ settings are hidden. The existing official React SDK and AuthView remain in use.
   from the localhost/Vercel page Neon redirects to afterwards. Store the Google
   Client ID and Client Secret in Neon, never in `VITE_*` variables. Neon's shared
   Google credentials are for development/testing; use your own for production.
-- On Vercel, set `VITE_API_URL` to Railway and `VITE_NEON_AUTH_URL` to this
-  branch's Auth URL, then rebuild. On Railway, set `FRONTEND_URL` to the exact
-  Vercel frontend origin and use the same `NEON_AUTH_BASE_URL`. Backend CORS
+- On Vercel, set `VITE_NEON_AUTH_URL` to this branch's Auth URL, then rebuild.
+  Production API calls use the same-origin proxy in `frontend/vercel.json`.
+  On Railway, set `FRONTEND_URL` to the exact Vercel frontend origin and use the same `NEON_AUTH_BASE_URL`. Backend CORS
   currently accepts one frontend origin; Neon trusting a preview does not
-  automatically permit that preview to call FastAPI.
+  automatically permit that preview to call FastAPI directly.
 
 See the official [OAuth setup](https://neon.com/docs/auth/guides/setup-oauth),
 [trusted domains](https://neon.com/docs/auth/guides/configure-domains), and
@@ -364,9 +366,14 @@ be necessary. A build or a mocked JWT test is not proof of a live Neon login.
 
 ## Frontend/backend communication and contracts
 
-`frontend/src/lib/api.ts` calls FastAPI directly using `VITE_API_URL`. There is
-no Vite proxy hiding CORS problems. FastAPI allows the configured frontend origin
-and the Content-Type/Authorization headers. It never connects to Postgres on startup.
+`frontend/src/lib/api.ts` uses relative URLs in production. Vercel forwards
+`/api/*` and `/health` to Railway before the SPA fallback, so browsers connect
+only to the frontend hostname for app data. This avoids failures on networks
+that block the shared Railway hostname. Vercel external rewrites are not cached
+by default; authenticated requests keep their bearer tokens. Development calls
+FastAPI directly using `VITE_API_URL`; there is no Vite proxy. FastAPI allows
+the configured frontend origin and the Content-Type/Authorization headers.
+It never connects to Postgres on startup.
 Pydantic models appear at `/docs` and `/openapi.json`; frontend interfaces mirror
 these contracts in `src/lib/types.ts`.
 
@@ -382,6 +389,7 @@ these contracts in `src/lib/types.ts`.
 | `GET /api/me/media-state?media_id=...` | Bearer token; 1–50 unique IDs; returns `{media_id, progress, completed, manual_unlocked}[]` |
 | `PUT /api/me/media-state/{id}` | Bearer token; supplied `completed`/`manual_unlocked` flags only; marking completed advances progress to the known final unit; other updates and unknown totals preserve saved units |
 | `GET /api/media/{id}/graph?progress=N` | Required non-negative completed unit; returns filtered `GraphResponse`; out-of-range returns 422 |
+| `POST /api/media/{id}/extract` | Bearer token plus `GraphExtractRequest` (`summary`, `source`, `reveal_point`, viewer `progress`); calls Hugging Face with server-only `HF_TOKEN`/`HF_MODEL` and returns React Flow `{nodes, edges}` (`FlowGraphResponse`, `origin: "ai"`, unverified). On any provider failure (timeout, 429, bad output, no token) it returns the curated graph from Neon (`origin: "database"`), the in-code seed (`"builtin"`), or an empty graph for uncurated titles. Every path is filtered by `progress`; progress beyond total 422. Separate from the cached, queued `POST /api/media/{id}/generation` |
 | `POST /api/extract` | `ExtractRequest`; returns 501 with a typed `not_implemented` message |
 | `POST /api/ask` | `AskRequest`; returns 501 without generating an answer |
 | `GET /api/me` | Bearer token required; returns `{ "id": "verified-user-subject" }` |
@@ -677,6 +685,14 @@ and [reviewed candidates](docs/data/ubw-extraction-candidates.json).
 
 ## Automated graph generation
 
+For the researched replacements of existing caches, see
+[source-curated graphs](docs/source-curated-graphs.md). These retain source provenance
+and experimental/unverified status, and automatic generation cannot overwrite them.
+From `backend/`, `python -m scripts.replace_generated_graphs` dry-runs the exact scope;
+`--apply --backup /private/path/graphs-before.json` applies it atomically with a private
+backup outside the repository. It preserves user progress and generation history.
+Cached reads consume no inference quota, so existing generation limits can stay as-is.
+
 ```text
 AniList
     ↓
@@ -715,8 +731,11 @@ and reports partial coverage honestly. No Vercel/Railway hosting settings were c
 ## Deployment targets
 
 - **Vercel:** root directory `frontend`, Vite preset, `npm run build`, output `dist`.
-  Set `VITE_API_URL` to Railway's HTTPS origin and `VITE_NEON_AUTH_URL` to the same
-  Neon branch used by the backend. Rebuild after changing public variables.
+  Set `VITE_NEON_AUTH_URL` to the same Neon branch used by the backend.
+  API calls are proxied to the Railway origin in `frontend/vercel.json`; update
+  both API rewrite destinations if the backend hostname changes.
+  `VITE_API_URL` is used only during local development. Rebuild after changing
+  public variables.
 - **Railway:** root directory `backend`, install `requirements.txt`, start
   `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (also in Procfile).
   Set `FRONTEND_URL` to the Vercel origin and configure server-only variables.
@@ -724,7 +743,8 @@ and reports partial coverage honestly. No Vercel/Railway hosting settings were c
   URL to Railway `DATABASE_URL`; add the Vercel domain to Neon Auth trusted origins.
 
 No deployment has been performed by this scaffold. No Docker, CI/CD, or auth
-middleware framework is required. `frontend/vercel.json` rewrites frontend routes to `index.html`, so direct auth
+middleware framework is required. `frontend/vercel.json` forwards API and health
+requests to Railway and rewrites frontend routes to `index.html`, so direct auth
 and account links work on Vercel.
 
 ## Hackathon scope and next steps
@@ -802,6 +822,19 @@ on the right. Its transparent header and blurred controls blend with each page. 
 link animates gently, respects reduced motion, and moves to a centered second row on
 smaller screens. Community and Saved universes retain their gently twinkling dots and
 larger star accents; stars remain static when reduced motion is requested.
+
+In-app page navigation and links opening another Explore story share an orbital
+transition: the page pulls back, a light orbits a central star, and the destination
+settles in. The destination mounts after a 140 ms departure so its existing requests
+run during the journey. `PageTransition` in the frontend route shell uses
+`usePageReady` for initial Explore, Library, and Community loading. Normal journeys
+take 650 ms; slow data extends the journey to at most 1.2 seconds, then the page's
+existing loading/error state appears. Graph generation and background refreshes do
+not hold navigation. Dialog/search query edits and story progress controls do not
+trigger the effect; spoiler-clearing behavior is unchanged. Reduced motion skips
+the effect and hold. Arrival focuses main content, resets forward-navigation scroll,
+and restores saved positions for browser Back/Forward.
+
 The full-width Community feed uses smaller typography, media and tag dropdowns
 (Any tag shows all categories), search, and latest/popular sorting. Create post opens a
 form dialog; conversations open a readable dialog with scrolling posts/replies and a
@@ -866,6 +899,9 @@ open the exact saved work with `/explore?universe=anilist-ID` rather than search
 by title. Existing viewing-progress records also appear, grouped by cached strong
 franchise membership. Pins, private 1–5 ratings, and abandoned entries survive
 reloads. Search, status/media filters, sorting, and list/grid layouts are functional.
+The page stays within the viewport; only the universe list scrolls, with faded
+edges blending into the background and no enclosing card. Ratings use gold badges
+and actions use SVG icons; the sort control stays compact.
 
 Run `python -m app.init_db` against the deployment database before using the new
 API. The additive `user_saved_universes` table stores a catalog root snapshot,
@@ -885,7 +921,17 @@ entry. Weak side-story boundaries do not merge two independently saved universes
 `SavedUniverse` includes `media_id`, `title`, `cover_url`, `type`, `format`, ordered
 `titles`, `viewed_count`, `total_count`, `coverage_incomplete`, `pinned`, `rating`,
 `saved_at`, and `last_explored_at`. Each title includes catalog metadata,
-`release_date`, and a completion boolean. A viewed node is a **completed work**
+`release_date`, a completion boolean, and `estimated_minutes_watched`. The stats
+show **estimated hours watched** across distinct titles in the caller's saved
+universes: 22 minutes per episode (including partial saved progress) and 120
+minutes per completed movie, including AniList entries with `format: MOVIE`.
+If cached universes disagree on a shared title's estimate, the largest estimate
+is used so changing pin or sort order cannot change the total.
+Known episode totals cap progress and supply the count for completed works;
+unknown totals use saved episode progress. Prologues count as one episode unit.
+Manga chapters, game milestones, and manual unlocks add no watch time. Removing a
+universe removes its exclusive titles from this stat without deleting progress.
+A viewed node is a **completed work**
 (season, sequel, movie, etc.), not an episode count. Explicit completion flags win;
 legacy progress counts as complete only when the work's total is known. Manual
 unlocks never count as completion. Known release dates come first, then undated
@@ -900,3 +946,13 @@ Validation: frontend `npm test`, `npm run build`; backend
 release ordering, grouped legacy progress, tombstones, verified ownership,
 preference validation, repeating previews, pin/rating actions, cancellation,
 failed deletion, last-item empty state, and account changes.
+
+## Seeding the curated demo catalog
+
+`schema.sql` also defines `media`, `entities` and `relationships` (`unlock_episode` = the
+API's `revealed_at.unit`). From `backend/`, run `python scripts/seed_demo_data.py` to create
+the tables and upsert Lantern Harbor and *Attack on Titan* season 1 (25 entities revealed at
+episodes 1/5/10/15/20 and 24 edges up to episode 25). It is idempotent. Seed reveal episodes are hand-written and
+unreviewed (`verified = false`); they err late, never early. Without the seed, or when
+Neon is unreachable, the extract endpoint falls back to the same data compiled into
+`app/services/seed_catalog.py`.

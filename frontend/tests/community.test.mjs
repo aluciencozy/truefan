@@ -12,7 +12,7 @@ globalThis.document={visibilityState:'hidden',addEventListener(){},removeEventLi
 globalThis.HTMLElement=class {}
 function compile(source) {
   let {outputText}=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}})
-  outputText=outputText.replace(/from (["'])([^"']+)\1/g,(_,quote,name)=>`from ${JSON.stringify(pathToFileURL(require.resolve(name)).href)}`)
+  outputText=outputText.replace(/from (["'])([^"']+)\1/g,(_,quote,name)=>`from ${JSON.stringify(name === '../lib/pageTransition' ? new URL('../src/lib/pageTransition.ts', import.meta.url).href : pathToFileURL(require.resolve(name)).href)}`)
   return 'data:text/javascript;base64,'+Buffer.from(outputText).toString('base64')
 }
 const helpers=(await readFile(new URL('../src/lib/community.ts',import.meta.url),'utf8')).replace("import { request } from './api'",'const request=()=>{}')

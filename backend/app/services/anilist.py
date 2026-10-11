@@ -145,11 +145,15 @@ def discover(media_id: str, *, seed: Universe | None = None,
              depth_limit: int | None = None, frontier_offset: int = 0) -> Discovery:
     cap = node_limit if node_limit is not None else settings.universe_node_cap
     max_depth = depth_limit if depth_limit is not None else settings.universe_depth
-    nodes = {m.id: m for m in seed.media} if seed else {}
-    edges = {(e.source, e.target, e.type): e for e in seed.relationships} if seed else {}
-    fetched = set(expanded or ())
-    strong = set(strong_ids or {media_id})
-    pending = set(frontier if frontier is not None else {media_id}) - fetched
+    excluded = {m.id for m in seed.media if m.type != 'anime'} if seed else set()
+    if media_id in excluded:
+        raise ValueError('Only anime universes are currently supported')
+    nodes = {m.id: m for m in seed.media if m.type == 'anime'} if seed else {}
+    edges = {(e.source, e.target, e.type): e for e in seed.relationships
+             if e.source in nodes and e.target in nodes} if seed else {}
+    fetched = set(expanded or ()) - excluded
+    strong = set(strong_ids or {media_id}) - excluded
+    pending = set(frontier if frontier is not None else {media_id}) - fetched - excluded
     ordered = sorted(pending)
     offset = frontier_offset % len(ordered) if ordered else 0
     queue = deque((item, 0) for item in ordered[offset:] + ordered[:offset])
@@ -165,6 +169,8 @@ def discover(media_id: str, *, seed: Universe | None = None,
             continue
         visited.add(current)
         entry = details(current)
+        if entry['type'] != 'ANIME':
+            raise ValueError('Only anime universes are currently supported')
         media = normalize(entry)
         if media.id != current:
             raise ValueError('AniList returned a different media ID')
@@ -175,6 +181,8 @@ def discover(media_id: str, *, seed: Universe | None = None,
                            key=lambda edge: (edge['relationType'] not in STRONG_RELATIONS,
                                              edge['node']['id'], edge['relationType']))
         for edge in relations:
+            if edge['node']['type'] != 'ANIME':
+                continue
             other = normalize(edge['node'])
             kind = edge['relationType']
             if other.id not in nodes and len(nodes) >= cap:

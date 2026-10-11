@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 from pydantic import ValidationError
-from app.schemas import Media, MediaReleaseDate, Universe
+from app.schemas import Media, MediaReleaseDate, Universe, UniverseEdge
 from app.services import anilist
 
 
@@ -64,6 +64,37 @@ class MetadataTests(unittest.TestCase):
 
 
 class DiscoveryTests(unittest.TestCase):
+    def test_discovery_keeps_anime_formats_and_skips_manga_and_novels_before_cap(self):
+        rows = {'anilist-1': entry(1)}
+        related = [dict(entry(2), type='MANGA', format='MANGA'),
+                   dict(entry(3), type='MANGA', format='NOVEL')]
+        for number, format in enumerate(('TV', 'TV_SHORT', 'MOVIE', 'SPECIAL', 'ONA', 'OVA', 'MUSIC'), 4):
+            rows[f'anilist-{number}'] = dict(entry(number), format=format)
+            related.append(rows[f'anilist-{number}'])
+        rows['anilist-1']['relations']['edges'] = [
+            {'relationType': 'SEQUEL', 'node': node} for node in related]
+        with patch('app.services.anilist.details', side_effect=lambda key: rows[key]) as provider:
+            result = anilist.discover('anilist-1', node_limit=8, depth_limit=1)
+        self.assertEqual({m.id for m in result.graph.media}, set(rows))
+        self.assertEqual({call.args[0] for call in provider.call_args_list}, set(rows))
+        self.assertEqual(len(result.graph.relationships), 7)
+        self.assertFalse(result.graph.truncated)
+        self.assertNotIn('node_cap', result.limitations)
+
+    def test_expansion_drops_old_non_anime_nodes_edges_and_frontier(self):
+        manga = anilist.normalize(dict(entry(3), type='MANGA', format='NOVEL'))
+        seed = Universe(root_id='anilist-1', media=[anilist.normalize(entry(n)) for n in (1, 2)] + [manga],
+                        relationships=[UniverseEdge(source='anilist-1', target=manga.id, type='SOURCE'),
+                                       UniverseEdge(source=manga.id, target='anilist-2', type='ADAPTATION')])
+        with patch('app.services.anilist.details', return_value=entry(2)) as provider:
+            result = anilist.discover('anilist-1', seed=seed, expanded={'anilist-1'},
+                                     strong_ids={m.id for m in seed.media}, frontier={'anilist-2', manga.id})
+        provider.assert_called_once_with('anilist-2')
+        self.assertEqual({m.id for m in result.graph.media}, {'anilist-1', 'anilist-2'})
+        self.assertEqual(result.graph.relationships, [])
+        self.assertEqual(result.strong_ids, {'anilist-1', 'anilist-2'})
+        self.assertEqual(result.frontier, set())
+
     def test_shuffled_provider_edges_have_same_bounded_admission(self):
         raw = entry(1, [(4, 'SEQUEL'), (3, 'ALTERNATIVE'), (2, 'PREQUEL'), (2, 'PREQUEL')])
         with patch('app.services.anilist.details', return_value=raw):

@@ -13,6 +13,7 @@ class LibraryTitle(BaseModel):
     format: str | None = None
     release_date: MediaReleaseDate | None = None
     completed: bool = False
+    estimated_minutes_watched: int = Field(default=0, ge=0)
 
 
 class SavedUniverse(BaseModel):

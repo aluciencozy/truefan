@@ -1,7 +1,7 @@
 import { authClient } from './auth'
-import type { CurrentUser, GenerationStatus, Universe, UniverseSearchResponse, GraphResponse, HealthResponse, Media, TrendingCover, UserMediaState, UserProgress } from './types'
+   import type { CurrentUser, FlowGraphResponse, GenerationStatus, GraphExtractRequest, GraphResponse, HealthResponse, Media, TrendingCover, Universe, UniverseSearchResponse, UserMediaState, UserProgress } from './types'
 
-const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+const baseUrl = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
 export async function request<T>(path: string, signal?: AbortSignal, authenticated = false, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers)
@@ -32,6 +32,10 @@ export const api = {
   media: (id: string, signal?: AbortSignal) => request<Media>(`/api/media/${encodeURIComponent(id)}`, signal),
   graph: (id: string, progress: number, signal?: AbortSignal) =>
     request<GraphResponse>(`/api/media/${encodeURIComponent(id)}/graph?progress=${progress}`, signal),
+  extractGraph: (id: string, body: GraphExtractRequest, signal?: AbortSignal) =>
+    request<FlowGraphResponse>(`/api/media/${encodeURIComponent(id)}/extract`, signal, true, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }),
   universe: (id: string, signal?: AbortSignal) => request<Universe>(`/api/media/${encodeURIComponent(id)}/universe`, signal),
   expandUniverse: (id: string, revision: number, signal?: AbortSignal) =>
     request<Universe>(`/api/media/${encodeURIComponent(id)}/universe/expand`, signal, false, {

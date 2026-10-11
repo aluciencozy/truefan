@@ -1,0 +1,27 @@
+.page-transition { min-height: 100svh; overflow-x: clip; }
+.page-transition-content { min-height: 100svh; transform-origin: 50% 50svh; }
+.page-transition-departing .page-transition-content { animation: page-depart 140ms ease-in forwards; }
+.page-transition-orbiting .page-transition-content { opacity: 0; }
+.page-transition-arriving .page-transition-content { animation: page-arrive 220ms cubic-bezier(.2,.7,.3,1) both; }
+.page-transition-sky { position: fixed; inset: 0; z-index: 10000; display: grid; place-content: center; justify-items: center; background: var(--crust); color: var(--mauve); overflow: hidden; touch-action: none; }
+.page-transition-departing .page-transition-sky { animation: page-sky-enter 140ms ease-in both; }
+.page-transition-arriving .page-transition-sky { animation: page-sky-leave 220ms ease-out both; }
+.page-transition-constellation { position: relative; width: min(400px, 90vw); aspect-ratio: 10 / 7; }
+.page-transition-constellation svg { width: 100%; height: 100%; }
+.page-transition-constellation path { stroke: var(--mauve); stroke-opacity: .25; stroke-width: 1; }
+.page-transition-constellation circle { fill: var(--lavender); opacity: .7; }
+.page-transition-constellation ellipse { stroke: var(--lavender); stroke-opacity: .3; stroke-width: 1; }
+.page-transition-star { position: absolute; left: 50%; top: 50%; translate: -50% -50%; font: 40px/1 sans-serif; text-shadow: 0 0 18px #cba6f780, 0 0 48px #cba6f735; }
+.page-transition-orbit { position: absolute; left: 26.5%; top: 16.43%; width: 47%; aspect-ratio: 1; transform: scaleY(.617); }
+.page-transition-orbit-track { position: absolute; inset: 0; animation: page-orbit 900ms linear infinite; }
+.page-transition-orbit span { position: absolute; left: 50%; top: 0; width: 6px; height: 6px; translate: -50% -50%; border-radius: 50%; background: var(--text); box-shadow: 0 0 10px var(--mauve), 0 0 22px #cba6f780; }
+.page-transition-status { font-size: 12px; color: var(--subtext); margin-top: -22px; }
+@keyframes page-depart { 55% { transform: translate(-10px, -10px) scale(.97); } to { opacity: 0; transform: translate(-22px, -12px) scale(.94); } }
+@keyframes page-arrive { from { opacity: 0; transform: translate(18px, 10px) scale(.97); } 45% { transform: translate(8px, 8px) scale(.985); } to { opacity: 1; transform: translate(0, 0) scale(1); } }
+@keyframes page-sky-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes page-sky-leave { to { opacity: 0; } }
+@keyframes page-orbit { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .page-transition-content { animation: none !important; opacity: 1; transform: none; }
+  .page-transition-sky { display: none; }
+}

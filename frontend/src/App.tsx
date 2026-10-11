@@ -10,6 +10,7 @@ import AppNavbar from './components/AppNavbar'
 import ProgressControl from './components/ProgressControl'
 import { api } from './lib/api'
 import { libraryApi } from './lib/library'
+import { usePageReady } from './lib/pageTransition'
 import { buildUniverseModel } from './lib/universeModel'
 import { buildReleaseGuide, confirmProgress, unlockMedia, worldTitle } from './lib/universeProgression'
 import type { MediaStates } from './lib/universeProgression'
@@ -37,7 +38,7 @@ export default function App() {
   const [universe, setUniverse] = useState<Universe | null>(null)
   const [view, setView] = useState<'characters' | 'universe'>('characters')
   const [focusedId, setFocusedId] = useState('')
-  const [release, setRelease] = useState(false)
+  const release = false
   const [states, setStates] = useState<MediaStates>({})
   const [identity, setIdentity] = useState<string | null>(null)
   const identityRef = useRef<string | null>(null)
@@ -49,7 +50,6 @@ export default function App() {
   const [progressMessage, setProgressMessage] = useState('')
   const [stateMessage, setStateMessage] = useState('')
   const [saving, setSaving] = useState(false)
-  const [expanding, setExpanding] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [generationError, setGenerationError] = useState('')
@@ -155,22 +155,10 @@ export default function App() {
     searchDialog.current?.close()
     if (!item.anilist_id) { setUniverse(null); enter(item); return }
     const controller = new AbortController(); universeController.current = controller
-    latestProgress.current = null; setProgressMessage(''); setMedia(item); setProgress(0); setUniverse(null); setGraph(null); setSelectedId(null); setView('universe'); setError(''); setExpanding(false)
+    latestProgress.current = null; setProgressMessage(''); setMedia(item); setProgress(0); setUniverse(null); setGraph(null); setSelectedId(null); setView('universe'); setError('')
     setFocusedId(item.id)
     try { const data = await api.universe(item.id, controller.signal); if (!controller.signal.aborted) { setUniverse(data); setFocusedId(data.root_id) } }
     catch (error) { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Universe unavailable.') }
-  }
-
-  async function expandUniverse() {
-    if (!universe?.cache || expanding) return
-    universeController.current?.abort()
-    const controller = new AbortController(); universeController.current = controller
-    setExpanding(true); setStateMessage('')
-    try {
-      const data = await api.expandUniverse(universe.root_id, universe.cache.revision, controller.signal)
-      if (!controller.signal.aborted) setUniverse(data)
-    } catch (error) { if (!controller.signal.aborted) setStateMessage(error instanceof Error ? error.message : 'Expansion unavailable. The existing map is preserved.') }
-    finally { if (!controller.signal.aborted) setExpanding(false) }
   }
 
   async function changeFlags(item: Media, flags: { completed?: boolean; manual_unlocked?: boolean }) {
@@ -228,6 +216,7 @@ export default function App() {
   const generation = visibleGraph?.generation
   const running = generation && ['queued','retrieving','generating'].includes(generation.status)
   const inUniverse = view === 'universe'
+  usePageReady(!initialMedia || Boolean(error) || (!awaitingState && media?.id === initialMedia && Boolean(inUniverse ? universe : visibleGraph)))
   const headingMedia = inUniverse ? universe?.media.find(item => item.id === universe.root_id) ?? media : media
   const controls = <MediaControls initialQuery={initialQuery} />
 
@@ -258,11 +247,11 @@ export default function App() {
         {libraryMessage && <p className="generation-note" role="status">{libraryMessage}</p>}
         <div className="graph-stage">
           {universe && model && <div className="universe-layer" hidden={!inUniverse}><UniverseCanvas key={universe.root_id} universe={universe} model={model} guide={guide}
-            focusedId={focusedId} active={inUniverse} onFocus={focusMedia} release={release} onRelease={() => setRelease(value => !value)}
-            onExpand={() => void expandUniverse()} expanding={expanding} details={<>
+            focusedId={focusedId} active={inUniverse} onFocus={focusMedia} release={release}
+            onEnter={enter} details={beginEntry => <>
               {stateLoading && <p className="state-notice" role="status">Retrieving saved viewing state…</p>}
               <UniverseDetails media={model.media.find(item => item.id === focusedId)} universe={universe} model={model} guide={guide} release={release}
-                state={states[focusedId]} busy={saving || awaitingState} onFocus={focusMedia} onEnter={enter}
+                state={states[focusedId]} busy={saving || awaitingState} onFocus={focusMedia} onEnter={beginEntry}
                 onUnlock={item => void changeFlags(item, { manual_unlocked: true })} onComplete={item => void changeFlags(item, { completed: true })} message={stateMessage} />
             </>} /></div>}
           {inUniverse && !universe && !error && <div className="empty celestial" role="status"><span className="empty-star">✧</span>Discovering connected stories…</div>}

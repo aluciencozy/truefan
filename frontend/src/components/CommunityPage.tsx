@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { authClient } from '../lib/auth'
+import { usePageReady } from '../lib/pageTransition'
 import { communityApi, examplePosts, timeAgo, visitorId } from '../lib/community'
 import type { CommunityComment, CommunityFeed, CommunityPost, PostCategory, PostCreate } from '../lib/community'
 import CommunityShell, { CommunityIcon, LittleUniverse } from './CommunityShell'
@@ -34,6 +35,7 @@ export function CommunityScreen({ viewer, service = communityApi }: { viewer: Co
   const [feed, setFeed] = useState<CommunityFeed | null>(null)
   const [activeFans, setActiveFans] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  usePageReady(!loading)
   const [offline, setOffline] = useState(false)
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)

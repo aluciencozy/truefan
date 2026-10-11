@@ -1,0 +1,1671 @@
+{
+  "version": 1,
+  "review_method": "agent source review; canon and precise reveal timing unverified",
+  "graphs": [
+    {
+      "media_id": "anilist-10087",
+      "episodes": [
+        {
+          "unit": 1,
+          "number": 1,
+          "title": "The Summoning of Heroes",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Zero_episodes?oldid=1373260006",
+          "source_revision": 1373260006,
+          "source_hash": "1a76ee9380e1f6a1cd6b36c41caa60244b05aff7c4bf996075ead5a5e07f28ec",
+          "characters": [
+            {
+              "name": "Kiritsugu Emiya",
+              "description": "A pragmatic mage entering the Grail War for the Einzberns. He fears its consequences for Irisviel."
+            },
+            {
+              "name": "Irisviel von Einzbern",
+              "description": "Kiritsugu’s wife, who supports their shared ideals despite the danger of the coming war."
+            },
+            {
+              "name": "Kirei Kotomine",
+              "description": "A priest selected for the Grail War. He studies magecraft under Tokiomi."
+            },
+            {
+              "name": "Tokiomi Tohsaka",
+              "description": "A Grail War participant who arranges to train Kirei as his pupil."
+            },
+            {
+              "name": "Kariya Matou",
+              "description": "Returns to the Matou family to seek Sakura’s release, accepting painful magical training to enter the war."
+            },
+            {
+              "name": "Sakura",
+              "description": "A child adopted into the Matou family. Kariya wants to free her from its treatment."
+            },
+            {
+              "name": "Zouken Matou",
+              "description": "Kariya’s father, who agrees to release Sakura if Kariya obtains the Grail."
+            },
+            {
+              "name": "Waver Velvet",
+              "description": "A student who believes effort can overcome magical pedigree. He steals a catalyst to prove himself in the war."
+            },
+            {
+              "name": "Kayneth El-Melloi Archibald",
+              "description": "Waver’s teacher, who dismisses his ideas about effort and inherited magical ability."
+            },
+            {
+              "name": "Saber",
+              "description": "The Servant summoned by Kiritsugu. Her appearance surprises him and Irisviel."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Kiritsugu Emiya",
+              "target": "Irisviel von Einzbern",
+              "type": "spouse",
+              "label": "spouse"
+            },
+            {
+              "source": "Tokiomi Tohsaka",
+              "target": "Kirei Kotomine",
+              "type": "teacher",
+              "label": "teacher"
+            },
+            {
+              "source": "Zouken Matou",
+              "target": "Kariya Matou",
+              "type": "parent",
+              "label": "parent"
+            },
+            {
+              "source": "Kayneth El-Melloi Archibald",
+              "target": "Waver Velvet",
+              "type": "teacher",
+              "label": "teacher"
+            },
+            {
+              "source": "Kariya Matou",
+              "target": "Sakura",
+              "type": "seeks_to_protect",
+              "label": "seeks to protect"
+            },
+            {
+              "source": "Kiritsugu Emiya",
+              "target": "Saber",
+              "type": "master_servant",
+              "label": "master servant"
+            }
+          ]
+        },
+        {
+          "unit": 2,
+          "number": 2,
+          "title": "The Fake First Shot",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Zero_episodes?oldid=1373260006",
+          "source_revision": 1373260006,
+          "source_hash": "d961c0bdcb714e49b6890080e94b3c482e7abca376b5331fd25597b8c5c15919",
+          "characters": [
+            {
+              "name": "Rider",
+              "description": "Waver’s independently minded Servant, fascinated by the modern world and intent on conquest."
+            },
+            {
+              "name": "Ryuunosuke Uryuu",
+              "description": "A murderer whose attempted demon summoning instead brings forth Caster."
+            },
+            {
+              "name": "Caster",
+              "description": "Ryuunosuke’s Servant, who shares his enthusiasm for cruelty."
+            },
+            {
+              "name": "Assassin",
+              "description": "Kirei’s Servant, sent to infiltrate Tokiomi’s residence."
+            },
+            {
+              "name": "Archer",
+              "description": "Tokiomi’s Servant, who attacks the intruding Assassin."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Waver Velvet",
+              "target": "Rider",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Ryuunosuke Uryuu",
+              "target": "Caster",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Kirei Kotomine",
+              "target": "Assassin",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Tokiomi Tohsaka",
+              "target": "Archer",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Kirei Kotomine",
+              "target": "Assassin",
+              "type": "orders",
+              "label": "Orders an infiltration"
+            },
+            {
+              "source": "Archer",
+              "target": "Assassin",
+              "type": "attacks",
+              "label": "attacks"
+            }
+          ]
+        },
+        {
+          "unit": 3,
+          "number": 3,
+          "title": "Fuyuki City",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Zero_episodes?oldid=1373260006",
+          "source_revision": 1373260006,
+          "source_hash": "95cc804890e1d75af5958de51e7c3e5888d83d45ff028fa117caf0c880633a23",
+          "characters": [
+            {
+              "name": "Maiya Hisau",
+              "description": "Kiritsugu’s assistant, who brings weapons and intelligence to support his preparations."
+            },
+            {
+              "name": "Lancer",
+              "description": "A Servant who challenges Saber to a duel at the harbor."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Maiya Hisau",
+              "target": "Kiritsugu Emiya",
+              "type": "helps",
+              "label": "helps"
+            },
+            {
+              "source": "Saber",
+              "target": "Irisviel von Einzbern",
+              "type": "accompanies",
+              "label": "accompanies"
+            },
+            {
+              "source": "Lancer",
+              "target": "Saber",
+              "type": "challenges",
+              "label": "Challenges to a duel"
+            }
+          ]
+        },
+        {
+          "unit": 4,
+          "number": 4,
+          "title": "Spearhead",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Zero_episodes?oldid=1373260006",
+          "source_revision": 1373260006,
+          "source_hash": "df42ac9867b40f1ec2820dfb4e324736155bdd6da78bd8787863c0f2ccb4e89b",
+          "characters": [],
+          "relationships": [
+            {
+              "source": "Lancer",
+              "target": "Saber",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Saber",
+              "target": "Lancer",
+              "type": "attacks",
+              "label": "attacks"
+            }
+          ]
+        },
+        {
+          "unit": 5,
+          "number": 5,
+          "title": "A Wicked Beast's Roar",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Zero_episodes?oldid=1373260006",
+          "source_revision": 1373260006,
+          "source_hash": "67f7c32effc9d7562da08b21462b8b4d58eb117080356638dda90dedf5e6abdb",
+          "characters": [
+            {
+              "name": "Berserker",
+              "description": "Kariya’s heavily armored Servant, who clashes with Archer and attacks Saber."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Kariya Matou",
+              "target": "Berserker",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Kayneth El-Melloi Archibald",
+              "target": "Lancer",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Archer",
+              "target": "Berserker",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Berserker",
+              "target": "Saber",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Lancer",
+              "target": "Saber",
+              "type": "helps",
+              "label": "Defends in battle"
+            },
+            {
+              "source": "Tokiomi Tohsaka",
+              "target": "Archer",
+              "type": "orders",
+              "label": "Orders a withdrawal"
+            },
+            {
+              "source": "Rider",
+              "target": "Saber",
+              "type": "helps",
+              "label": "Stops Berserker’s attack"
+            }
+          ]
+        },
+        {
+          "unit": 6,
+          "number": 6,
+          "title": "A Night of Schemes",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Zero_episodes?oldid=1373260006",
+          "source_revision": 1373260006,
+          "source_hash": "3f2e27305e9761fc30f2a118103b46ecd1f430998017aa6ed87e52c8f0c70896",
+          "characters": [
+            {
+              "name": "Sola-Ui",
+              "description": "Kayneth’s fiancée, who supplies Lancer with magical energy."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Sola-Ui",
+              "target": "Kayneth El-Melloi Archibald",
+              "type": "engaged_to",
+              "label": "engaged to"
+            },
+            {
+              "source": "Sola-Ui",
+              "target": "Lancer",
+              "type": "helps",
+              "label": "Supplies magical energy"
+            },
+            {
+              "source": "Kiritsugu Emiya",
+              "target": "Maiya Hisau",
+              "type": "helps",
+              "label": "Provides an escape"
+            },
+            {
+              "source": "Archer",
+              "target": "Kirei Kotomine",
+              "type": "informs",
+              "label": "Urges investigation of motives"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "media_id": "anilist-19603",
+      "episodes": [
+        {
+          "unit": 1,
+          "number": 0,
+          "title": "Prologue",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night:_Unlimited_Blade_Works_episodes?oldid=1350976884",
+          "source_revision": 1350976884,
+          "source_hash": "1eb8ed4d6e8ed576238fcb66ed0eb7657dbf33b7917adad1be603f8fee911e51",
+          "characters": [
+            {
+              "name": "Rin Tohsaka",
+              "description": "A student mage determined to win the Grail War. She summons Archer and revives a wounded classmate."
+            },
+            {
+              "name": "Archer",
+              "description": "Rin’s Servant, who reports that he cannot recall his identity and fights Lancer."
+            },
+            {
+              "name": "Shirou Emiya",
+              "description": "A student who witnesses a Servant battle and is revived by Rin after Lancer wounds him."
+            },
+            {
+              "name": "Lancer",
+              "description": "A Servant who attacks the student who witnessed his fight with Archer."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Rin Tohsaka",
+              "target": "Archer",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Archer",
+              "target": "Lancer",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Lancer",
+              "target": "Archer",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Lancer",
+              "target": "Shirou Emiya",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Rin Tohsaka",
+              "target": "Shirou Emiya",
+              "type": "rescues",
+              "label": "rescues"
+            }
+          ]
+        },
+        {
+          "unit": 2,
+          "number": 1,
+          "title": "Winter Day, Fateful Night",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night:_Unlimited_Blade_Works_episodes?oldid=1350976884",
+          "source_revision": 1350976884,
+          "source_hash": "d22f9e33e3ea95feaf328265ba4e6549553b17e39751c8b6567734001835b2ec",
+          "characters": [
+            {
+              "name": "Shirou Emiya",
+              "description": "A helpful student inspired by Kiritsugu’s ideals of justice. Under attack at home, he unknowingly summons Saber."
+            },
+            {
+              "name": "Sakura",
+              "description": "Shirou’s friend, who shares breakfast with him and Taiga."
+            },
+            {
+              "name": "Taiga",
+              "description": "Shirou’s legal guardian, who shares his household routine."
+            },
+            {
+              "name": "Issei",
+              "description": "A schoolmate who appreciates Shirou’s help but warns that others may exploit it."
+            },
+            {
+              "name": "Kiritsugu Emiya",
+              "description": "Rescued Shirou during a devastating fire. His ideals inspire Shirou’s ambition."
+            },
+            {
+              "name": "Saber",
+              "description": "A Servant summoned by Shirou who drives off Lancer."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Sakura",
+              "target": "Shirou Emiya",
+              "type": "friend",
+              "label": "friend"
+            },
+            {
+              "source": "Taiga",
+              "target": "Shirou Emiya",
+              "type": "guardian",
+              "label": "guardian"
+            },
+            {
+              "source": "Shirou Emiya",
+              "target": "Issei",
+              "type": "helps",
+              "label": "Repairs a heater"
+            },
+            {
+              "source": "Issei",
+              "target": "Shirou Emiya",
+              "type": "informs",
+              "label": "Warns against exploitation"
+            },
+            {
+              "source": "Kiritsugu Emiya",
+              "target": "Shirou Emiya",
+              "type": "rescues",
+              "label": "Rescued during the fire"
+            },
+            {
+              "source": "Shirou Emiya",
+              "target": "Saber",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Saber",
+              "target": "Lancer",
+              "type": "attacks",
+              "label": "attacks"
+            }
+          ]
+        },
+        {
+          "unit": 3,
+          "number": 2,
+          "title": "When the Curtain Goes Up",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night:_Unlimited_Blade_Works_episodes?oldid=1350976884",
+          "source_revision": 1350976884,
+          "source_hash": "a84112abce41590589e3a847e4364a24cedb5067b964cf8a7ca064a0566fe8c0",
+          "characters": [
+            {
+              "name": "Kirei Kotomine",
+              "description": "The war’s overseer and Rin’s legal guardian. He explains the conflict to Shirou."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Kirei Kotomine",
+              "target": "Rin Tohsaka",
+              "type": "guardian",
+              "label": "guardian"
+            },
+            {
+              "source": "Kirei Kotomine",
+              "target": "Shirou Emiya",
+              "type": "informs",
+              "label": "Explains the Grail War"
+            },
+            {
+              "source": "Rin Tohsaka",
+              "target": "Shirou Emiya",
+              "type": "informs",
+              "label": "Explains Master selection"
+            },
+            {
+              "source": "Rin Tohsaka",
+              "target": "Shirou Emiya",
+              "type": "accompanies",
+              "label": "Visits the church"
+            }
+          ]
+        },
+        {
+          "unit": 4,
+          "number": 3,
+          "title": "The First Battle",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night:_Unlimited_Blade_Works_episodes?oldid=1350976884",
+          "source_revision": 1350976884,
+          "source_hash": "b250eae91611b3dc164b903a49ba57cebddc93395b52b802f167f2a72c484ce2",
+          "characters": [
+            {
+              "name": "Illyasviel von Einzbern",
+              "description": "Introduces herself during the confrontation and directs Berserker against Shirou’s group."
+            },
+            {
+              "name": "Berserker",
+              "description": "Illyasviel’s Servant, whose overwhelming strength and regeneration withstand the group’s attacks."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Illyasviel von Einzbern",
+              "target": "Berserker",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Berserker",
+              "target": "Saber",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Saber",
+              "target": "Berserker",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Archer",
+              "target": "Berserker",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Archer",
+              "target": "Rin Tohsaka",
+              "type": "rescues",
+              "label": "rescues"
+            }
+          ]
+        },
+        {
+          "unit": 5,
+          "number": 4,
+          "title": "Finding the Will to Fight",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night:_Unlimited_Blade_Works_episodes?oldid=1350976884",
+          "source_revision": 1350976884,
+          "source_hash": "35bb71e436e399aa3648fc245384a1c6ebcdf97938eff2cf35574d0799abe272",
+          "characters": [
+            {
+              "name": "Shirou Emiya",
+              "description": "An inexperienced Master sheltering Saber at home. He agrees not to demand her hidden identity."
+            },
+            {
+              "name": "Saber",
+              "description": "Shirou’s Servant, who explains why combatants conceal their identities and stays at his home."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Shirou Emiya",
+              "target": "Saber",
+              "type": "hosts",
+              "label": "Provides a place to stay"
+            }
+          ]
+        },
+        {
+          "unit": 6,
+          "number": 5,
+          "title": "Dancing After School",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night:_Unlimited_Blade_Works_episodes?oldid=1350976884",
+          "source_revision": 1350976884,
+          "source_hash": "00ae7e41a748eb656160d9bdec4b1fe716cd39f9184d7b0b4e3365f4a2619a44",
+          "characters": [
+            {
+              "name": "Rider",
+              "description": "A Servant who attacks Shirou during the school incident and is driven away by Rin."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Rin Tohsaka",
+              "target": "Shirou Emiya",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Shirou Emiya",
+              "target": "Rin Tohsaka",
+              "type": "rescues",
+              "label": "Shields from an attack"
+            },
+            {
+              "source": "Rider",
+              "target": "Shirou Emiya",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Rin Tohsaka",
+              "target": "Shirou Emiya",
+              "type": "truce",
+              "label": "Temporary investigative alliance"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "media_id": "anilist-356",
+      "episodes": [
+        {
+          "unit": 1,
+          "number": 1,
+          "title": "The First Day",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night_episodes?oldid=1369307104",
+          "source_revision": 1369307104,
+          "source_hash": "cf14bed3ad092cdc47bb2f5a36b62af81c476f43e5a3d393e69d5d6d4629d9e9",
+          "characters": [
+            {
+              "name": "Shirou Emiya",
+              "description": "A student who helps others using modest magic. He wants to carry on his late adoptive father’s ideal of justice."
+            },
+            {
+              "name": "Kiritsugu Emiya",
+              "description": "Shirou’s late adoptive father, whose ideals and magical teaching shaped him."
+            },
+            {
+              "name": "Taiga Fujimura",
+              "description": "Shirou’s legal guardian, who looks after him at home."
+            },
+            {
+              "name": "Sakura Matou",
+              "description": "Shirou’s classmate, who helps Taiga care for him."
+            },
+            {
+              "name": "Rin Tohsaka",
+              "description": "A student mage preparing for the Grail War by summoning Archer."
+            },
+            {
+              "name": "Archer",
+              "description": "The Servant summoned by Rin for the coming conflict."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Kiritsugu Emiya",
+              "target": "Shirou Emiya",
+              "type": "parent",
+              "label": "parent"
+            },
+            {
+              "source": "Taiga Fujimura",
+              "target": "Shirou Emiya",
+              "type": "guardian",
+              "label": "guardian"
+            },
+            {
+              "source": "Sakura Matou",
+              "target": "Shirou Emiya",
+              "type": "classmate",
+              "label": "classmate"
+            },
+            {
+              "source": "Rin Tohsaka",
+              "target": "Archer",
+              "type": "master_servant",
+              "label": "master servant"
+            }
+          ]
+        },
+        {
+          "unit": 2,
+          "number": 2,
+          "title": "Fateful Night",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night_episodes?oldid=1369307104",
+          "source_revision": 1369307104,
+          "source_hash": "d113b92578be28defad6ee105147926d544389748540a533314fc6161c46458a",
+          "characters": [
+            {
+              "name": "Shinji Matou",
+              "description": "Sakura’s older brother, whose recent aggression attracts attention at school."
+            },
+            {
+              "name": "Lancer",
+              "description": "A Servant who fights Archer and attacks Shirou for witnessing the duel."
+            },
+            {
+              "name": "Saber",
+              "description": "A Servant accidentally summoned when Shirou faces another attack at home."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Shinji Matou",
+              "target": "Sakura Matou",
+              "type": "sibling",
+              "label": "sibling"
+            },
+            {
+              "source": "Lancer",
+              "target": "Archer",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Lancer",
+              "target": "Shirou Emiya",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Rin Tohsaka",
+              "target": "Shirou Emiya",
+              "type": "rescues",
+              "label": "rescues"
+            },
+            {
+              "source": "Shirou Emiya",
+              "target": "Saber",
+              "type": "master_servant",
+              "label": "master servant"
+            }
+          ]
+        },
+        {
+          "unit": 3,
+          "number": 3,
+          "title": "Opening Act",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night_episodes?oldid=1369307104",
+          "source_revision": 1369307104,
+          "source_hash": "06b85637323f7d79c0655f78dc1e45a67fd6b0a912658c492e9b38fce9c92e34",
+          "characters": [
+            {
+              "name": "Kirei Kotomine",
+              "description": "The Fifth War’s overseer and Rin’s legal guardian, who explains the war to Shirou."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Saber",
+              "target": "Lancer",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Saber",
+              "target": "Archer",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Kirei Kotomine",
+              "target": "Rin Tohsaka",
+              "type": "guardian",
+              "label": "guardian"
+            },
+            {
+              "source": "Kirei Kotomine",
+              "target": "Shirou Emiya",
+              "type": "informs",
+              "label": "Explains the Grail War"
+            }
+          ]
+        },
+        {
+          "unit": 4,
+          "number": 4,
+          "title": "The Strongest Enemy",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night_episodes?oldid=1369307104",
+          "source_revision": 1369307104,
+          "source_hash": "1e82717605561897d015722ae6722a2ba5ffe196420be1ef63510eff024ee4de",
+          "characters": [
+            {
+              "name": "Illyasviel von Einzbern",
+              "description": "A young Master who introduces herself and directs Berserker in battle."
+            },
+            {
+              "name": "Berserker",
+              "description": "Illyasviel’s powerful Servant, who severely wounds Saber."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Illyasviel von Einzbern",
+              "target": "Berserker",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Berserker",
+              "target": "Saber",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Shirou Emiya",
+              "target": "Saber",
+              "type": "rescues",
+              "label": "Blocks a fatal blow"
+            }
+          ]
+        },
+        {
+          "unit": 5,
+          "number": 5,
+          "title": "Two Magi, Part 1",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night_episodes?oldid=1369307104",
+          "source_revision": 1369307104,
+          "source_hash": "0061b17c2ed812a9c619e8da0b7060c22818ec73eee6dada5d6955b119900568",
+          "characters": [],
+          "relationships": [
+            {
+              "source": "Shirou Emiya",
+              "target": "Saber",
+              "type": "hosts",
+              "label": "hosts"
+            },
+            {
+              "source": "Taiga Fujimura",
+              "target": "Saber",
+              "type": "challenges",
+              "label": "Challenges to kendo"
+            },
+            {
+              "source": "Rin Tohsaka",
+              "target": "Shirou Emiya",
+              "type": "attacks",
+              "label": "attacks"
+            }
+          ]
+        },
+        {
+          "unit": 6,
+          "number": 6,
+          "title": "Two Magi, Part 2",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Stay_Night_episodes?oldid=1369307104",
+          "source_revision": 1369307104,
+          "source_hash": "7e4b81ecab6d64aa902a9ca0e87204b34964c147b92c2876ddb6dc1379bd2f09",
+          "characters": [
+            {
+              "name": "Rider",
+              "description": "A Servant who attacks at school and nearly kills Shirou before Rin intervenes."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Rider",
+              "target": "Shirou Emiya",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Shirou Emiya",
+              "target": "Rin Tohsaka",
+              "type": "rescues",
+              "label": "Blocks an incoming dagger"
+            },
+            {
+              "source": "Rin Tohsaka",
+              "target": "Shirou Emiya",
+              "type": "truce",
+              "label": "Temporary investigative alliance"
+            },
+            {
+              "source": "Archer",
+              "target": "Shirou Emiya",
+              "type": "accompanies",
+              "label": "Escorts him home"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "media_id": "anilist-98035",
+      "episodes": [
+        {
+          "unit": 1,
+          "number": 1,
+          "title": "Apocrypha: The Great Holy Grail War",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Apocrypha_episodes?oldid=1341622807",
+          "source_revision": 1341622807,
+          "source_hash": "6049a7f6722ff6ccffba5c62798c7fb77caeafc96ba37ee56dcefafc469af241",
+          "characters": [
+            {
+              "name": "Kairi Sisigou",
+              "description": "A mage recruited to the Red side of the war, who summons Mordred."
+            },
+            {
+              "name": "Rocco Belfeban",
+              "description": "A Clock Tower official who briefs and recruits Sisigou."
+            },
+            {
+              "name": "Darnic",
+              "description": "Leader of the opposing Yggdmillennia group, preparing golems for the coming conflict."
+            },
+            {
+              "name": "Avicebron",
+              "description": "A Servant assisting Darnic with golem production."
+            },
+            {
+              "name": "Mordred",
+              "description": "The Servant summoned by Sisigou using a Round Table catalyst."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Rocco Belfeban",
+              "target": "Kairi Sisigou",
+              "type": "informs",
+              "label": "Briefs on the conflict"
+            },
+            {
+              "source": "Kairi Sisigou",
+              "target": "Mordred",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Avicebron",
+              "target": "Darnic",
+              "type": "helps",
+              "label": "Builds golems"
+            }
+          ]
+        },
+        {
+          "unit": 2,
+          "number": 2,
+          "title": "The Saint Departs",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Apocrypha_episodes?oldid=1341622807",
+          "source_revision": 1341622807,
+          "source_hash": "dfb24d35b793489b3a5af0a42eb684f0b9c6a6486aa35b67750824a85590e866",
+          "characters": [
+            {
+              "name": "Jeanne d’Arc",
+              "description": "The Ruler-class Servant tasked with overseeing the war impartially."
+            },
+            {
+              "name": "Astolfo",
+              "description": "A Servant fighting for the Black faction."
+            },
+            {
+              "name": "Siegfried",
+              "description": "A Servant fighting for the Black faction."
+            },
+            {
+              "name": "Shiro Kotomine",
+              "description": "A priest leading the Red faction, whose plans draw Sisigou’s distrust."
+            },
+            {
+              "name": "Semiramis",
+              "description": "Shiro’s Servant, involved in preparations for the Red faction."
+            },
+            {
+              "name": "Karna",
+              "description": "A Servant ordered by Shiro to attack Jeanne."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Shiro Kotomine",
+              "target": "Semiramis",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Shiro Kotomine",
+              "target": "Karna",
+              "type": "orders",
+              "label": "Orders an attack on Jeanne"
+            }
+          ]
+        },
+        {
+          "unit": 3,
+          "number": 3,
+          "title": "The First Steps of Fate",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Apocrypha_episodes?oldid=1341622807",
+          "source_revision": 1341622807,
+          "source_hash": "ca0aa4c9c028a486c1571d9abdfbb6effc4c6291e9283af67e23a4f8d83b573e",
+          "characters": [
+            {
+              "name": "Gordes",
+              "description": "A Black-faction mage who accompanies Siegfried and tries to recruit Jeanne to his side."
+            },
+            {
+              "name": "Chiron",
+              "description": "A Black-faction Servant who treats an escaped homunculus."
+            },
+            {
+              "name": "Escaped homunculus",
+              "description": "A newly awakened being seeking freedom from the castle. Astolfo brings him to Chiron for treatment."
+            },
+            {
+              "name": "Fiore",
+              "description": "A Black-faction mage who hopes the Grail can heal her legs without costing her magic."
+            },
+            {
+              "name": "Caules",
+              "description": "Fiore’s brother, who wishes to protect her."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Karna",
+              "target": "Jeanne d’Arc",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Siegfried",
+              "target": "Jeanne d’Arc",
+              "type": "helps",
+              "label": "Intervenes in battle"
+            },
+            {
+              "source": "Astolfo",
+              "target": "Escaped homunculus",
+              "type": "helps",
+              "label": "Brings for treatment"
+            },
+            {
+              "source": "Chiron",
+              "target": "Escaped homunculus",
+              "type": "helps",
+              "label": "Provides treatment"
+            },
+            {
+              "source": "Caules",
+              "target": "Fiore",
+              "type": "sibling",
+              "label": "sibling"
+            }
+          ]
+        },
+        {
+          "unit": 4,
+          "number": 4,
+          "title": "The Price of Life, the Redemption of Death",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Apocrypha_episodes?oldid=1341622807",
+          "source_revision": 1341622807,
+          "source_hash": "c46b85d3f29b569138aa0d015d8643dbf33a38e37ad0d5d4bcc175bd0e04e111",
+          "characters": [
+            {
+              "name": "Escaped homunculus",
+              "description": "Escapes with Astolfo but suffers a fatal injury. Siegfried gives his heart to save him."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Gordes",
+              "target": "Siegfried",
+              "type": "master_servant",
+              "label": "master servant"
+            },
+            {
+              "source": "Astolfo",
+              "target": "Escaped homunculus",
+              "type": "helps",
+              "label": "Escorts out of captivity"
+            },
+            {
+              "source": "Gordes",
+              "target": "Escaped homunculus",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Siegfried",
+              "target": "Escaped homunculus",
+              "type": "rescues",
+              "label": "rescues"
+            },
+            {
+              "source": "Jeanne d’Arc",
+              "target": "Escaped homunculus",
+              "type": "seeks_to_protect",
+              "label": "seeks to protect"
+            }
+          ]
+        },
+        {
+          "unit": 5,
+          "number": 5,
+          "title": "Voice from Above",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Apocrypha_episodes?oldid=1341622807",
+          "source_revision": 1341622807,
+          "source_hash": "574ac854f9a5469e11a13858f3494738c5ab1218b69415ea806c99bbdea545e9",
+          "characters": [
+            {
+              "name": "Sieg",
+              "description": "The escaped homunculus chooses a name honoring Siegfried. Jeanne helps him begin a free life.",
+              "aliases": [
+                "Escaped homunculus"
+              ]
+            },
+            {
+              "name": "Jack the Ripper",
+              "description": "A Servant reported to have broken away from the Black faction in Sighisoara."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Jeanne d’Arc",
+              "target": "Sieg",
+              "type": "helps",
+              "label": "Escorts to a safe home"
+            }
+          ]
+        },
+        {
+          "unit": 6,
+          "number": 6,
+          "title": "The Knight of Rebellion",
+          "source_url": "https://en.wikipedia.org/wiki/List_of_Fate/Apocrypha_episodes?oldid=1341622807",
+          "source_revision": 1341622807,
+          "source_hash": "7c5465256c861d84b7e67dd129b78dae42316aa1d1eaf798455ca8a8e3cc3767",
+          "characters": [],
+          "relationships": [
+            {
+              "source": "Mordred",
+              "target": "Jack the Ripper",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Mordred",
+              "target": "Chiron",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Chiron",
+              "target": "Mordred",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Kairi Sisigou",
+              "target": "Fiore",
+              "type": "attacks",
+              "label": "attacks"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "media_id": "anilist-161645",
+      "episodes": [
+        {
+          "unit": 1,
+          "number": 1,
+          "title": "Maomao",
+          "source_url": "https://kusuriya.fandom.com/wiki/Season_1_Episode_01?oldid=17194",
+          "source_revision": 17194,
+          "source_hash": "e7d0590076907491692fde5f50ed0802df0e4c229a7d7d28357d2e1335d1e66e",
+          "characters": [
+            {
+              "name": "Maomao",
+              "description": "A kidnapped apothecary working in the rear palace. Her knowledge of poisons helps her identify the cause of the infants’ illness."
+            },
+            {
+              "name": "Jinshi",
+              "description": "The Inner Court’s manager, who identifies Maomao through a literacy test. His outward charm does not impress her."
+            },
+            {
+              "name": "Gyokuyou",
+              "description": "A consort who follows the warning about cosmetics and credits Maomao with saving her daughter."
+            },
+            {
+              "name": "Lihua",
+              "description": "A consort whose son falls ill. Her attendants fail to act on the warning left for them."
+            },
+            {
+              "name": "Xiaolan",
+              "description": "A fellow servant who shares palace gossip with Maomao."
+            },
+            {
+              "name": "Hongniang",
+              "description": "Gyokuyou’s head lady-in-waiting, who welcomes Maomao into the Jade Pavilion."
+            },
+            {
+              "name": "Lingli",
+              "description": "Gyokuyou’s young daughter, who recovers after the dangerous cosmetics are removed."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Gyokuyou",
+              "target": "Lingli",
+              "type": "parent",
+              "label": "parent"
+            },
+            {
+              "source": "Maomao",
+              "target": "Lingli",
+              "type": "rescues",
+              "label": "Warns about poisonous cosmetics"
+            },
+            {
+              "source": "Xiaolan",
+              "target": "Maomao",
+              "type": "informs",
+              "label": "Shares illness rumors"
+            },
+            {
+              "source": "Gyokuyou",
+              "target": "Jinshi",
+              "type": "requests_help",
+              "label": "Asks to find the writer"
+            },
+            {
+              "source": "Jinshi",
+              "target": "Maomao",
+              "type": "orders",
+              "label": "Orders her to follow"
+            }
+          ]
+        },
+        {
+          "unit": 2,
+          "number": 2,
+          "title": "Chilly Apothecary",
+          "source_url": "https://kusuriya.fandom.com/wiki/Season_1_Episode_02?oldid=17239",
+          "source_revision": 17239,
+          "source_hash": "f0782e1855218fe44f87cb678e9ed8894d4c61ba8d6c60ae977c12eb1db4a7c5",
+          "characters": [
+            {
+              "name": "Maomao",
+              "description": "Gyokuyou’s new food taster, drawing on her apothecary experience. She concealed her skills to keep her kidnappers from profiting."
+            },
+            {
+              "name": "Gaoshun",
+              "description": "Jinshi’s attendant, who reports incidents and escorts Maomao."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Maomao",
+              "target": "Gyokuyou",
+              "type": "works_for",
+              "label": "Serves as food taster"
+            },
+            {
+              "source": "Hongniang",
+              "target": "Maomao",
+              "type": "helps",
+              "label": "Explains her new workplace"
+            },
+            {
+              "source": "Gaoshun",
+              "target": "Jinshi",
+              "type": "informs",
+              "label": "Reports poisoned soldiers"
+            },
+            {
+              "source": "Jinshi",
+              "target": "Maomao",
+              "type": "requests_help",
+              "label": "Requests an investigation"
+            }
+          ]
+        },
+        {
+          "unit": 3,
+          "number": 3,
+          "title": "The Unsettling Spirit",
+          "source_url": "https://kusuriya.fandom.com/wiki/Season_1_Episode_03?oldid=17240",
+          "source_revision": 17240,
+          "source_hash": "ee4ec155f1749ec340a2434b8810d0c5bc16168186af595229978fbfb6153cd9",
+          "characters": [
+            {
+              "name": "Fuyou",
+              "description": "A concubine connected to rumors of a wandering spirit, whose situation Maomao investigates."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Jinshi",
+              "target": "Maomao",
+              "type": "requests_help",
+              "label": "Asks about sleepwalking"
+            },
+            {
+              "source": "Gaoshun",
+              "target": "Maomao",
+              "type": "accompanies",
+              "label": "Introduces her to Fuyou"
+            }
+          ]
+        },
+        {
+          "unit": 4,
+          "number": 4,
+          "title": "The Threat",
+          "source_url": "https://kusuriya.fandom.com/wiki/Season_1_Episode_04?oldid=17241",
+          "source_revision": 17241,
+          "source_hash": "7d24f52dcea20bc10d04e7d153a9594c0001db9b0d658fae9c926c678c5484f4",
+          "characters": [
+            {
+              "name": "Lihua",
+              "description": "Recovers under Maomao’s care after the harmful cosmetics and unsuitable treatment are addressed."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Maomao",
+              "target": "Lihua",
+              "type": "helps",
+              "label": "Provides recovery care"
+            },
+            {
+              "source": "Jinshi",
+              "target": "Maomao",
+              "type": "helps",
+              "label": "Secures access to Lihua"
+            }
+          ]
+        },
+        {
+          "unit": 5,
+          "number": 5,
+          "title": "Covert Operations",
+          "source_url": "https://kusuriya.fandom.com/wiki/Season_1_Episode_05?oldid=17242",
+          "source_revision": 17242,
+          "source_hash": "55c3d3032866a308ad19f115c12d1d0fa2b8ab72885ad1a4f4a1685b0643fe45",
+          "characters": [],
+          "relationships": [
+            {
+              "source": "Jinshi",
+              "target": "Maomao",
+              "type": "gives_to",
+              "label": "Gives a hairpin"
+            },
+            {
+              "source": "Hongniang",
+              "target": "Maomao",
+              "type": "requests_help",
+              "label": "Requests warmed underrobes"
+            }
+          ]
+        },
+        {
+          "unit": 6,
+          "number": 6,
+          "title": "The Garden Party",
+          "source_url": "https://kusuriya.fandom.com/wiki/Season_1_Episode_06?oldid=17258",
+          "source_revision": 17258,
+          "source_hash": "20ae921eed1dafddb0ec0bf301cf7550d4919ea73dfed37849b5115e4b132ad7",
+          "characters": [
+            {
+              "name": "Lishu",
+              "description": "A young consort whose reaction to mackerel is investigated by Maomao at the garden party."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Lihua",
+              "target": "Maomao",
+              "type": "gives_to",
+              "label": "Gives a hairpin"
+            },
+            {
+              "source": "Maomao",
+              "target": "Lishu",
+              "type": "helps",
+              "label": "Identifies a food allergy"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "media_id": "anilist-223",
+      "episodes": [
+        {
+          "unit": 1,
+          "number": 1,
+          "title": "The Secret of the Dragon Balls",
+          "source_url": "https://dragonball.fandom.com/wiki/The_Secret_of_the_Dragon_Balls?oldid=2266352",
+          "source_revision": 2266352,
+          "source_hash": "0678fefcfebbec7ff8669e6303977a1c32b74a6a160c04a695665e183fa661ec",
+          "characters": [
+            {
+              "name": "Goku",
+              "description": "A strong, sheltered boy raised by Grandpa Gohan. He joins Bulma’s search while keeping his grandfather’s Dragon Ball."
+            },
+            {
+              "name": "Bulma",
+              "description": "A technologically resourceful traveler collecting Dragon Balls. She explains their wish-granting power to Goku."
+            },
+            {
+              "name": "Grandpa Gohan",
+              "description": "Goku’s late adoptive grandfather, who raised and trained him."
+            },
+            {
+              "name": "Emperor Pilaf",
+              "description": "Seeks all seven Dragon Balls so that he can wish for world domination."
+            },
+            {
+              "name": "Shu",
+              "description": "One of Pilaf’s subordinates searching for Dragon Balls."
+            },
+            {
+              "name": "Mai",
+              "description": "One of Pilaf’s subordinates, who explains why a single Dragon Ball is insufficient."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Grandpa Gohan",
+              "target": "Goku",
+              "type": "guardian",
+              "label": "guardian"
+            },
+            {
+              "source": "Bulma",
+              "target": "Goku",
+              "type": "informs",
+              "label": "Explains the Dragon Balls"
+            },
+            {
+              "source": "Goku",
+              "target": "Bulma",
+              "type": "accompanies",
+              "label": "Joins her search"
+            },
+            {
+              "source": "Goku",
+              "target": "Bulma",
+              "type": "rescues",
+              "label": "Defeats her abductor"
+            },
+            {
+              "source": "Shu",
+              "target": "Emperor Pilaf",
+              "type": "works_for",
+              "label": "works for"
+            },
+            {
+              "source": "Mai",
+              "target": "Emperor Pilaf",
+              "type": "works_for",
+              "label": "works for"
+            }
+          ]
+        },
+        {
+          "unit": 2,
+          "number": 2,
+          "title": "The Emperor's Quest",
+          "source_url": "https://dragonball.fandom.com/wiki/The_Emperor's_Quest?oldid=2226263",
+          "source_revision": 2226263,
+          "source_hash": "4e20fec9b947e95e57617b8822aa75694efbeed0ebbf681b5f2f5f9bf98abca4",
+          "characters": [
+            {
+              "name": "Turtle",
+              "description": "A lost turtle whom Goku volunteers to carry back toward the sea."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Goku",
+              "target": "Turtle",
+              "type": "helps",
+              "label": "Carries toward home"
+            },
+            {
+              "source": "Emperor Pilaf",
+              "target": "Shu",
+              "type": "orders",
+              "label": "Orders a search"
+            },
+            {
+              "source": "Emperor Pilaf",
+              "target": "Mai",
+              "type": "orders",
+              "label": "Orders a search"
+            }
+          ]
+        },
+        {
+          "unit": 3,
+          "number": 3,
+          "title": "The Nimbus Cloud of Roshi",
+          "source_url": "https://dragonball.fandom.com/wiki/The_Nimbus_Cloud_of_Roshi?oldid=2213740",
+          "source_revision": 2213740,
+          "source_hash": "a28b2e9376be3fd483a2aa70b65143d75f601ec5608798218e557a5cc7ce0342",
+          "characters": [
+            {
+              "name": "Master Roshi",
+              "description": "The Turtle Hermit, who rewards Goku for helping Turtle and gives Bulma a Dragon Ball."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Master Roshi",
+              "target": "Goku",
+              "type": "gives_to",
+              "label": "Gives Flying Nimbus"
+            },
+            {
+              "source": "Master Roshi",
+              "target": "Bulma",
+              "type": "gives_to",
+              "label": "Gives a Dragon Ball"
+            }
+          ]
+        },
+        {
+          "unit": 4,
+          "number": 4,
+          "title": "Oolong the Terrible",
+          "source_url": "https://dragonball.fandom.com/wiki/Oolong_the_Terrible?oldid=2264741",
+          "source_revision": 2264741,
+          "source_hash": "e3577ef64fbe67e161e8ff62981f124a9384f5ec0c51a65f773a4821ee08acf1",
+          "characters": [
+            {
+              "name": "Oolong",
+              "description": "A shapeshifter terrorizing a village. His transformations last only five minutes."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Goku",
+              "target": "Oolong",
+              "type": "captures",
+              "label": "Catches the fleeing shapeshifter"
+            }
+          ]
+        },
+        {
+          "unit": 5,
+          "number": 5,
+          "title": "Yamcha the Desert Bandit",
+          "source_url": "https://dragonball.fandom.com/wiki/Yamcha_the_Desert_Bandit?oldid=2264724",
+          "source_revision": 2264724,
+          "source_hash": "54e6142ac963a69ea3a18aa945aac76331568a7de6ae53f32b1b82bb673803f1",
+          "characters": [
+            {
+              "name": "Oolong",
+              "description": "Travels with Bulma and Goku. His transformations cannot increase his strength."
+            },
+            {
+              "name": "Yamcha",
+              "description": "A desert bandit who challenges Goku but loses his nerve around Bulma."
+            },
+            {
+              "name": "Puar",
+              "description": "Yamcha’s shapeshifting companion, who previously attended school with Oolong."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Yamcha",
+              "target": "Goku",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Puar",
+              "target": "Yamcha",
+              "type": "helps",
+              "label": "Assists the bandit"
+            },
+            {
+              "source": "Puar",
+              "target": "Oolong",
+              "type": "former_classmate",
+              "label": "former classmate"
+            },
+            {
+              "source": "Oolong",
+              "target": "Bulma",
+              "type": "accompanies",
+              "label": "Travels with the search party"
+            }
+          ]
+        },
+        {
+          "unit": 6,
+          "number": 6,
+          "title": "Keep an Eye on the Dragon Balls",
+          "source_url": "https://dragonball.fandom.com/wiki/Keep_an_Eye_on_the_Dragon_Balls?oldid=2264714",
+          "source_revision": 2264714,
+          "source_hash": "83a8f2490ae88b7a1252e1e118cdf2262732b16ab1460a6c0f80d8d32d67d0bc",
+          "characters": [
+            {
+              "name": "Yamcha",
+              "description": "Offers the travelers a replacement car while secretly planning to track their search for the Dragon Balls."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Goku",
+              "target": "Yamcha",
+              "type": "attacks",
+              "label": "attacks"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "media_id": "anilist-21",
+      "episodes": [
+        {
+          "unit": 1,
+          "number": 1,
+          "title": "I'm Luffy! The Man Who's Gonna Be King of the Pirates!",
+          "source_url": "https://en.wikipedia.org/wiki/One_Piece_season_1?oldid=1376949960",
+          "source_revision": 1376949960,
+          "source_hash": "f14a17c95ef1472d9a9a47f8c8cd08a101042516d438001b834243130298aca5",
+          "characters": [
+            {
+              "name": "Monkey D. Luffy",
+              "description": "An aspiring Pirate King whose body has rubber properties. He encourages Coby and defeats Alvida."
+            },
+            {
+              "name": "Coby",
+              "description": "Forced to work aboard Alvida’s ship, he dreams of joining the Marines and gains courage from Luffy."
+            },
+            {
+              "name": "Alvida",
+              "description": "A pirate captain who bullies Coby and confronts Luffy."
+            }
+          ],
+          "relationships": [
+            {
+              "source": "Monkey D. Luffy",
+              "target": "Alvida",
+              "type": "attacks",
+              "label": "attacks"
+            },
+            {
+              "source": "Monkey D. Luffy",
+              "target": "Coby",
+              "type": "helps",
+              "label": "Encourages him to resist"
+            },
+            {
+              "source": "Monkey D. Luffy",
+              "target": "Coby",
+              "type": "accompanies",
+              "label": "Sails away with him"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "clear_empty_media_ids": [
+    "anilist-139074"
+  ]
+}

@@ -50,14 +50,19 @@ def load(media_id: str) -> Snapshot | None:
 
 def response(snapshot: Snapshot, media_id: str) -> Universe:
     row, graph = snapshot.row, snapshot.graph
+    media = [m for m in graph.media if m.type == 'anime']
+    ids = {m.id for m in media}
+    if media_id not in ids:
+        raise HTTPException(404, 'Only anime universes are currently supported')
+    relationships = [e for e in graph.relationships if e.source in ids and e.target in ids]
     refreshed = row['refreshed_at']
     stale = refreshed is None or (datetime.now(timezone.utc) - refreshed).total_seconds() > settings.franchise_cache_ttl_seconds
     limits = set(row['limitations'])
     if stale:
         limits.add('stale_metadata')
-    frontier = set(row['discovery'].get('frontier', []))
-    return Universe(root_id=media_id, media=graph.media,
-                    relationships=graph.relationships,
+    frontier = set(row['discovery'].get('frontier', [])) & ids
+    return Universe(root_id=media_id, media=media,
+                    relationships=relationships,
                     truncated=bool(frontier) or 'node_cap' in limits,
                     franchise_id=row['id'], cache=UniverseCache(
                         refreshed_at=refreshed.isoformat() if refreshed else None, stale=stale,

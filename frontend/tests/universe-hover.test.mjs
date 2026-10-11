@@ -29,7 +29,8 @@ test('hover and keyboard focus preview the clicked route without moving worlds o
   const universe = { root_id: 'a', media, relationships: [{ source: 'a', target: 'b', type: 'SEQUEL' }, { source: 'b', target: 'c', type: 'SEQUEL' }] }
   const model = buildUniverseModel(universe), guide = buildReleaseGuide(model, {})
   const selected = []
-  const props = { universe, model, guide, focusedId: 'a', active: true, release: false, onFocus: m => selected.push(m.id), onRelease() {}, onExpand() {}, expanding: false, details: null }
+  let entered = 0
+  const props = { universe, model, guide, focusedId: 'a', active: true, release: false, onFocus: m => selected.push(m.id), onRelease() {}, onExpand() {}, expanding: false, onEnter() { entered++ }, details: enter => createElement('button', { onClick: enter, className: 'test-enter' }, 'Enter World') }
   let renderer
   try {
     await act(async () => { renderer = create(createElement(UniverseCanvas, props)); await new Promise(resolve => setTimeout(resolve, 100)) })
@@ -62,6 +63,15 @@ test('hover and keyboard focus preview the clicked route without moving worlds o
     assert.equal(flow().nodes.find(n => n.id === 'c').data.preview, true)
     await act(async () => flow().onEdgeClick({}, remoteEdge))
     assert.deepEqual(selected, ['b', 'a', 'c'])
+    let zoomTarget
+    await act(async () => flow().onInit({ setViewport() {}, setCenter: (...args) => { zoomTarget = args } }))
+    await act(async () => renderer.root.findByProps({ className: 'test-enter' }).props.onClick())
+    assert.equal(entered, 0, 'character view waits for the cinematic entry')
+    assert.equal(zoomTarget[2].zoom, 3.4)
+    assert.equal(renderer.root.findByProps({ 'aria-label': 'Anime universe canvas' }).props.inert, true)
+    await act(async () => renderer.root.findByProps({ className: 'world-entry' }).props.onAnimationComplete())
+    assert.equal(entered, 1)
+    assert.equal(renderer.root.findAllByProps({ className: 'world-entry' }).length, 0)
   } finally {
     if (renderer) await act(async () => renderer.unmount())
   }
@@ -73,7 +83,7 @@ test('story details minimize and restore without moving the camera, and stay min
   const model = buildUniverseModel(universe), guide = buildReleaseGuide(model, {})
   let cameraMoves = 0, selections = 0
   const props = { universe, model, guide, focusedId: 'a', active: true, release: false, onFocus: () => selections++,
-    onRelease() {}, onExpand() {}, expanding: false, details: createElement('p', null, 'Story details') }
+    onRelease() {}, onExpand() {}, expanding: false, details: () => createElement('p', null, 'Story details') }
   let renderer
   try {
     await act(async () => { renderer = create(createElement(UniverseCanvas, props)); await new Promise(resolve => setTimeout(resolve, 100)) })
@@ -90,7 +100,7 @@ test('story details minimize and restore without moving the camera, and stay min
     assert.equal(content().props.hidden, true)
     assert.equal(cameraMoves, initialMoves); assert.equal(selections, 0)
     assert.equal(flow().nodes, initialNodes); assert.equal(flow().edges, initialEdges)
-    await act(async () => renderer.update(createElement(UniverseCanvas, { ...props, focusedId: 'b', details: createElement('p', null, 'New story details') })))
+    await act(async () => renderer.update(createElement(UniverseCanvas, { ...props, focusedId: 'b', details: () => createElement('p', null, 'New story details') })))
     assert.equal(content().props.hidden, true)
     assert.equal(content().findByType('p').children[0], 'New story details')
     const selectedMoves = cameraMoves

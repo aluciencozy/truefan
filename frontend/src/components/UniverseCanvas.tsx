@@ -12,7 +12,6 @@ import { connectedNeighbors, connectionDestination, directionalNeighbor, focusVi
 import type { ReleaseGuide } from '../lib/universeProgression'
 import { worldTitle } from '../lib/universeProgression'
 import { CanvasPointerContext, useCanvasParallax } from '../lib/useCanvasParallax'
-import CursorStars from './CursorStars'
 import PointerEdge from './PointerEdge'
 
 type Destination = Node<{ media: Media; guide: ReleaseGuide; release: boolean; focused: boolean; nearby: boolean; overview: boolean; preview: boolean; onFocus: (id: string) => void; onPreview: (id: string | null) => void }, 'destination'>
@@ -26,10 +25,11 @@ const DestinationNode = memo(function DestinationNode({ data }: NodeProps<Destin
     className={`destination ${guide.status} ${focused ? 'focused' : ''} ${data.preview ? 'route-preview' : ''} ${data.nearby || data.overview ? '' : 'remote'}`}>
     <Handle type="target" position={Position.Left} />
     <motion.div className="destination-orbit" initial={false}
-      animate={{ scale: data.overview ? 1.45 : focused ? 1.7 : 1, opacity: data.nearby || data.overview ? 1 : .28 }}
+      animate={{ scale: data.overview ? 1.45 : focused ? 2.35 : 1.15, opacity: data.nearby || data.overview ? 1 : .55 }}
       transition={{ duration: reduced ? 0 : .75, ease: [.22, 1, .36, 1] }}>
       <div className="destination-art">
-        {media.cover_url ? <img src={media.cover_url} alt="" loading="lazy" draggable={false} /> : <span aria-hidden="true">✦</span>}
+        {media.cover_url ? <img src={focused ? media.cover_url.replace('anilistcdn/media/anime/cover/small/', 'anilistcdn/media/anime/cover/large/') : media.cover_url} alt="" loading="lazy"
+          onError={event => { if (event.currentTarget.src !== media.cover_url) event.currentTarget.src = media.cover_url! }} draggable={false} /> : <span aria-hidden="true">✦</span>}
       </div>
       {focused && !reduced && <motion.span className="arrival-ring" key={media.id + String(data.overview)} initial={{ scale: .8, opacity: .8 }} animate={{ scale: 1.65, opacity: 0 }} transition={{ duration: 1.2 }} />}
       {guide.status === 'completed' && <span className="watched-badge" aria-label="Completed">✓</span>}
@@ -55,7 +55,7 @@ const UniverseEdge = memo(function UniverseEdge({ id, source, sourceX, sourceY, 
   const travelPath = journey?.from === source ? path : `M ${targetX},${targetY} L ${sourceX},${sourceY}`
   return <g className={`orbit-edge ${data?.incident ? 'incident' : ''} ${data?.preview ? 'route-preview' : ''}`}>
     <PointerEdge id={id} sourceX={sourceX} sourceY={sourceY} targetX={targetX} targetY={targetY} bend={!journey}
-      label={(data?.incident || data?.preview) ? data.label : undefined}
+      label={data?.preview ? data.label : undefined}
       style={{ stroke: data?.preview ? '#cba6f7' : data?.incident ? '#b4befe' : '#6c7086', strokeWidth: data?.preview ? 3 : data?.incident ? 1.5 : 1,
       strokeDasharray: data?.primary || data?.preview ? undefined : '4 9', opacity: data?.preview ? 1 : data?.incident ? .65 : .25 }} />
     {journey && !reduced && <g key={journey.serial} className="journey-trail" aria-hidden="true">
@@ -73,16 +73,17 @@ const directions = { ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 }, Arr
 
 interface Props {
   universe: Universe; model: UniverseModel; guide: Record<string, ReleaseGuide>; focusedId: string; active: boolean
-  release: boolean; onRelease: () => void; onFocus: (media: Media) => void
-  onExpand: () => void; expanding: boolean; details: ReactNode
+  release: boolean; onFocus: (media: Media) => void
+  onEnter: (media: Media) => void; details: (enter: () => void) => ReactNode
 }
 
-export default function UniverseCanvas({ universe, model, guide, focusedId, active, release, onRelease, onFocus, onExpand, expanding, details }: Props) {
+export default function UniverseCanvas({ universe, model, guide, focusedId, active, release, onFocus, onEnter, details }: Props) {
   const reduced = useReducedMotion()
   const [positions, setPositions] = useState<Positions>({})
   const [layoutState, setLayoutState] = useState<'loading' | 'ready' | 'fallback'>('loading')
   const [size, setSize] = useState({ width: 1000, height: 650 })
   const [overview, setOverview] = useState(false)
+  const [entering, setEntering] = useState(false)
   const [detailsMinimized, setDetailsMinimized] = useState(false)
   const detailsId = useId()
   const [flow, setFlow] = useState<ReactFlowInstance | null>(null)
@@ -152,6 +153,12 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
     }
   }, [active, flow, positions, layoutState, overview, focusedId, size, reduced, model])
 
+  useEffect(() => {
+    if (!entering || !flow || !positions[focusedId]) return
+    const point = positions[focusedId]
+    void flow.setCenter(point.x + MEDIA_WIDTH / 2, point.y + 50, { zoom: reduced ? 1 : 3.4, duration: reduced ? 0 : 850, ease: cameraEase })
+  }, [entering, flow, focusedId, positions, reduced])
+
   const focus = useCallback((id: string) => {
     const media = mediaById.get(id)
     if (!media) return
@@ -167,7 +174,7 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
     ?? neighbors.find(id => id !== previous)
 
   useEffect(() => {
-    if (!active) return
+    if (!active || entering) return
     const onKey = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) return
       const target = event.target as HTMLElement
@@ -181,7 +188,7 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [active, focusedId, neighbors, positions, previous, next, focus])
+  }, [active, entering, focusedId, neighbors, positions, previous, next, focus])
 
   const nodes = useMemo<Node[]>(() => [
     ...groupBounds(model, positions).map(b => ({ id: b.id, type: 'region', position: { x: b.x, y: b.y },
@@ -205,9 +212,10 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
       journey: journey?.id === link.id ? journey : null },
   })), [model, overview, illuminated, journey, previewLink])
 
-  return <div ref={container} className={`universe-canvas celestial ${overview ? 'overview-mode' : 'focus-mode'}`} aria-label="Anime universe canvas" aria-busy={layoutState === 'loading'}>
+  return <div className={`universe-composition ${overview ? 'is-overview' : ''} ${entering ? 'is-entering' : ''}`}>
+    <div ref={container} inert={entering} className={`universe-canvas celestial ${overview ? 'overview-mode' : 'focus-mode'}`} aria-label="Anime universe canvas" aria-busy={layoutState === 'loading'}>
     <CanvasPointerContext.Provider value={pointer}><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onInit={setFlow} proOptions={{ hideAttribution: true }}
-      minZoom={.01} maxZoom={1.8} nodesConnectable={false} nodesDraggable={false} elementsSelectable={false}
+      minZoom={.01} maxZoom={3.4} nodesConnectable={false} nodesDraggable={false} elementsSelectable={false}
       panOnDrag={false} panOnScroll={false} zoomOnScroll={false} zoomOnPinch={false} zoomOnDoubleClick={false}
       preventScrolling selectionOnDrag={false} autoPanOnNodeFocus={false} autoPanOnNodeDrag={false}
       onNodeMouseEnter={(_, node) => previewNode(node.id)} onNodeMouseLeave={() => previewNode(null)}
@@ -216,16 +224,8 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
       onNodeClick={(_, node) => focus(node.id)} colorMode="dark">
       <Panel position="top-left" className="canvas-toolbar">
         <button onClick={() => focus(universe.root_id)}>⌂ Home world</button>
-        <button aria-pressed={release} onClick={onRelease}>Release guidance {release ? 'on' : 'off'}</button>
-        {universe.cache?.can_expand && <button disabled={expanding} onClick={onExpand}>{expanding ? 'Exploring…' : 'Expand universe'}</button>}
       </Panel>
-      <Panel position="top-right" className="overview-control">
-        <button aria-label={overview ? 'Return to Focus Mode' : 'Show constellation overview'} aria-pressed={overview} onClick={() => setOverview(value => !value)}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-            <path d={overview ? 'M3 9h6V3m6 0v6h6M3 15h6v6m6 0v-6h6' : 'M9 3H3v6m12-6h6v6M3 15v6h6m6 0h6v-6'} />
-          </svg>{overview ? 'Back to focus' : 'Overview'}
-        </button>
-      </Panel>
+
       <Panel position="bottom-center" className="journey-navigation">
         <div className="journey-controls">
           <button disabled={!previous} onClick={() => previous && focus(previous)} title={previous ? worldTitle(mediaById.get(previous)!, guide[previous]) : 'No previous connection'}>← Previous</button>
@@ -234,8 +234,15 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
         </div>
       </Panel>
     </ReactFlow></CanvasPointerContext.Provider>
-    <CursorStars />
-    {!overview && layoutState !== 'loading' && <motion.div key={focusedId} className={`universe-inspector ${detailsMinimized ? 'details-minimized' : ''}`}
+    </div>
+      <div className="overview-control" inert={entering}>
+        <button aria-label={overview ? 'Return to Focus Mode' : 'Show constellation overview'} aria-pressed={overview} onClick={() => setOverview(value => !value)}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+            <path d={overview ? 'M3 9h6V3m6 0v6h6M3 15h6v6m6 0v-6h6' : 'M9 3H3v6m12-6h6v6M3 15v6h6m6 0h6v-6'} />
+          </svg>{overview ? 'Back to focus' : 'Overview'}
+        </button>
+      </div>
+    {!overview && layoutState !== 'loading' && <motion.div inert={entering} key={focusedId} className={`universe-inspector ${detailsMinimized ? 'details-minimized' : ''}`}
       initial={{ opacity: 0, x: reduced ? 0 : 18 }} animate={{ opacity: 1, x: 0 }}
       transition={{ duration: reduced ? 0 : .45, delay: reduced ? 0 : .35 }}>
       <button className="inspector-toggle" aria-label={detailsMinimized ? 'Show details' : 'Minimize details'}
@@ -245,7 +252,12 @@ export default function UniverseCanvas({ universe, model, guide, focusedId, acti
           <path d={detailsMinimized ? 'M5 12h14M12 5v14' : 'M5 12h14'} />
         </svg>{detailsMinimized && 'Show details'}
       </button>
-      <div id={detailsId} hidden={detailsMinimized}>{details}</div>
+      <div id={detailsId} hidden={detailsMinimized}>{details(() => setEntering(true))}</div>
+    </motion.div>}
+    {entering && <motion.div className="world-entry" role="status" initial={{ opacity: 0 }} animate={{ opacity: [0, .15, 1] }}
+      transition={{ duration: reduced ? 0 : .9, times: [0, .55, 1] }}
+      onAnimationComplete={() => { setEntering(false); const item = mediaById.get(focusedId); if (item) onEnter(item) }}>
+      <span>Entering your world</span>
     </motion.div>}
     <div className="journey-announcement" role="status" aria-live="polite">{mediaById.has(focusedId) ? worldTitle(mediaById.get(focusedId)!, guide[focusedId]) : ''}{overview ? ', Overview Mode' : ', Focus Mode'}</div>
     {layoutState === 'loading' && <div role="status" className="canvas-status">Mapping the universe…</div>}
