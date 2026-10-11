@@ -52,8 +52,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .celestial { position: relative; isolation: isolate; background: radial-gradient(ellipse at 51% 44%, #31324470, #1e1e2e30 42%, transparent 73%), var(--crust); }
 /* Home retains the reference artwork placement and centered search. */
 .home-page { min-height: 100svh; display: flex; flex-direction: column; font-family: var(--body); background: var(--crust); }
-.home-footer { min-height: 88px; padding: 20px 48px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.home-hero { flex: 1; min-height: 600px; display: grid; place-items: center; padding: 0 24px 40px; overflow: hidden; background: var(--crust); }
+.home-hero { flex: 1; min-height: 600px; display: grid; place-items: center; padding: 0 24px; overflow: hidden; background: var(--crust); }
 .home-graph { position: absolute; z-index: -1; top: 50%; left: 50%; width: 1440px; height: 724px; transform: translate(-50%, -50%); pointer-events: none; }
 .home-glow { position: absolute; left: 170px; top: 12px; opacity: .55; }
 .home-connections { display: block; opacity: .85; }
@@ -77,8 +76,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .home-suggestions button > img:first-child:not(:last-child) { object-fit: cover; border-radius: 4px; flex-shrink: 0; }
 .home-suggestions span { flex: 1; min-width: 0; font-size: 15px; }
 .home-suggestions small { display: block; margin-top: 3px; color: var(--muted); font-size: 13px; }
-.home-search .home-guidance { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); text-align: center; }
-.home-footer { color: var(--muted); font-size: 13px; }
 /* The map is the workspace. Search and details float above it. */
 .app-shell.celestial { min-height: 100svh; background: var(--crust); overflow: clip; }
 .app-shell .celestial { background: transparent; }
@@ -305,13 +302,11 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
   .character-layer > .details { padding: 20px 24px; }
 }
 @media (max-width: 700px) {
-  .home-footer { padding: 20px 24px; }
-  .home-hero { min-height: 480px; padding: 0 20px 24px; }
+  .home-hero { min-height: 480px; padding: 0 20px; }
   .home-graph { transform: translate(-50%, -50%) scale(.8); }
   .home-introduction p { font-size: 14px; }
   .home-search-form { gap: 10px; padding-left: 14px; }
   .home-search-form input { font-size: 14px; }
-  .home-footer { flex-wrap: wrap; gap: 8px; font-size: 13px; }
   .graph-heading { padding: 20px; min-height: 160px; gap: 20px; }
   .graph-heading h1 { font-size: 28px; }
   .graph-actions { width: 100%; gap: 10px; }
@@ -345,7 +340,8 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .home-introduction h1 { font-size: clamp(60px, 7vw, 84px); color: #e8defb; text-shadow: 0 0 48px #cba6f733; }
 .home-introduction p { font-size: 16px; }
 .home-search { gap: 26px; }
-.home-introduction, .home-guidance { text-shadow: 0 2px 12px var(--crust), 0 0 24px var(--crust); }
+.home-search .surprise-launch { margin-top: -10px; }
+.home-introduction { text-shadow: 0 2px 12px var(--crust), 0 0 24px var(--crust); }
 .home-node { border: 1px solid #b4befe80; animation: home-drift 9s ease-in-out infinite; }
 .home-node img { object-position: center 25%; }
 .home-node:nth-of-type(3n + 1) { border-color: #94e2d580; box-shadow: 0 5px 12px #11111ba6, 0 0 18px 2px #94e2d54d; }
@@ -409,7 +405,6 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
   .journey-controls button { font-size: 13px; }
   .journey-navigation { margin-bottom: 16px; }
   .home-graph { transform: translate(-50%, -50%) scale(.85); }
-  .home-footer { font-size: 12px; }
   .graph-heading { min-height: 140px; }
 }
 .home-graph { mask-image: radial-gradient(ellipse 400px 180px at 50% 48%, transparent 15%, #0005 55%, #000 100%); }
