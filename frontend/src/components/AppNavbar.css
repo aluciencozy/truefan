@@ -14,6 +14,14 @@
 .navbar-account > a:hover { color: var(--text); }
 .navbar-account .navbar-signup { padding: 11px 18px; border-radius: 999px; background: var(--mauve); color: var(--crust); white-space: nowrap; }
 .navbar-account .navbar-signup:hover { background: var(--lavender); color: var(--crust); }
+/* Signed-in profile header at the top of the account dropdown; signed-out menus keep their width. */
+.account-dropdown:has(.account-profile) { width: 240px; }
+.account-dropdown .account-profile { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; padding: 10px 12px; border-bottom: 1px solid #45475a60; border-radius: 9px 9px 0 0; }
+.account-avatar { flex: none; width: 36px; height: 36px; border-radius: 50%; }
+.account-identity { display: grid; min-width: 0; gap: 2px; }
+.account-identity b { overflow: hidden; font: 500 15px var(--display); text-overflow: ellipsis; white-space: nowrap; }
+.account-identity small { display: flex; align-items: center; gap: 5px; min-height: 16px; color: var(--mauve); font-size: 12px; }
+.account-profile:focus-visible { outline: 2px solid var(--mauve); outline-offset: -2px; }
 @media (max-width: 900px) {
   .app-navbar { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 16px 20px; }
   .navbar-links { grid-column: 1 / -1; grid-row: 2; justify-self: center; max-width: 100%; }

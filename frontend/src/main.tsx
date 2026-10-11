@@ -7,6 +7,7 @@ import AuthPages from './components/AuthPages'
 import HomePage from './components/HomePage'
 import CommunityPage from './components/CommunityPage'
 import LibraryPage from './components/LibraryPage'
+import ProfilePage from './components/ProfilePage'
 import CursorStars from './components/CursorStars'
 import PageTransition from './components/PageTransition'
 import OpeningAnimation from './components/OpeningAnimation'
@@ -18,6 +19,7 @@ createRoot(document.getElementById('root')!).render(
     <Route path="/explore" element={<App />} />
     <Route path="/community" element={<CommunityPage />} />
     <Route path="/library" element={<LibraryPage />} />
+    <Route path="/profile" element={<ProfilePage />} />
     <Route path="/auth/:path" element={<AuthPages />} />
     <Route path="/account/:path" element={<AuthPages account />} />
     <Route path="*" element={<Navigate to="/" replace />} />

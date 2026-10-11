@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Default TrueFan avatar">
+  <defs>
+    <radialGradient id="sky" cx="35%" cy="28%" r="90%">
+      <stop offset="0" stop-color="#45475a"/><stop offset=".55" stop-color="#313244"/><stop offset="1" stop-color="#181825"/>
+    </radialGradient>
+    <linearGradient id="planet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b4befe"/><stop offset=".55" stop-color="#cba6f7"/><stop offset="1" stop-color="#8b6fc4"/>
+    </linearGradient>
+    <clipPath id="disc"><circle cx="100" cy="100" r="100"/></clipPath>
+    <clipPath id="front"><rect x="0" y="100" width="200" height="100"/></clipPath>
+  </defs>
+  <g clip-path="url(#disc)">
+    <rect width="200" height="200" fill="url(#sky)"/>
+    <g fill="#cdd6f4">
+      <circle cx="30" cy="40" r="1.6"/><circle cx="170" cy="32" r="1.2" opacity=".8"/><circle cx="154" cy="150" r="1.6" opacity=".7"/>
+      <circle cx="24" cy="132" r="1.2" opacity=".8"/><circle cx="62" cy="168" r="1" opacity=".6"/><circle cx="118" cy="22" r="1" opacity=".7"/>
+    </g>
+    <path d="M165 58l2.4 6.6 6.6 2.4-6.6 2.4-2.4 6.6-2.4-6.6-6.6-2.4 6.6-2.4z" fill="#f9e2af"/>
+    <path d="M44 78l1.6 4.4 4.4 1.6-4.4 1.6-1.6 4.4-1.6-4.4-4.4-1.6 4.4-1.6z" fill="#f5c2e7"/>
+    <!-- ringed planet: back half of the ring, body, then the front half of the ring -->
+    <ellipse cx="100" cy="104" rx="70" ry="19" fill="none" stroke="#f5c2e7" stroke-width="7" opacity=".55" transform="rotate(-18 100 104)"/>
+    <circle cx="100" cy="100" r="42" fill="url(#planet)"/>
+    <path d="M62 86q38 14 76-2" fill="none" stroke="#11111b" stroke-opacity=".16" stroke-width="5" stroke-linecap="round"/>
+    <path d="M60 108q40 14 80 0" fill="none" stroke="#11111b" stroke-opacity=".12" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="86" cy="82" rx="14" ry="9" fill="#fff" opacity=".18" transform="rotate(-25 86 82)"/>
+    <ellipse cx="100" cy="104" rx="70" ry="19" fill="none" stroke="#f5c2e7" stroke-width="7" transform="rotate(-18 100 104)" clip-path="url(#front)"/>
+  </g>
+  <circle cx="100" cy="100" r="98" fill="none" stroke="#cba6f7" stroke-opacity=".5" stroke-width="3"/>
+</svg>

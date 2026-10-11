@@ -33,7 +33,8 @@ from app.community_api import router as community_router
 app.include_router(community_router)
 from app.library_api import router as library_router
 app.include_router(library_router)
-# Explicit origins only (never "*"): the Authorization header is in play.
+from app.profile_api import router as profile_router
+app.include_router(profile_router)
 ALLOWED_ORIGINS = list(dict.fromkeys(
     ["http://localhost:3000", "http://127.0.0.1:3000", settings.frontend_url.rstrip("/")]))
 app.add_middleware(CORSMiddleware,

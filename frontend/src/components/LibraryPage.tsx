@@ -4,8 +4,10 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { authClient } from '../lib/auth'
 import { usePageReady } from '../lib/pageTransition'
-import { estimatedHoursWatched, libraryApi, libraryArt as art, libraryOrder, universeStatus } from '../lib/library'
+import { libraryApi, libraryArt as art, libraryOrder, libraryStats, universeStatus } from '../lib/library'
 import type { LibraryService, SavedUniverse, UniversePreferences } from '../lib/library'
+import { profileApi } from '../lib/profile'
+import type { ProfileService } from '../lib/profile'
 import AppNavbar from './AppNavbar'
 import './LibraryPage.css'
 import GlitterStars from './GlitterStars'
@@ -21,6 +23,7 @@ const iconPaths = {
   clock: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4v5l3 2',
   check: 'm5 12 4 4L19 6',
   arrow: 'M7 17 17 7M7 7h10v10',
+  heart: 'M12 20.5s-8-4.9-8-11A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 2.5c0 6.1-8 11-8 11Z',
 }
 function Icon({ name }: { name: Exclude<keyof typeof art, 'maps'> | keyof typeof iconPaths }) {
   return name in iconPaths
@@ -57,7 +60,7 @@ function Dialog({ title, onClose, busy, children }: { title: string; onClose: ()
 }
 
 function UniverseRow({item, index, menu, busy, onMenu, onAction}: {item: SavedUniverse; index: number; menu: boolean; busy: boolean;
-  onMenu: (id: string | null) => void; onAction: (kind: 'abandon' | 'pin' | 'rate', item: SavedUniverse) => void}) {
+  onMenu: (id: string | null) => void; onAction: (kind: 'abandon' | 'pin' | 'rate' | 'favorite', item: SavedUniverse) => void}) {
   const menuRef = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const reduced = useReducedMotion()
@@ -80,7 +83,7 @@ function UniverseRow({item, index, menu, busy, onMenu, onAction}: {item: SavedUn
     return () => document.removeEventListener('pointerdown', dismiss)
   }, [menu, onMenu])
   const completed = universeStatus(item) === 'Completed'
-  function activate(kind: 'abandon' | 'pin' | 'rate') {trigger.current?.focus(); onAction(kind, item)}
+  function activate(kind: 'abandon' | 'pin' | 'rate' | 'favorite') {trigger.current?.focus(); onAction(kind, item)}
   return <motion.article layout={!reduced} initial={reduced ? false : {opacity: 0, y: 12}} animate={{opacity: 1, y: 0}} exit={reduced ? undefined : {opacity: 0, x: -35, scale: .98}} className="universe-row" aria-label={item.title}>
     <Link className="universe-cover" to={explorerLink(item)} aria-label={`Open ${item.title}`}>
       {item.cover_url ? <img src={item.cover_url} alt={`${item.title} cover`} loading="lazy" onError={event => {event.currentTarget.hidden = true}} /> : null}<span aria-hidden="true">✦</span>
@@ -111,12 +114,13 @@ function UniverseRow({item, index, menu, busy, onMenu, onAction}: {item: SavedUn
         <button role="menuitem" onClick={() => activate('abandon')}><Icon name="abandon" />Abandon</button>
         <button role="menuitem" onClick={() => activate('pin')}><Icon name="pin" />{item.pinned ? 'Unpin' : 'Pin'}</button>
         <button role="menuitem" onClick={() => activate('rate')}><Icon name="star" />Rate</button>
+        <button role="menuitem" onClick={() => activate('favorite')}><Icon name="heart" />Set as favorite</button>
       </div>}
     </div>
   </motion.article>
 }
 
-export function LibraryScreen({viewer, pending = false, service = libraryApi}: {viewer: Viewer | null; pending?: boolean; service?: LibraryService}) {
+export function LibraryScreen({viewer, pending = false, service = libraryApi, profileService = profileApi}: {viewer: Viewer | null; pending?: boolean; service?: LibraryService; profileService?: ProfileService}) {
   const [data, setData] = useState<{owner: string; items: SavedUniverse[]} | null>(null)
   const items = data && data.owner === viewer?.id ? data.items : []
   const [loading, setLoading] = useState(Boolean(viewer))
@@ -154,7 +158,7 @@ export function LibraryScreen({viewer, pending = false, service = libraryApi}: {
   const ordered = useMemo(() => libraryOrder(items, sort), [items, sort])
   const visible = ordered.filter(item => (filter === 'All universes' || (filter === 'Pinned' ? item.pinned : universeStatus(item) === filter))
     && (format === 'all' || item.type === format) && [item.title, ...item.titles.map(title => title.title)].some(title => title.toLowerCase().includes(query.trim().toLowerCase())))
-  const exploring = items.filter(item => universeStatus(item) === 'Exploring').length
+  const stats = useMemo(() => libraryStats(items), [items])
   async function mutate(item: SavedUniverse, preferences: UniversePreferences | null) {
     if (!viewer || busy) return
     const owner = viewer.id; const version = epoch.current; const controller = new AbortController(); mutation.current = controller
@@ -167,14 +171,25 @@ export function LibraryScreen({viewer, pending = false, service = libraryApi}: {
     } catch (error) {if (epoch.current === version && !controller.signal.aborted) setMutationError(message(error))}
     finally {if (epoch.current === version && !controller.signal.aborted) setBusy(false)}
   }
-  function action(kind: 'abandon' | 'pin' | 'rate', item: SavedUniverse) {
-    setMenu(null); setMutationError('')
-    if (kind === 'pin') void mutate(item, {pinned: !item.pinned})
+  async function favorite(item: SavedUniverse) {
+    if (!viewer || busy) return
+    const version = epoch.current; const controller = new AbortController(); mutation.current = controller
+    setBusy(true)
+    try {
+      await profileService.setFavorite(item.media_id, controller.signal)
+      if (epoch.current === version && !controller.signal.aborted) setNotice(`${item.title} is now your favorite universe.`)
+    } catch (error) {if (epoch.current === version && !controller.signal.aborted) setMutationError(message(error))}
+    finally {if (epoch.current === version && !controller.signal.aborted) setBusy(false)}
+  }
+  function action(kind: 'abandon' | 'pin' | 'rate' | 'favorite', item: SavedUniverse) {
+    setMenu(null); setMutationError(''); setNotice('')
+    if (kind === 'favorite') void favorite(item)
+    else if (kind === 'pin') void mutate(item, {pinned: !item.pinned})
     else {setRating(item.rating); setModal({kind, item})}
   }
   return <main className="saved-library"><div className="library-topline"><nav aria-label="Breadcrumb"><Link to="/">Your observatory</Link><span> / </span><span>Library</span></nav><div><span>PERSONAL LIBRARY</span><button className="library-icon" aria-label="Recent exploration" onClick={() => setModal({kind: 'activity'})}><Icon name="bell" /></button><button className="library-icon" aria-label="About saved universes" onClick={() => setModal({kind: 'help'})}><Icon name="help" /></button></div></div>
     <header className="library-heading"><div><h1>Your universes</h1><p>The stories you saved, the connections you’re still discovering.</p></div><Link className="library-primary" to="/explore"><Icon name="plus" /> Discover & save</Link></header>
-    <div className="library-stats"><span><b>{items.length}</b> saved universes</span><span><b>{exploring}</b> currently exploring</span><span><b>{items.reduce((total, item) => total + item.viewed_count, 0)}</b> titles viewed</span><span className="library-watch-time" title="22 minutes per episode and 2 hours per completed movie"><Icon name="clock" /><span><b>{estimatedHoursWatched(items).toLocaleString(undefined, {maximumFractionDigits: 1})}</b> estimated hours watched</span></span><i /><span className="last-universe"><Icon name="orbit" />{ordered.length ? `Last explored: ${libraryOrder(items, 'recent').sort((a,b) => Date.parse(b.last_explored_at) - Date.parse(a.last_explored_at))[0].title}` : 'Your next universe is waiting'}</span></div>
+    <div className="library-stats"><span><b>{stats.universesSaved}</b> saved universes</span><span><b>{stats.exploring}</b> currently exploring</span><span><b>{stats.worldsCompleted}</b> titles viewed</span><span className="library-watch-time" title="22 minutes per episode and 2 hours per completed movie"><Icon name="clock" /><span><b>{stats.estimatedHours.toLocaleString(undefined, {maximumFractionDigits: 1})}</b> estimated hours watched</span></span><i /><span className="last-universe"><Icon name="orbit" />{ordered.length ? `Last explored: ${libraryOrder(items, 'recent').sort((a,b) => Date.parse(b.last_explored_at) - Date.parse(a.last_explored_at))[0].title}` : 'Your next universe is waiting'}</span></div>
     <div className="library-tools"><label className="library-search"><Icon name="search" /><input ref={search} aria-label="Search saved universes" placeholder="Search saved universes..." value={query} onChange={event => setQuery(event.target.value)} /><kbd>⌘ K</kbd></label><button className={`library-pill ${filtersOpen ? 'selected' : ''}`} aria-expanded={filtersOpen} onClick={() => setFiltersOpen(value => !value)}><Icon name="filters" />Filters{format !== 'all' ? ' · 1' : ''}</button><label className="library-pill library-sort"><Icon name="sort" /><select aria-label="Sort saved universes" value={sort} onChange={event => setSort(event.target.value)}><option value="recent">Recently explored</option><option value="saved">Recently saved</option><option value="title">Title A–Z</option></select></label></div>
     {filtersOpen && <div className="library-filter-panel"><label>Media type <select value={format} onChange={event => setFormat(event.target.value)}>{['all','anime','tv','manga','game','movie'].map(type => <option key={type} value={type}>{type === 'all' ? 'All media' : type.toUpperCase()}</option>)}</select></label><button onClick={() => {setFormat('all'); setFilter('All universes'); setQuery('')}}>Reset filters</button></div>}
     <div className="library-tabs"><div role="group" aria-label="Filter by viewing status">{['All universes','Exploring','Completed','Pinned'].map(tab => <button key={tab} aria-pressed={filter === tab} onClick={() => setFilter(tab)}>{tab}{tab === 'All universes' && <span>{items.length}</span>}</button>)}</div><div className="library-view" role="group" aria-label="Library layout"><button aria-label="List view" aria-pressed={!grid} onClick={() => setGrid(false)}><Icon name="list" /></button><button aria-label="Grid view" aria-pressed={grid} onClick={() => setGrid(true)}><Icon name="grid" /></button></div></div>

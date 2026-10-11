@@ -38,6 +38,20 @@ export function estimatedHoursWatched(items: SavedUniverse[]): number {
   }
   return [...minutes.values()].reduce((total, value) => total + value, 0) / 60
 }
+// One source for every stat shown on Library and Profile so the two screens cannot disagree.
+export interface LibraryStats {
+  universesSaved: number; exploring: number; universesCompleted: number
+  worldsCompleted: number; estimatedHours: number
+}
+export function libraryStats(items: SavedUniverse[]): LibraryStats {
+  const completed = new Set<string>()
+  for (const item of items) for (const title of item.titles) if (title.completed) completed.add(title.media_id)
+  const universesCompleted = items.filter(item => universeStatus(item) === 'Completed').length
+  return {
+    universesSaved: items.length, exploring: items.length - universesCompleted, universesCompleted,
+    worldsCompleted: completed.size, estimatedHours: estimatedHoursWatched(items),
+  }
+}
 export function libraryOrder(items: SavedUniverse[], sort: string): SavedUniverse[] {
   return [...items].sort((a, b) => Number(b.pinned) - Number(a.pinned) || (sort === 'title' ? a.title.localeCompare(b.title)
     : sort === 'saved' ? Date.parse(b.saved_at) - Date.parse(a.saved_at)
