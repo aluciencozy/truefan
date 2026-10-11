@@ -69,3 +69,10 @@ CREATE INDEX IF NOT EXISTS community_comments_parent ON public.community_comment
 ALTER TABLE public.community_entries ADD COLUMN IF NOT EXISTS board_x DOUBLE PRECISION;
 ALTER TABLE public.community_entries ADD COLUMN IF NOT EXISTS board_y DOUBLE PRECISION;
 ALTER TABLE public.community_entries ADD COLUMN IF NOT EXISTS shape TEXT NOT NULL DEFAULT 'rectangle';
+
+ALTER TABLE public.community_posts ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.community_comments ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT '';
+
+-- Replies to room contributions share the normal comment tree.
+ALTER TABLE public.community_comments ADD COLUMN IF NOT EXISTS entry_id UUID REFERENCES public.community_entries(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS community_comments_entry ON public.community_comments(entry_id);

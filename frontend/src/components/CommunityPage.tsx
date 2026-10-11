@@ -10,6 +10,7 @@ import type { CommunityViewer } from './CommunityShell'
 import CommunityModal from './CommunityModal'
 import ForumParticipation from './ForumParticipation'
 import CommentThread from './CommentThread'
+import CommunityAttachment from './CommunityAttachment'
 import './CommunityPage.css'
 
 const tabs: { label: string; category: PostCategory }[] = [
@@ -55,6 +56,8 @@ export function CommunityScreen({ viewer, service = communityApi }: { viewer: Co
   const [selected, setSelected] = useState<CommunityPost | null>(null)
   const [comments, setComments] = useState<CommunityComment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
+  const [commentImage, setCommentImage] = useState('')
+  const [imageBusy, setImageBusy] = useState(false)
   const [commentBody, setCommentBody] = useState('')
   const [commentSpoilers, setCommentSpoilers] = useState(false)
   const [commentSending, setCommentSending] = useState(false)
@@ -117,7 +120,7 @@ export function CommunityScreen({ viewer, service = communityApi }: { viewer: Co
   useEffect(() => {
     if (!selected) return
     const controller = new AbortController()
-    setComments([]); setReplyingTo(null); setEditingComment(null); setCommentSending(false); setDialogError(''); setCommentBody(''); setCommentSpoilers(false); setCommentsLoading(true)
+    setComments([]); setReplyingTo(null); setEditingComment(null); setCommentSending(false); setDialogError(''); setCommentBody(''); setCommentImage(''); setImageBusy(false); setCommentSpoilers(false); setCommentsLoading(true)
     service.comments(selected.id, spoilers, controller.signal, signedIn).then(data => { if (!controller.signal.aborted) setComments(data) })
       .catch(error => { if (!controller.signal.aborted) setDialogError(error.message) })
       .finally(() => { if (!controller.signal.aborted) setCommentsLoading(false) })
@@ -131,8 +134,8 @@ export function CommunityScreen({ viewer, service = communityApi }: { viewer: Co
     }
   }, [selected?.id, commentsLoading])
 
-  function abandonPost() { setComposing(false); setEditingPost(null); setDraft(blankPost()); setComposeError('') }
-  function cancelComment() { setEditingComment(null); setReplyingTo(null); setCommentBody(''); setCommentSpoilers(false) }
+  function abandonPost() { setImageBusy(false); setComposing(false); setEditingPost(null); setDraft(blankPost()); setComposeError('') }
+  function cancelComment() { setEditingComment(null); setReplyingTo(null); setCommentBody(''); setCommentImage(''); setCommentSpoilers(false) }
   async function refreshConversation(id: string) {
     const [items, post] = await Promise.all([service.comments(id, spoilers, undefined, signedIn), service.post(id, spoilers, signedIn)])
     if (activeThread.current !== id) return
@@ -149,7 +152,7 @@ export function CommunityScreen({ viewer, service = communityApi }: { viewer: Co
 
   async function publish(event: FormEvent) {
     event.preventDefault()
-    if (!requireSignIn() || offline || sending) return
+    if (!requireSignIn() || offline || sending || imageBusy) return
     setSending(true); setComposeError(''); setAnnouncement('')
     try {
       if (editingPost) await service.update(editingPost,draft); else await service.create(draft)
@@ -177,14 +180,15 @@ export function CommunityScreen({ viewer, service = communityApi }: { viewer: Co
 
   async function addComment(event: FormEvent) {
     event.preventDefault()
-    if (!selected || !commentBody.trim() || !requireSignIn() || commentSending) return
+    if (!selected || (!commentBody.trim() && !commentImage) || !requireSignIn() || commentSending || imageBusy) return
     setCommentSending(true); setDialogError('')
     const threadId = selected.id
     try {
-      const comment = editingComment ? await service.editComment(editingComment, commentBody, commentSpoilers) : await service.comment(selected.id, commentBody, commentSpoilers, spoilers, replyingTo?.id || null)
+      const comment = editingComment ? await service.editComment(editingComment, commentBody, commentSpoilers, commentImage) : await service.comment(selected.id, commentBody, commentSpoilers, spoilers, replyingTo?.entry_id === replyingTo?.id ? null : replyingTo?.id || null, commentImage, replyingTo?.entry_id === replyingTo?.id ? replyingTo?.entry_id || null : null)
       if (activeThread.current !== threadId) return
       // Refresh from the server so changed spoiler flags also remove hidden descendants.
-      setComments([]); cancelComment(); await refreshConversation(threadId)
+      if (editingComment && commentSpoilers) setComments([])
+      cancelComment(); await refreshConversation(threadId)
       setAnnouncement(comment.contains_spoilers && !spoilers ? 'Spoiler comment saved. Enable Show spoiler posts to see it.' : 'Comment posted.')
     } catch (error) { if (activeThread.current === threadId) setDialogError(error instanceof Error ? error.message : 'Could not post comment') }
     finally { if (activeThread.current === threadId) setCommentSending(false) }
@@ -212,33 +216,42 @@ export function CommunityScreen({ viewer, service = communityApi }: { viewer: Co
     catch(e) { if (activeThread.current === id) setDialogError(e instanceof Error ? e.message : 'Could not delete reply') }
     finally { if (activeThread.current === id) setCommentSending(false) }
   }
+  function replyTo(comment: CommunityComment) {
+    if (!requireSignIn()) return
+    setEditingComment(null); setReplyingTo(comment); setCommentBody(''); setCommentImage(''); setCommentSpoilers(comment.contains_spoilers)
+  }
+  useEffect(() => {
+    if (replyingTo || editingComment) { commentInput.current?.focus(); commentInput.current?.scrollIntoView?.({block:'nearest',behavior:'smooth'}) }
+  }, [replyingTo, editingComment])
+  const commentComposer = <form className="conversation-reply-form" onSubmit={event => void addComment(event)}>
+        {dialogError && <p className="community-alert" role="alert">{dialogError}</p>}
+        <div className="conversation-reply-label"><label htmlFor="comment-body">{editingComment ? 'Edit your comment' : replyingTo ? `Reply to @${replyingTo.author}` : 'Your comment'}</label><small>{commentBody.length.toLocaleString()}/2,000</small></div>
+        <textarea ref={commentInput} id="comment-body" required={!commentImage} maxLength={2000} rows={3} placeholder={viewer ? 'Add something to the conversation…' : 'Sign in to join the conversation'} disabled={!viewer || commentSending} value={commentBody} onChange={event => setCommentBody(event.target.value)} />
+        <CommunityAttachment value={commentImage} disabled={!viewer || commentSending} onChange={setCommentImage} onError={setDialogError} onBusyChange={setImageBusy}/><div className="conversation-reply-actions">{viewer && <button type="button" disabled={commentSending || imageBusy} onClick={cancelComment}>Cancel / abandon</button>}<label className="community-checkbox"><input type="checkbox" checked={commentSpoilers} disabled={!viewer || commentSending} onChange={event => setCommentSpoilers(event.target.checked)} />Contains spoilers</label>
+          {viewer ? <button className="community-primary" disabled={commentSending || imageBusy || (!commentBody.trim() && !commentImage)}>{commentSending ? 'Posting…' : editingComment ? 'Save changes' : replyingTo ? 'Post reply' : 'Post comment'} <span>↗</span></button> : <Link className="community-primary" to="/auth/sign-in">Sign in to reply</Link>}
+        </div>
+        <p className="conversation-reply-hint">Keep it kind. Mark plot revelations as spoilers.</p>
+      </form>
+  const activeCommentId = editingComment || replyingTo?.id
   const conversation = selected && <>
       <div className="community-modal-scroll" tabIndex={0} aria-label="Post and replies">
         <article className="conversation-post">
           <div className="conversation-byline"><span className="fan-avatar">{selected.author.split(/\s+/).map(word => word[0]).slice(0,2).join('')}</span><strong>{selected.author}</strong><time dateTime={selected.created_at}>{timeAgo(selected.created_at)}</time>{selected.contains_spoilers && <span className="spoiler-badge">Spoilers</span>}</div>
-          {selected.is_owner&&<div className="forum-entry-actions"><button onClick={()=>{setEditingPost(selected.id);setDraft({category:selected.category,room:selected.room,media:selected.media,title:selected.title,body:selected.body,contains_spoilers:selected.contains_spoilers,rating:selected.rating,side_a:selected.side_a,side_b:selected.side_b,target_episode:selected.target_episode});setSelected(null);setComposing(true)}}>Edit topic</button><button onClick={()=>void removePost(selected)}>Delete topic</button></div>}
-          <h3>{selected.title}</h3><p className="conversation-body">{selected.body}</p>
+          {selected.is_owner&&<div className="forum-entry-actions"><button onClick={()=>{setEditingPost(selected.id);setDraft({category:selected.category,room:selected.room,media:selected.media,title:selected.title,body:selected.body,contains_spoilers:selected.contains_spoilers,rating:selected.rating,side_a:selected.side_a,side_b:selected.side_b,target_episode:selected.target_episode,image:selected.image || ''});setSelected(null);setComposing(true)}}>Edit topic</button><button onClick={()=>void removePost(selected)}>Delete topic</button></div>}
+          <h3>{selected.title}</h3>{selected.image && <img className="community-post-image" src={selected.image} alt="Image attached to this post"/>}<p className="conversation-body">{selected.body}</p>
           {selected.category === 'review' && selected.rating && <p className="post-rating" aria-label={`${selected.rating} out of 5 stars`}>{'★'.repeat(selected.rating)}{'☆'.repeat(5-selected.rating)}</p>}
           <button className="post-reaction" aria-label={`${selected.liked ? 'Unlike' : 'Like'} ${selected.title}`} aria-pressed={selected.liked} disabled={busyLike === selected.id} onClick={() => void like(selected)}><CommunityIcon name={selected.liked ? 'imgHeart' : 'imgHeart1'} />{selected.likes} {selected.likes === 1 ? 'like' : 'likes'}</button>
         </article>
-        {selected.room&&<ForumParticipation key={`${selected.id}:${spoilers}`} post={selected} signedIn={signedIn} spoilers={spoilers} service={service}/>}
-        <section ref={commentsSection} className="conversation-replies" aria-labelledby="conversation-replies-title" aria-busy={commentsLoading}>
+        {selected.room&&<ForumParticipation key={`${selected.id}:${spoilers}`} post={selected} signedIn={signedIn} spoilers={spoilers} service={service} comments={comments} onReply={replyTo} onEditComment={comment => {setReplyingTo(null);setEditingComment(comment.id);setCommentBody(comment.body);setCommentImage(comment.image || '');setCommentSpoilers(comment.contains_spoilers)}} onDeleteComment={comment => void removeComment(comment)} activeCommentId={activeCommentId} composer={commentComposer} commentBusy={commentSending}/>}
+        {(!selected.room || comments.some(comment => !comment.entry_id && !comment.parent_id)) && <section ref={commentsSection} className="conversation-replies" aria-labelledby="conversation-replies-title" aria-busy={commentsLoading}>
           <div className="conversation-replies-heading"><h3 id="conversation-replies-title">Replies <span>{selected.comments}</span></h3><small>{spoilers ? 'Spoilers visible' : 'Spoiler replies hidden'}</small></div>
-          {commentsLoading ? <p className="conversation-empty" role="status">Loading replies…</p> : comments.length ? <div className="conversation-comment-list">{comments.filter(comment => !comment.parent_id || !comments.some(parent => parent.id === comment.parent_id)).map(root => <CommentThread key={root.id} root={root} comments={comments} busy={commentSending} signedIn={signedIn}
-            onReply={comment => { setEditingComment(null); setReplyingTo(comment); setCommentBody(''); setCommentSpoilers(comment.contains_spoilers); commentInput.current?.focus(); commentInput.current?.scrollIntoView?.({block:'center',behavior:'smooth'}) }}
-            onEdit={comment => { setReplyingTo(null); setEditingComment(comment.id); setCommentBody(comment.body); setCommentSpoilers(comment.contains_spoilers); commentInput.current?.focus(); commentInput.current?.scrollIntoView?.({block:'center',behavior:'smooth'}) }}
+          {commentsLoading ? <p className="conversation-empty" role="status">Loading replies…</p> : comments.length ? <div className="conversation-comment-list">{comments.filter(comment => !comment.entry_id && (!comment.parent_id || !comments.some(parent => parent.id === comment.parent_id))).map(root => <CommentThread key={root.id} root={root} comments={comments} busy={commentSending} signedIn={signedIn}
+            activeCommentId={activeCommentId} composer={commentComposer} onReply={replyTo}
+            onEdit={comment => { setReplyingTo(null); setEditingComment(comment.id); setCommentBody(comment.body); setCommentImage(comment.image || ''); setCommentSpoilers(comment.contains_spoilers); commentInput.current?.focus(); commentInput.current?.scrollIntoView?.({block:'center',behavior:'smooth'}) }}
             onDelete={comment => void removeComment(comment)} />)}</div> : !dialogError && <p className="conversation-empty">No replies yet. Start the conversation.</p>}
-        </section>
+        </section>}
       </div>
-      <form className="conversation-reply-form" onSubmit={event => void addComment(event)}>
-        {dialogError && <p className="community-alert" role="alert">{dialogError}</p>}
-        <div className="conversation-reply-label"><label htmlFor="comment-body">{editingComment ? 'Edit your comment' : replyingTo ? `Reply to @${replyingTo.author}` : 'Your comment'}</label><small>{commentBody.length.toLocaleString()}/2,000</small></div>
-        <textarea ref={commentInput} id="comment-body" required maxLength={2000} rows={3} placeholder={viewer ? 'Add something to the conversation…' : 'Sign in to join the conversation'} disabled={!viewer || commentSending} value={commentBody} onChange={event => setCommentBody(event.target.value)} />
-        <div className="conversation-reply-actions">{viewer && <button type="button" disabled={commentSending} onClick={cancelComment}>Cancel / abandon</button>}<label className="community-checkbox"><input type="checkbox" checked={commentSpoilers} disabled={!viewer || commentSending} onChange={event => setCommentSpoilers(event.target.checked)} />Contains spoilers</label>
-          {viewer ? <button className="community-primary" disabled={commentSending || !commentBody.trim()}>{commentSending ? 'Posting…' : editingComment ? 'Save changes' : replyingTo ? 'Post reply' : 'Post comment'} <span>↗</span></button> : <Link className="community-primary" to="/auth/sign-in">Sign in to reply</Link>}
-        </div>
-        <p className="conversation-reply-hint">Keep it kind. Mark plot revelations as spoilers.</p>
-      </form>
+      {!activeCommentId && commentComposer}
   </>
   return <CommunityShell>
     <header className="community-header">
@@ -291,7 +304,7 @@ export function CommunityScreen({ viewer, service = communityApi }: { viewer: Co
             }}><CommunityIcon name="imgEllipsis" /></button>
           </div>
           <button className="post-open" onClick={() => { if (!offline) { setSelected(post); navigate(`/community?post=${post.id}`, {replace:true}) } }}><h2>{post.title}</h2></button>
-          <p className="post-preview">{post.body}</p>{post.category === 'review' && post.rating && <p className="post-rating" aria-label={`${post.rating} out of 5 stars`}>{'★'.repeat(post.rating)}{'☆'.repeat(5-post.rating)}</p>}
+          {post.image && <img className="community-post-image" src={post.image} alt="Image attached to this post"/>}<p className="post-preview">{post.body}</p>{post.category === 'review' && post.rating && <p className="post-rating" aria-label={`${post.rating} out of 5 stars`}>{'★'.repeat(post.rating)}{'☆'.repeat(5-post.rating)}</p>}
           <div className="post-metadata"><span className="fan-avatar">{post.author.split(/\s+/).map(word => word[0]).slice(0,2).join('')}</span><strong>{post.author}</strong><span className="post-age">· {timeAgo(post.created_at)}</span>
             <button className="post-reaction" aria-label={`${post.liked ? 'Unlike' : 'Like'} ${post.title}`} aria-pressed={post.liked} disabled={busyLike === post.id || offline} onClick={() => void like(post)}><CommunityIcon name={post.liked ? 'imgHeart' : 'imgHeart1'} />{post.likes}</button>
             <button className="post-reaction" aria-label={`Read ${post.comments} comments on ${post.title}`} disabled={offline} onClick={() => { openComments.current = true; setSelected(post); navigate(`/community?post=${post.id}`, {replace:true}) }}><CommunityIcon name="imgMessageCircle" />{post.comments}</button>
@@ -318,12 +331,13 @@ export function CommunityScreen({ viewer, service = communityApi }: { viewer: Co
           <datalist id="community-media-names">{mediaOptions.map(title => <option key={title} value={title} />)}</datalist>
           <label>Title<input required maxLength={160} placeholder="Give your conversation a title" value={draft.title} onChange={event => setDraft(current => ({...current,title:event.target.value}))} /></label>
           <label>Your message<textarea required maxLength={5000} rows={6} placeholder="What’s on your mind?" value={draft.body} onChange={event => setDraft(current => ({...current,body:event.target.value}))} /></label>
+          <CommunityAttachment value={draft.image || ''} disabled={sending} onChange={image=>setDraft(current=>({...current,image}))} onError={setComposeError} onBusyChange={setImageBusy}/>
           {draft.category === 'review' && <label>Rating<select value={draft.rating || ''} onChange={event => setDraft(current => ({...current,rating:event.target.value ? Number(event.target.value) : null}))}><option value="">No rating</option>{[1,2,3,4,5].map(n => <option key={n} value={n}>{n}/5 stars</option>)}</select></label>}
           {composeError && <p className="community-alert" role="alert">{composeError}</p>}
           {offline && <p className="community-alert">Publishing is unavailable while the Community backend is offline.</p>}
         </div>
         <footer className="community-compose-footer"><button type="button" disabled={sending} onClick={abandonPost}>Cancel / abandon</button><label className="community-checkbox"><input type="checkbox" checked={draft.contains_spoilers} onChange={event => setDraft(current => ({...current,contains_spoilers:event.target.checked}))} />Contains spoilers</label>
-          {viewer ? <button className="community-primary" type="submit" disabled={sending || offline}>{sending ? 'Publishing…' : editingPost ? 'Save changes' : 'Publish post'} <span>✦</span></button> : <Link className="community-primary" to="/auth/sign-in">Sign in to publish</Link>}
+          {viewer ? <button className="community-primary" type="submit" disabled={sending || offline || imageBusy}>{sending ? 'Publishing…' : editingPost ? 'Save changes' : 'Publish post'} <span>✦</span></button> : <Link className="community-primary" to="/auth/sign-in">Sign in to publish</Link>}
         </footer>
       </form>
     </CommunityModal>}

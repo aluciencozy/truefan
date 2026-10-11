@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
 import unittest
@@ -314,6 +314,99 @@ class BoardContractTests(unittest.TestCase):
         for values in ({'shape':'triangle'}, {'board_x':float('nan')}, {'board_y':float('inf')}, {'board_x':10001}):
             with self.assertRaises(ValidationError):
                 EntryCreate(kind='clue',body='Clue',**values)
+
+
+class CommentWindowTests(unittest.TestCase):
+    def test_deadline_is_fixed_and_exact_boundary_is_rejected(self):
+        from app.community_models import CommunityComment
+        created = datetime.now(timezone.utc)
+        comment = CommunityComment(id=uuid4(),author='Fan',body='Hi',contains_spoilers=False,created_at=created)
+        self.assertEqual(comment.editable_until,created+timedelta(minutes=10))
+        with patch('app.services.community.datetime') as clock:
+            clock.now.return_value = created+timedelta(minutes=10)-timedelta(microseconds=1)
+            community.require_comment_window({'created_at':created})
+            clock.now.return_value = created+timedelta(minutes=10)
+            with self.assertRaises(HTTPException) as raised:
+                community.require_comment_window({'created_at':created})
+            self.assertEqual(raised.exception.status_code,409)
+
+    def test_image_validation_and_image_only_comments(self):
+        import base64
+        from pydantic import ValidationError
+        image = 'data:image/png;base64,' + base64.b64encode(b'\x89PNG\r\n\x1a\n').decode()
+        self.assertEqual(CommentCreate(image=image).image,image)
+        for value in ('https://example.com/image.png','data:image/svg+xml;base64,PHN2Zz4=', 'data:image/png;base64,YmFk'):
+            with self.assertRaises(ValidationError): CommentCreate(body='Image',image=value)
+            with self.assertRaises(ValidationError): PostCreate(media='Demo',title='Picture',body='Hello',image=value)
+        with self.assertRaises(ValidationError): CommentCreate(body=' ')
+
+
+@unittest.skipUnless(os.getenv('TRUEFAN_COMMUNITY_DB_TESTS') == '1', 'Opt-in temporary-table Neon tests')
+class CommentImageDatabaseTests(CommunityDatabaseTests):
+    def test_images_persist_and_hidden_comment_images_are_not_returned(self):
+        import base64
+        image = 'data:image/png;base64,' + base64.b64encode(b'\x89PNG\r\n\x1a\n').decode()
+        post = self.post(image=image)
+        self.assertEqual(community.read_post(post.id,None,False).image,image)
+        reply = community.create_comment(post.id,'one',CommentCreate(image=image),False)
+        self.assertEqual(community.comments(post.id,None,False)[0].image,image)
+        updated = community.update_comment(reply.id,'one',CommentCreate(body='Caption',image=image,contains_spoilers=True))
+        self.assertEqual(updated.image,image)
+        self.assertEqual(community.comments(post.id,None,False),[])
+        self.assertEqual(community.comments(post.id,None,True)[0].image,image)
+
+    def test_expired_comments_cannot_be_edited_or_deleted_by_owner(self):
+        post = self.post()
+        reply = community.create_comment(post.id,'one',CommentCreate(body='Original'),False)
+        community.update_comment(reply.id,'one',CommentCreate(body='Edited'))
+        self.conn.execute("UPDATE community_comments SET created_at=now()-interval '10 minutes' WHERE id=%s",(reply.id,))
+        for operation in (lambda: community.update_comment(reply.id,'one',CommentCreate(body='Late edit')),
+                          lambda: community.delete_content('community_comments',reply.id,'one')):
+            with self.assertRaises(HTTPException) as raised: operation()
+            self.assertEqual(raised.exception.status_code,409)
+        self.assertEqual(community.comments(post.id,None,False)[0].body,'Edited')
+
+
+@unittest.skipUnless(os.getenv('TRUEFAN_COMMUNITY_DB_TESTS') == '1', 'Opt-in temporary-table Neon tests')
+class ContributionReplyDatabaseTests(CommunityDatabaseTests):
+    def test_contribution_reply_then_reply_to_reply_and_visibility(self):
+        from app.community_models import EntryCreate
+        post = self.post(room='drawing')
+        art = community.save_entry(post.id, 'artist', EntryCreate(kind='art',body='A drawing'), False)
+        reply = community.create_comment(post.id,'reader',CommentCreate(body='Love this',entry_id=art.id),False)
+        nested = community.create_comment(post.id,'artist',CommentCreate(body='Thank you',parent_id=reply.id),False)
+        visible = community.comments(post.id,'reader',False)
+        self.assertEqual(visible[0].entry_id,art.id)
+        self.assertEqual(visible[0].reply_to_author,art.author)
+        self.assertEqual(visible[1].parent_id,reply.id)
+        self.assertEqual(visible[1].reply_to_author,reply.author)
+        self.assertEqual(community.read_post(post.id,None,False).comments,2)
+        other = self.post(room='drawing')
+        for target in (art.id,uuid4()):
+            with self.assertRaises(HTTPException):
+                community.create_comment(other.id,'reader',CommentCreate(body='Wrong post',entry_id=target),False)
+        with self.assertRaises(HTTPException):
+            community.create_comment(post.id,'reader',CommentCreate(body='Two targets',parent_id=reply.id,entry_id=art.id),False)
+        community.save_entry(post.id,'artist',EntryCreate(kind='art',body='Spoiler drawing',contains_spoilers=True),True,art.id)
+        self.assertEqual(community.comments(post.id,None,False),[])
+        self.assertEqual(community.read_post(post.id,None,False).comments,0)
+        self.assertEqual(len(community.comments(post.id,None,True)),2)
+        with self.assertRaises(HTTPException):
+            community.create_comment(post.id,'reader',CommentCreate(body='Hidden target',entry_id=art.id),False)
+        community.update_comment(nested.id,'artist',CommentCreate(body='Edited nested reply'))
+
+    def test_expired_artwork_controls_and_prediction_reply_privacy(self):
+        from app.community_models import EntryCreate
+        post = self.post(room='drawing')
+        art = community.save_entry(post.id,'artist',EntryCreate(kind='art',body='Original'),False)
+        self.conn.execute("UPDATE community_entries SET created_at=now()-interval '10 minutes' WHERE id=%s",(art.id,))
+        for operation in (lambda: community.save_entry(post.id,'artist',EntryCreate(kind='art',body='Late edit'),False,art.id),lambda: community.delete_content('community_entries',art.id,'artist')):
+            with self.assertRaises(HTTPException) as raised: operation()
+            self.assertEqual(raised.exception.status_code,409)
+        capsule = self.post(category='theory',room='capsule')
+        prediction = community.save_entry(capsule.id,'reader',EntryCreate(kind='prediction',body='Private guess'),False)
+        with self.assertRaises(HTTPException):
+            community.create_comment(capsule.id,'reader',CommentCreate(body='Must not publish this',entry_id=prediction.id),True)
 
 
 if __name__ == '__main__': unittest.main()
