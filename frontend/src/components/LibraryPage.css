@@ -1,4 +1,4 @@
-.library-page{min-height:100svh;position:relative;isolation:isolate;background:#1e1e2e}
+.library-page{min-height:100svh;position:relative;isolation:isolate;background:var(--nebula-glow),#1e1e2e}
 .saved-library{min-height:calc(100svh - 88px);background:transparent;color:#cdd6f4;padding:28px 32px 32px;font-family:'Pixelify Sans',monospace;font-weight:400}
 .saved-library button,.saved-library input,.saved-library select,.library-dialog button{font-family:inherit}
 .saved-library a{color:inherit;text-decoration:none}
@@ -183,4 +183,3 @@
 .library-dialog .library-danger{color:#f38ba8}
 
 .universe-map{line-height:1.2}
-

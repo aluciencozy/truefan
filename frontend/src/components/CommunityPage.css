@@ -11,7 +11,7 @@
   --input-bg: var(--mantle); --subtle: #a6aecf; --font-display: var(--display);
   --radius-control: 12px; --radius-card: 16px;
   min-height: 100svh; display: flex; flex-direction: column; position: relative;
-  isolation: isolate; background: var(--base); color: var(--text);
+  isolation: isolate; background: var(--nebula-glow), var(--base); color: var(--text);
   font: 13px/1.6 "Inter", system-ui, sans-serif;
 }
 .community-page p, .community-page h1, .community-page h2, .community-page h3 { margin: 0; }

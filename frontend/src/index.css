@@ -9,6 +9,7 @@
 :root {
   --crust: #11111b; --mantle: #181825; --base: #1e1e2e; --surface: #313244; --border: #45475a;
   --text: #cdd6f4; --subtext: #bac2de; --muted: #a6adc8; --mauve: #cba6f7; --lavender: #b4befe;
+  --nebula-glow: radial-gradient(ellipse 38rem 30rem at 16% 22%, #f28dbb14 0%, #f28dbb06 45%, transparent 76%), radial-gradient(ellipse 42rem 34rem at 82% 72%, #b69cff12 0%, #b69cff05 48%, transparent 78%), radial-gradient(ellipse 27rem 21rem at 66% 18%, #d9a5ff0b 0%, transparent 76%), radial-gradient(ellipse 30rem 24rem at 28% 82%, #f28dbb08 0%, transparent 78%);
   --display: "Pixelify Sans", monospace;
   font-family: "JetBrains Mono", monospace; color: var(--text); background: var(--crust); color-scheme: dark; font-synthesis: none;
 }
@@ -49,25 +50,25 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .auth-form { display: grid; gap: 12px; }
 .brand { color: var(--mauve); }
 /* Sparse static starlight avoids frame-by-frame rendering and animated filters. */
-.celestial { position: relative; isolation: isolate; background: radial-gradient(ellipse at 51% 44%, #31324470, #1e1e2e30 42%, transparent 73%), var(--crust); }
+.celestial { position: relative; isolation: isolate; background: var(--nebula-glow), radial-gradient(ellipse at 51% 44%, #31324470, #1e1e2e30 42%, transparent 73%), var(--crust); }
 .celestial::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .6;
   background-image: radial-gradient(circle at 17px 43px, #b4befe80 .65px, transparent 1px), radial-gradient(circle at 117px 91px, #cdd6f470 .6px, transparent 1px), radial-gradient(circle at 73px 163px, #cba6f750 .65px, transparent 1px);
   background-size: 257px 239px, 389px 317px, 541px 457px;
 }
 /* Home retains the reference artwork placement and centered search. */
-.home-page { min-height: 100svh; display: flex; flex-direction: column; font-family: var(--display); background: var(--crust); }
+.home-page { min-height: 100svh; display: flex; flex-direction: column; font-family: var(--display); background: var(--nebula-glow), var(--crust); }
 .home-footer { min-height: 88px; padding: 20px 48px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.home-hero { flex: 1; min-height: 600px; display: grid; place-items: center; padding: 0 24px 40px; overflow: hidden; background: var(--crust); }
+.home-hero { flex: 1; min-height: 600px; display: grid; place-items: center; padding: 0 24px 40px; overflow: hidden; background: var(--nebula-glow), var(--crust); }
 .home-graph { position: absolute; z-index: -1; top: 50%; left: 50%; width: 1440px; height: 724px; transform: translate(-50%, -50%); pointer-events: none; }
 .home-glow { position: absolute; left: 170px; top: 12px; opacity: .55; }
 .home-connections { display: block; opacity: .85; }
-.home-node { position: absolute; transform: translate(-50%, -50%); aspect-ratio: 1; overflow: hidden; background: var(--surface); border-radius: 50%; box-shadow: 0 5px 12px #11111ba6, 0 0 18px 2px #cba6f773; }
+.home-node { position: absolute; transform: translate(-50%, -50%); aspect-ratio: 1; overflow: hidden; background: var(--surface); border-radius: 50%; box-shadow: 0 5px 12px #11111ba6, 0 0 18px 2px #f5a6c873; }
 .home-node img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .home-search { width: min(680px, 100%); min-height: 250px; display: flex; flex-direction: column; align-items: center; gap: 28px; }
 .home-introduction { min-height: 96px; width: 100%; text-align: center; }
 .home-introduction h1 { margin: 0; font-size: 48px; font-weight: 600; line-height: 1.2; }
 .home-introduction p { margin: 10px 0 0; font-size: 16px; line-height: 1.5; color: var(--subtext); }
-.home-search-form { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 68px; padding: 9px 9px 9px 21px; border: 1px solid #585b70; border-radius: 16px; background: #1e1e2ef2; box-shadow: 0 0 60px #cba6f70d, 0 12px 32px #11111b73; transition: border-color .2s, box-shadow .2s; }
+.home-search-form { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 68px; padding: 9px 9px 9px 21px; border: 1px solid #585b70; border-radius: 16px; background: #1e1e2ef2; box-shadow: 0 0 60px #f5a6c80d, 0 12px 32px #11111b73; transition: border-color .2s, box-shadow .2s; }
 .home-search-form:focus-within { border-color: var(--mauve); box-shadow: 0 0 0 3px #cba6f711, 0 12px 40px #11111b80; }
 .home-search-form > img { flex-shrink: 0; }
 .home-search-form input { flex: 1; min-width: 0; margin: 0; padding: 10px 0; border: 0; border-radius: 0; background: transparent; font-size: 16px; }
@@ -84,7 +85,7 @@ a { color: var(--mauve); text-decoration: underline; text-underline-offset: 4px;
 .home-search .home-guidance { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); text-align: center; }
 .home-footer { color: var(--muted); font-size: 13px; }
 /* The map is the workspace. Search and details float above it. */
-.app-shell.celestial { min-height: 100svh; background: var(--crust); overflow: clip; }
+.app-shell.celestial { min-height: 100svh; background: var(--nebula-glow), var(--crust); overflow: clip; }
 .app-shell .celestial { background: transparent; }
 .app-shell .celestial::before { display: none; }
 .account-panel { position: relative; font-size: 12px; }

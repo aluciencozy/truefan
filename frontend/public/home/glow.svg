@@ -2,9 +2,9 @@
 <ellipse id="Soft ambient hero glow" cx="550" cy="340" rx="550" ry="340" fill="url(#paint0_radial_0_26)"/>
 <defs>
 <radialGradient id="paint0_radial_0_26" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(550 340) scale(550 340)">
-<stop stop-color="#CBA6F7" stop-opacity="0.1"/>
-<stop offset="0.55" stop-color="#CBA6F7" stop-opacity="0.035"/>
-<stop offset="1" stop-color="#CBA6F7" stop-opacity="0"/>
+<stop stop-color="#F5A6C8" stop-opacity="0.1"/>
+<stop offset="0.55" stop-color="#F5A6C8" stop-opacity="0.035"/>
+<stop offset="1" stop-color="#F5A6C8" stop-opacity="0"/>
 </radialGradient>
 </defs>
 </svg>
