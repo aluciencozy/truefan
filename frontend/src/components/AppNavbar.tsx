@@ -4,6 +4,8 @@ import { authClient } from '../lib/auth'
 import AuthPanel from './AuthPanel'
 import './AppNavbar.css'
 
+const BrandLink = motion.create(Link)
+
 const destinations = [
   { to: '/explore', label: 'Explore' },
   { to: '/library', label: 'Saved Universes' },
@@ -19,9 +21,12 @@ export default function AppNavbar({ onIdentity }: { onIdentity?: (id: string | n
   const reduced = useReducedMotion()
 
   return <header className="app-navbar">
-    <Link className="navbar-brand" to="/" aria-label="TrueFan home">
-      <img src="/home/brand.svg" width="30" height="30" alt="" />TrueFan
-    </Link>
+    <BrandLink className="navbar-brand" to="/" aria-label="TrueFan home"
+      whileHover={{ scale: 1.12, rotate: -10, y: -2 }}
+      whileTap={{ scale: .96, rotate: 0, y: 0 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 18 }}>
+      <img src="/home/truefan-logo.svg" width="52" height="52" alt="" />
+    </BrandLink>
     <nav className="navbar-links" aria-label="Main navigation">
       {destinations.map(({ to, label }) => {
         const active = pathname === to || pathname.startsWith(`${to}/`) || (to === '/explore' && pathname === '/')

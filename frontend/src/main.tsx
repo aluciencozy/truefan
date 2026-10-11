@@ -9,10 +9,11 @@ import CommunityPage from './components/CommunityPage'
 import LibraryPage from './components/LibraryPage'
 import CursorStars from './components/CursorStars'
 import PageTransition from './components/PageTransition'
+import OpeningAnimation from './components/OpeningAnimation'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode><BrowserRouter><AuthProvider><CursorStars /><PageTransition>
+  <StrictMode><BrowserRouter><AuthProvider><OpeningAnimation><CursorStars /><PageTransition>
     <Route path="/" element={<HomePage />} />
     <Route path="/explore" element={<App />} />
     <Route path="/community" element={<CommunityPage />} />
@@ -20,5 +21,5 @@ createRoot(document.getElementById('root')!).render(
     <Route path="/auth/:path" element={<AuthPages />} />
     <Route path="/account/:path" element={<AuthPages account />} />
     <Route path="*" element={<Navigate to="/" replace />} />
-  </PageTransition></AuthProvider></BrowserRouter></StrictMode>,
+  </PageTransition></OpeningAnimation></AuthProvider></BrowserRouter></StrictMode>,
 )
